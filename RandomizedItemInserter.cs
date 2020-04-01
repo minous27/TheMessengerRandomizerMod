@@ -12,16 +12,17 @@ namespace MessengerRando
 {
     public class RandomizedItemInserter : CourierModule
     {
-
-        private Dictionary<EItems, EItems> locationToItemMapping = null;
+        private Dictionary<EItems, EItems> locationToItemMapping;
 
         public override void Load()
         {
             Console.WriteLine("Randomizer loaded and ready to try things!");
             //Start the randomizer util initializations
             ItemRandomizerUtil.Load();
+            //Generate the seed for this rando
+            int seed = ItemRandomizerUtil.GenerateSeed();
             //Generate the randomized mappings
-            locationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings();
+            locationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(seed);
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             Console.WriteLine("Randomizer finished loading!");
         }

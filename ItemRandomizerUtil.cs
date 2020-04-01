@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,20 +13,52 @@ namespace MessengerRando
         public static List<EItems> RandomizableItems { get; private set; }
         public static List<EItems> RandomizableLocations { get; private set; }
 
+        public static int OfficialSeed { get; private set; }
 
-        public static Dictionary<EItems,EItems> GenerateRandomizedMappings()
+        public static Dictionary<EItems,EItems> GenerateRandomizedMappings(int passedSeed = Int32.MinValue)
         {
             Console.WriteLine("Beginning mapping generation.");
-            Random randomNumberGen = new Random();
-            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
+            //If no seed was provided, create one
+            if(passedSeed == Int32.MinValue)
+            {
+                int tempSeed = GenerateSeed();
+
+                if (OfficialSeed == tempSeed)
+                {
+                    Console.WriteLine("Generated the same seed again. Will wait a bit and try again.");
+                    Thread.Sleep(1000);//Wait a second
+                    tempSeed = GenerateSeed();
+                    //Do the check one more time and if nothing was fixed then log it.
+                    if(OfficialSeed == tempSeed)
+                    {
+                        Console.WriteLine("2 attempts to get a new seed failed. Moving along...");
+                    }
+                }
+         
+                OfficialSeed = tempSeed;
+                
+                
+                Console.WriteLine($"No seed passed, generated seed for this mapping is: {OfficialSeed}");
+            }
+            else
+            {
+                OfficialSeed = passedSeed;
+            }
+            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
+            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
+
+            //Get our randomizer set up
+            Random randomNumberGen = new Random(OfficialSeed);
+
             //Begin filling out the mappings. Both collections need to logically be the same size.
+            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
             foreach (EItems item in RandomizableItems) //For each item to randomize, pick a random location and create the mapping.
             {
-                int index = randomNumberGen.Next(RandomizableLocations.Count);
-                mappings.Add(RandomizableLocations[index], item);
-                Console.WriteLine($"Mapping added! '{item}' can be found at '{RandomizableLocations[index]}'");
+                int index = randomNumberGen.Next(locationsForGeneration.Count);
+                mappings.Add(locationsForGeneration[index], item);
+                Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
                 //Remove the used location
-                RandomizableLocations.RemoveAt(index);
+                locationsForGeneration.RemoveAt(index);
             }
             //The mappings should be created now.
             Console.WriteLine("Mapping generation complete.");
@@ -36,6 +68,11 @@ namespace MessengerRando
         public static void Load()
         {
             LoadRandomizableItems();
+        }
+
+        public static int GenerateSeed()
+        {
+            return (int)(DateTime.Now.Ticks & 0x0000DEAD);
         }
 
 
