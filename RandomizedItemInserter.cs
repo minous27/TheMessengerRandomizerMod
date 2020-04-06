@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Mod.Courier;
-using Mod.Courier.Helpers;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using static Mod.Courier.UI.TextEntryButtonInfo;
 
 
 namespace MessengerRando 
@@ -16,7 +19,7 @@ namespace MessengerRando
         private Dictionary<EItems, EItems> locationToItemMapping;
         
 
-        SubMenuButtonInfo generateSeedButton;
+        TextEntryButtonInfo generateSeedButton;
 
         public override void Load()
         {
@@ -28,7 +31,7 @@ namespace MessengerRando
             //Generate the randomized mappings
             locationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(seed);
             //Add generate mod option button
-            generateSeedButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Generate Seed", GenerateSeed);
+            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileName, 10, () => "Please provide rando file name.", null);
 
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             Console.WriteLine("Randomizer finished loading!");
@@ -58,11 +61,55 @@ namespace MessengerRando
             orig(self, randoItemId, randoQuantity);
         }
 
-        void GenerateSeed()
+        //On submit of rando file name
+        bool OnEnterRandoFileName(string fileName)
         {
+            Console.WriteLine($"File name received: {fileName}");
+
+            //Pop up next input for which file slot to create this file in
+            TextEntryPopup fileSlotPopup = InitTextEntryPopup(generateSeedButton.addedTo, "Which save slot would you like to start a rando seed?", (entry) => OnEnterRandoFileSlot(entry), 1, null, CharsetFlags.Number);
+            fileSlotPopup.onBack += () =>
+            {
+                fileSlotPopup.gameObject.SetActive(false);
+                generateSeedButton.textEntryPopup.gameObject.SetActive(true);
+                generateSeedButton.textEntryPopup.StartCoroutine(generateSeedButton.textEntryPopup.BackWhenBackButtonReleased());
+            };
+            generateSeedButton.textEntryPopup.gameObject.SetActive(false);
+            
+            //Initialize the file slot popup
+            fileSlotPopup.Init(string.Empty);
+            fileSlotPopup.gameObject.SetActive(true);
+            fileSlotPopup.transform.SetParent(generateSeedButton.addedTo.transform.parent);
+            generateSeedButton.addedTo.gameObject.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
+            EventSystem.current.SetSelectedGameObject(fileSlotPopup.initialSelection);
+            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
+            return false;
+        }
+
+        //On submit of rando file location
+        bool OnEnterRandoFileSlot(string fileSlot)
+        {
+            Console.WriteLine($"Received file slot number: {fileSlot}");
+
+            int slot = Convert.ToInt32(fileSlot);
+
+            //Check to make sure an apporiate save slot was chosen.
+            if (slot < 1 || slot > 3)
+            {
+                Console.WriteLine($"User provided an invalid save slot number {slot}");
+                return false;
+            }
+
+            //Generate a seed
             Console.WriteLine("Generating seed...");
             this.seed = ItemRandomizerUtil.GenerateSeed();
             Console.WriteLine($"Seed generated: '{this.seed}'");
+
+            //TODO Would start creating the save file
+
+            return true;
         }
     }
 }
