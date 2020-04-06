@@ -12,7 +12,11 @@ namespace MessengerRando
 {
     public class RandomizedItemInserter : CourierModule
     {
+        private int seed = 0;
         private Dictionary<EItems, EItems> locationToItemMapping;
+        
+
+        SubMenuButtonInfo generateSeedButton;
 
         public override void Load()
         {
@@ -20,9 +24,15 @@ namespace MessengerRando
             //Start the randomizer util initializations
             ItemRandomizerUtil.Load();
             //Generate the seed for this rando
-            int seed = ItemRandomizerUtil.GenerateSeed();
+            seed = ItemRandomizerUtil.GenerateSeed();
             //Generate the randomized mappings
             locationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(seed);
+            //Add generate mod option button
+            generateSeedButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Generate Seed", GenerateSeed);
+
+            //I only want the generate seed mod option available when not in the game.
+            generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -43,6 +53,13 @@ namespace MessengerRando
 
             //Call original add with items
             orig(self, randoItemId, randoQuantity);
+        }
+
+        void GenerateSeed()
+        {
+            Console.WriteLine("Generating seed...");
+            this.seed = ItemRandomizerUtil.GenerateSeed();
+            Console.WriteLine($"Seed generated: '{this.seed}'");
         }
     }
 }
