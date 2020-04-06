@@ -30,11 +30,14 @@ namespace MessengerRando
             //Add generate mod option button
             generateSeedButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Generate Seed", GenerateSeed);
 
-            //I only want the generate seed mod option available when not in the game.
-            generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             Console.WriteLine("Randomizer finished loading!");
+        }
+
+        public override void Initialize()
+        {
+            //I only want the generate seed mod option available when not in the game.
+            generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
         }
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
