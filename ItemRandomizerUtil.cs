@@ -78,7 +78,6 @@ namespace MessengerRando
         private static void LoadRandomizableItems()
         {
             List<EItems> itemsToLoad = new List<EItems>();
-            itemsToLoad.Add(EItems.CLIMBING_CLAWS);
             itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
             itemsToLoad.Add(EItems.SEASHELL);

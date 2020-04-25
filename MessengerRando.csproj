@@ -64,6 +64,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="RandomizerStateManager.cs" />
+    <Compile Include="RandomizerSaveMethod.cs" />
     <Compile Include="ItemRandomizerUtil.cs" />
     <Compile Include="RandomizedItemInserter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
