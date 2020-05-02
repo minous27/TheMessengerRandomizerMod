@@ -64,11 +64,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RandomizerStateManager.cs" />
-    <Compile Include="RandomizerSaveMethod.cs" />
-    <Compile Include="ItemRandomizerUtil.cs" />
+    <Compile Include="Utils\RandomizerStateManager.cs" />
+    <Compile Include="Utils\RandomizerSaveMethod.cs" />
+    <Compile Include="Utils\ItemRandomizerUtil.cs" />
     <Compile Include="RandomizedItemInserter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
