@@ -55,6 +55,9 @@ namespace MessengerRando
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
+            On.HasItem.IsTrue += HasItem_IsTrue;
+            On.AwardNoteCutscene.ShouldPlay += AwardNoteCutscene_ShouldPlay;
+            //On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
             
@@ -83,6 +86,75 @@ namespace MessengerRando
 
             //Call original add with items
             orig(self, randoItemId, randoQuantity);
+        }
+
+        bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
+        {
+            bool hasItem = false;
+            //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
+            if (ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
+            {
+                //Don't actually check for the item i have, check to see if I have the item that was at it's location.
+                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.item]);
+                switch (self.conditionOperator)
+                {
+                    case EConditionOperator.LESS_THAN:
+                        hasItem = itemQuantity < self.quantityToHave;
+                        break;
+                    case EConditionOperator.LESS_OR_EQUAL:
+                        hasItem = itemQuantity <= self.quantityToHave;
+                        break;
+                    case EConditionOperator.EQUAL:
+                        hasItem = itemQuantity == self.quantityToHave;
+                        break;
+                    case EConditionOperator.GREATER_OR_EQUAL:
+                        hasItem = itemQuantity >= self.quantityToHave;
+                        break;
+                    case EConditionOperator.GREATER_THAN:
+                        hasItem = itemQuantity > self.quantityToHave;
+                        break;
+                }
+                Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[self.item]}' || Current Check '{self.conditionOperator}' || Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
+                return hasItem;
+            }
+            else //Call orig method
+            {
+                return orig(self);
+            }
+            
+        }
+
+        bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
+        {
+            //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
+            if (randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
+            {
+                bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.noteToAward]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
+                randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
+                return shouldPlay;
+            }
+            else //Call orig method if for some reason the note I am checking for is not randomized
+            {
+                return orig(self);
+            }
+        }
+
+        bool CutsceneHasPlayed_IsTrue(On.CutsceneHasPlayed.orig_IsTrue orig, CutsceneHasPlayed self)
+        {
+            
+
+            //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
+            if(ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId) && Manager<InventoryManager>.Instance.GetItemQuantity(ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]) >= 1)
+            {
+                //Return true, this cutscene has "been played"
+                return true;
+            }
+            else //call the orig method
+            {
+                return orig(self);
+            }
+
+            
         }
 
         void SaveGameSelectionScreen_OnLoadGame(On.SaveGameSelectionScreen.orig_OnLoadGame orig, SaveGameSelectionScreen self, int slotIndex)

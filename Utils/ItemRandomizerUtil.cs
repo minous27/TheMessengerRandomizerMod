@@ -11,6 +11,9 @@ namespace MessengerRando
 
         public static List<EItems> RandomizableItems { get; private set; }
         public static List<EItems> RandomizableLocations { get; private set; }
+        public static List<string> TriggersToIgnoreRandoItemLogic { get; private set; }
+
+        public static Dictionary<string, EItems> CutsceneMappings { get; private set; }
 
         public static int OfficialSeed { get; private set; }
 
@@ -67,11 +70,16 @@ namespace MessengerRando
         public static void Load()
         {
             LoadRandomizableItems();
+            LoadSpecialTriggerNames();
+            LoadCutsceneMappings();
         }
 
         public static int GenerateSeed()
         {
-            return (int)(DateTime.Now.Ticks & 0x0000DEAD);
+            int seed = (int)(DateTime.Now.Ticks & 0x0000DEAD);
+            Console.WriteLine($"Seed '{seed}' generated.");
+            GenerateRandomizedMappings(seed); //Right now mostly generating here to log mappings before entering game. 
+            return seed;
         }
 
 
@@ -81,8 +89,8 @@ namespace MessengerRando
             itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
             itemsToLoad.Add(EItems.SEASHELL);
-            itemsToLoad.Add(EItems.TEA_SEED);
-            itemsToLoad.Add(EItems.CANDLE);
+            //itemsToLoad.Add(EItems.TEA_SEED); Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
+            //itemsToLoad.Add(EItems.CANDLE);
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
             itemsToLoad.Add(EItems.SUN_CREST);
@@ -104,6 +112,44 @@ namespace MessengerRando
             RandomizableItems = itemsToLoad;
             //For now the lists will be the same so lets set the locations as well.
             RandomizableLocations = new List<EItems>(itemsToLoad);
+
+        }
+
+        private static void LoadSpecialTriggerNames()
+        {
+            TriggersToIgnoreRandoItemLogic = new List<string>();
+
+            //LOAD (initally started as a black list of locations...probably would have been better to make this a whitelist...whatever)
+            TriggersToIgnoreRandoItemLogic.Add("CorruptedFuturePortal"); //Need to really check for crown and get access to CF
+            TriggersToIgnoreRandoItemLogic.Add("Lucioles"); //CF Fairy Check
+            /* Key check block
+            TriggersToIgnoreRandoItemLogic.Add("KeyOvHope");
+            TriggersToIgnoreRandoItemLogic.Add("KeyOvCourageCutscene");
+            TriggersToIgnoreRandoItemLogic.Add("KeyOvLove");
+            TriggersToIgnoreRandoItemLogic.Add("KeyOvStrength");
+            TriggersToIgnoreRandoItemLogic.Add("KeyOvChaos");
+            */
+            TriggersToIgnoreRandoItemLogic.Add("InteractionZone"); //Sunken Shrine door check...also the name of the power thistle give check
+            TriggersToIgnoreRandoItemLogic.Add("DecurseQueenCutscene");
+            TriggersToIgnoreRandoItemLogic.Add("Bridge"); //Forlorn bridge check
+            //These are for the sprite renderings of phoebes (TODO make sure this doesnt break the pickup locations)
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro_16");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinAcro");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinAcro_16");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinClaustro");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinClaustro_16");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro");
+            TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro_16");
+        }
+
+        private static void LoadCutsceneMappings()
+        {
+            //This is where all the cutscene mappings will live. I will map them to items the player should have to indicate this cutscene should have "been played"
+            CutsceneMappings = new Dictionary<string, EItems>();
+
+            //LOAD
+            CutsceneMappings.Add("CorruptedFuturePortalOpeningCutscene", EItems.DEMON_KING_CROWN);
 
         }
     }

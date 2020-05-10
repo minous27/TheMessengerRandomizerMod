@@ -13,6 +13,8 @@ namespace MessengerRando
 
         private Dictionary<int, int> seeds;
 
+        private Dictionary<EItems, bool> noteCutsceneTriggerStates;
+
        public static void Initialize()
         {
             if(Instance == null)
@@ -26,6 +28,18 @@ namespace MessengerRando
             //Create initial values for the state machine
             this.seeds = new Dictionary<int, int>();
             this.ResetCurrentLocationToItemMappings();
+            this.initializeCutsceneTriggerStates();
+        }
+
+        private void initializeCutsceneTriggerStates()
+        {
+            noteCutsceneTriggerStates = new Dictionary<EItems, bool>();
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_CHAOS, false);
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_COURAGE, false);
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_HOPE, false);
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_LOVE, false);
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_STRENGTH, false);
+            noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
         public void AddSeed(int fileSlot, int seed)
@@ -71,6 +85,16 @@ namespace MessengerRando
         public void ResetCurrentLocationToItemMappings()
         {
             CurrentLocationToItemMapping = new Dictionary<EItems, EItems>();
+        }
+
+        public bool IsNoteCutsceneTriggered(EItems note)
+        {
+            return this.noteCutsceneTriggerStates[note];
+        }
+
+        public void SetNoteCutsceneTriggered(EItems note)
+        {
+            this.noteCutsceneTriggerStates[note] = true;
         }
 
     }
