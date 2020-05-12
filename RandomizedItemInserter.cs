@@ -16,7 +16,7 @@ namespace MessengerRando
 {
     public class RandomizedItemInserter : CourierModule
     {
-        private const string RANDO_OPTION_KEY = "randoSeed";
+        private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
 
         private RandomizerStateManager randoStateManager;       
 
