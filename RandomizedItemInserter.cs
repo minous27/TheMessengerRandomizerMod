@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using Mod.Courier;
 using Mod.Courier.Module;
-using Mod.Courier.Save;
 using Mod.Courier.UI;
-using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 
 
@@ -21,28 +14,11 @@ namespace MessengerRando
         private RandomizerStateManager randoStateManager;       
 
         TextEntryButtonInfo generateSeedButton;
-       // ModdedOptionsSave modSave;
 
         public override void Load()
         {
             Console.WriteLine("Randomizer loaded and ready to try things!");
-            /*
-            //Prep the mod options saver
-            modSave = ModdedOptionsSave.Instance;
-            
-            //whats in this thing?
-            if (modSave != null)
-            {
-                foreach (OptionPair option in modSave.Options)
-                {
-                    Console.WriteLine($"Option:{option.optionKey} | {option.optionValue}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Mod Save was null");
-            }
-            */
+           
             //Start the randomizer util initializations
             ItemRandomizerUtil.Load();
             //Initialize the randomizer state manager

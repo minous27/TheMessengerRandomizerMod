@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Text;
+
 
 namespace MessengerRando
 {
@@ -71,7 +71,7 @@ namespace MessengerRando
         {
             LoadRandomizableItems();
             LoadSpecialTriggerNames();
-            LoadCutsceneMappings();
+            //LoadCutsceneMappings();
         }
 
         public static int GenerateSeed()
@@ -89,8 +89,10 @@ namespace MessengerRando
             itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
             itemsToLoad.Add(EItems.SEASHELL);
-            //itemsToLoad.Add(EItems.TEA_SEED); Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
-            //itemsToLoad.Add(EItems.CANDLE);
+            /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
+            itemsToLoad.Add(EItems.TEA_SEED);
+            itemsToLoad.Add(EItems.CANDLE);
+            */
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
             itemsToLoad.Add(EItems.SUN_CREST);
@@ -122,17 +124,10 @@ namespace MessengerRando
             //LOAD (initally started as a black list of locations...probably would have been better to make this a whitelist...whatever)
             TriggersToIgnoreRandoItemLogic.Add("CorruptedFuturePortal"); //Need to really check for crown and get access to CF
             TriggersToIgnoreRandoItemLogic.Add("Lucioles"); //CF Fairy Check
-            /* Key check block
-            TriggersToIgnoreRandoItemLogic.Add("KeyOvHope");
-            TriggersToIgnoreRandoItemLogic.Add("KeyOvCourageCutscene");
-            TriggersToIgnoreRandoItemLogic.Add("KeyOvLove");
-            TriggersToIgnoreRandoItemLogic.Add("KeyOvStrength");
-            TriggersToIgnoreRandoItemLogic.Add("KeyOvChaos");
-            */
             TriggersToIgnoreRandoItemLogic.Add("InteractionZone"); //Sunken Shrine door check...also the name of the power thistle give check
             TriggersToIgnoreRandoItemLogic.Add("DecurseQueenCutscene");
             TriggersToIgnoreRandoItemLogic.Add("Bridge"); //Forlorn bridge check
-            //These are for the sprite renderings of phoebes (TODO make sure this doesnt break the pickup locations)
+            //These are for the sprite renderings of phoebes
             TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro");
             TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro_16");
             TriggersToIgnoreRandoItemLogic.Add("PhobekinAcro");
@@ -143,6 +138,7 @@ namespace MessengerRando
             TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro_16");
         }
 
+        /*Currently not manipulating cutscenes specifically but leaving the code here because I am sure i will at some point.
         private static void LoadCutsceneMappings()
         {
             //This is where all the cutscene mappings will live. I will map them to items the player should have to indicate this cutscene should have "been played"
@@ -152,5 +148,6 @@ namespace MessengerRando
             CutsceneMappings.Add("CorruptedFuturePortalOpeningCutscene", EItems.DEMON_KING_CROWN);
 
         }
+        */
     }
 }
