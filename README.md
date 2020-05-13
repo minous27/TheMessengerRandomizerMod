@@ -43,7 +43,8 @@ Until we get that working, you will need to set your game to be in this state to
 1. Download the 'RandomizerSaveGame.txt' file from the [Release](https://github.com/minous27/TheMessengerRandomizerMod/releases) you installed.
 2. Place the file in save file location for the game
     * By default that is located at _'C:\Users\youruserhere\AppData\LocalLow\Sabotage Studio\The Messenger'_.
-3. Delete the original 'SaveGame.txt' file and rename the randomizer save file to 'SaveGame.txt'.
+3. Backup your original 'SaveGame.txt' file.
+4. Rename the randomizer save file to 'SaveGame.txt'.
 
 You are all done! At this point you have the mod installed and the game in an apporiate state to begin running randomizer seeds. 
 
