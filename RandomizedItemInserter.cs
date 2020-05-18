@@ -36,6 +36,7 @@ namespace MessengerRando
             //On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
+            On.PhantomEnemy.ReceiveHit += PhantomEnemy_ReceiveHit;
             
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -163,6 +164,19 @@ namespace MessengerRando
             orig(self, slot);
         }
 
+        //Phantom damage function. 
+        bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
+        {
+            //We want phantom to not take damage if all notes have not been collected yet.
+            if(ItemRandomizerUtil.HasAllNotes())
+            {
+                return orig(self, hitData);
+            }
+            //Didn't get all the notes...so nothing will happen!!!
+            Console.WriteLine("I see you don't have all of the music notes...you thought you could damage phantom without them?!");
+            return false;
+        }
+
         /*TODO Maybe use later, for now will not take a file name
         //On submit of rando file name
         bool OnEnterRandoFileName(string fileName)
@@ -217,5 +231,7 @@ namespace MessengerRando
 
             return true;
         }
+
+
     }
 }
