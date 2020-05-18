@@ -14,6 +14,7 @@ namespace MessengerRando
         private RandomizerStateManager randoStateManager;       
 
         TextEntryButtonInfo generateSeedButton;
+        SubMenuButtonInfo teleportToHqButton;
 
         public override void Load()
         {
@@ -28,6 +29,9 @@ namespace MessengerRando
             //Add generate mod option button
             generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
             generateSeedButton.SaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
+
+            //Add teleport to HQ button\
+            teleportToHqButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to HQ", OnSelectTeleportToHq);
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
@@ -45,6 +49,7 @@ namespace MessengerRando
         {
             //I only want the generate seed mod option available when not in the game.
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            teleportToHqButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE;
         }
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
@@ -232,6 +237,19 @@ namespace MessengerRando
             return true;
         }
 
+        void OnSelectTeleportToHq()
+        {
+            //Properly close out of the mod options and get the game state back together
+            Manager<PauseManager>.Instance.Resume();
+            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);                
+            Console.WriteLine("Teleporting to HQ!");
+            Courier.UI.ModOptionScreen.Close(false);
 
+            //Fade the music out because musiception is annoying
+            Manager<AudioManager>.Instance.FadeMusicVolume(1f, 0f, true);
+
+            //Load the HQ
+            Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
+        }
     }
 }
