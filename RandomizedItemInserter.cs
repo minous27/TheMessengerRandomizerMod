@@ -2,6 +2,8 @@
 using Mod.Courier;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
+using UnityEngine;
+using UnityEngine.EventSystems;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 
 
@@ -14,6 +16,7 @@ namespace MessengerRando
         private RandomizerStateManager randoStateManager;       
 
         TextEntryButtonInfo generateSeedButton;
+        TextEntryButtonInfo enterSeedButton;
         SubMenuButtonInfo teleportToHqButton;
 
         public override void Load()
@@ -25,10 +28,16 @@ namespace MessengerRando
             //Initialize the randomizer state manager
             RandomizerStateManager.Initialize();
             randoStateManager = RandomizerStateManager.Instance;
+            RandomizerSaveMethod randomizerSaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
+
 
             //Add generate mod option button
             generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
-            generateSeedButton.SaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
+            generateSeedButton.SaveMethod = randomizerSaveMethod;
+
+            //Add Set seed mod option button
+            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
+            generateSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add teleport to HQ button\
             teleportToHqButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to HQ", OnSelectTeleportToHq);
@@ -47,8 +56,10 @@ namespace MessengerRando
 
         public override void Initialize()
         {
-            //I only want the generate seed mod option available when not in the game.
+            //I only want the generate seed/enter seed mod options available when not in the game.
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+
             teleportToHqButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE;
         }
 
@@ -59,7 +70,7 @@ namespace MessengerRando
             int randoQuantity = quantity;
 
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId))
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
@@ -74,7 +85,7 @@ namespace MessengerRando
         {
             bool hasItem = false;
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
-            if (ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
+            if (randoStateManager.IsRandomizedFile && ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
             {
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
                 int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.item]);
@@ -109,7 +120,7 @@ namespace MessengerRando
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
             //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
-            if (randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
             {
                 bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.noteToAward]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
@@ -126,7 +137,7 @@ namespace MessengerRando
             
 
             //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
-            if(ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId) && Manager<InventoryManager>.Instance.GetItemQuantity(ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]) >= 1)
+            if(randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId) && Manager<InventoryManager>.Instance.GetItemQuantity(ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]) >= 1)
             {
                 //Return true, this cutscene has "been played"
                 return true;
@@ -149,6 +160,7 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                randoStateManager.IsRandomizedFile = true;
             }
             else
             {
@@ -212,28 +224,61 @@ namespace MessengerRando
         }
         */
 
+        bool OnEnterSeedNumber(string seed)
+        {
+            if(seed == null || seed.Length < 1)
+            {
+                Console.WriteLine($"Invalid seed number '{seed}' provided");
+                return false;
+            }
+
+            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
+            fileSlotPopup.onBack += () => {
+                fileSlotPopup.gameObject.SetActive(false);
+                enterSeedButton.textEntryPopup.gameObject.SetActive(true);
+                enterSeedButton.textEntryPopup.StartCoroutine(enterSeedButton.textEntryPopup.BackWhenBackButtonReleased());
+            };
+            enterSeedButton.textEntryPopup.gameObject.SetActive(false);
+            fileSlotPopup.Init(string.Empty);
+            fileSlotPopup.gameObject.SetActive(true);
+            fileSlotPopup.transform.SetParent(enterSeedButton.addedTo.transform.parent);
+            enterSeedButton.addedTo.gameObject.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
+            EventSystem.current.SetSelectedGameObject(fileSlotPopup.initialSelection);
+            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
+            return false;
+        }
+
         //On submit of rando file location
         bool OnEnterRandoFileSlot(string fileSlot)
         {
             Console.WriteLine($"Received file slot number: {fileSlot}");
 
-            int randoSaveSlot = Convert.ToInt32(fileSlot);
+            return SetSeedForFileSlot(Convert.ToInt32(fileSlot));
+        }
 
+        //Moved the seed setting logic out so I could reuse it.
+        bool SetSeedForFileSlot(int fileSlot, int seed = Int32.MinValue)
+        {
             //Check to make sure an apporiate save slot was chosen.
-            if (randoSaveSlot < 1 || randoSaveSlot > 3)
+            if (fileSlot < 1 || fileSlot > 3)
             {
-                Console.WriteLine($"User provided an invalid save slot number {randoSaveSlot}");
+                Console.WriteLine($"User provided an invalid save slot number {fileSlot}");
                 return false;
             }
 
-            //Generate a seed
-            Console.WriteLine("Generating seed...");
-            int seed = ItemRandomizerUtil.GenerateSeed();
-            Console.WriteLine($"Seed generated: '{seed}'");
-
+            if (seed == Int32.MinValue)
+            {
+                //Generate a seed
+                Console.WriteLine("Generating seed...");
+                seed = ItemRandomizerUtil.GenerateSeed();
+                Console.WriteLine($"Seed generated: '{seed}'");
+            }
             //Save this seed into the state
-            randoStateManager.AddSeed(randoSaveSlot, seed);
+            randoStateManager.AddSeed(fileSlot, seed);
 
+            Console.WriteLine($"Set seed '{seed}' to file slot '{fileSlot}'");
             return true;
         }
 
@@ -251,5 +296,7 @@ namespace MessengerRando
             //Load the HQ
             Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
         }
+
+
     }
 }

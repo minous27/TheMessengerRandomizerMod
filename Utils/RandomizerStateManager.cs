@@ -7,12 +7,13 @@ namespace MessengerRando
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
-
         public Dictionary<EItems, EItems> CurrentLocationToItemMapping { set; get; }
-
+        public bool IsRandomizedFile { set; get; }
+        
         private Dictionary<int, int> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
+
 
        public static void Initialize()
         {
@@ -84,6 +85,7 @@ namespace MessengerRando
         public void ResetCurrentLocationToItemMappings()
         {
             CurrentLocationToItemMapping = new Dictionary<EItems, EItems>();
+            this.IsRandomizedFile = false;
         }
 
         public bool IsNoteCutsceneTriggered(EItems note)

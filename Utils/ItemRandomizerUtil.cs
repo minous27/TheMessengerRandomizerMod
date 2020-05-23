@@ -19,7 +19,6 @@ namespace MessengerRando
 
         public static Dictionary<EItems,EItems> GenerateRandomizedMappings(int passedSeed = Int32.MinValue)
         {
-            Console.WriteLine("Beginning mapping generation.");
             //If no seed was provided, create one
             if(passedSeed == Int32.MinValue)
             {
@@ -46,6 +45,7 @@ namespace MessengerRando
             {
                 OfficialSeed = passedSeed;
             }
+            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
             //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
             List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
 
