@@ -39,4 +39,4 @@ Please refer to [The Messenger Randomizer Wiki](https://github.com/minous27/TheM
 ### Contact Us
 ---
 
-Any feedback on the randomizer would be greatly appreciated as it will only serve to improve the mod. If you wish to provide feedback/comments/issues or just want to stay up to date on the discussions, join [The Messenger Mods discord server!](https://discord.gg/xR5V8WH) 
+Any feedback on the randomizer would be greatly appreciated as it will only serve to improve the mod. If you wish to provide feedback/comments/issues or just want to stay up to date on the discussions, join [The Messenger Mods discord server!](https://discord.gg/xR5V8WH)
