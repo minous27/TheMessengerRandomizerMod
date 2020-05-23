@@ -185,7 +185,7 @@ namespace MessengerRando
         bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
         {
             //We want phantom to not take damage if all notes have not been collected yet.
-            if(ItemRandomizerUtil.HasAllNotes())
+            if((!randoStateManager.IsRandomizedFile) || ItemRandomizerUtil.HasAllNotes())
             {
                 return orig(self, hitData);
             }
