@@ -64,6 +64,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="Utils\RandomizerStateManager.cs" />
     <Compile Include="Utils\RandomizerSaveMethod.cs" />
     <Compile Include="Utils\ItemRandomizerUtil.cs" />

@@ -124,7 +124,7 @@ namespace MessengerRando
             //LOAD (initally started as a black list of locations...probably would have been better to make this a whitelist...whatever)
             TriggersToIgnoreRandoItemLogic.Add("CorruptedFuturePortal"); //Need to really check for crown and get access to CF
             TriggersToIgnoreRandoItemLogic.Add("Lucioles"); //CF Fairy Check
-            TriggersToIgnoreRandoItemLogic.Add("InteractionZone"); //Sunken Shrine door check...also the name of the power thistle give check
+            //TriggersToIgnoreRandoItemLogic.Add("InteractionZone"); //Sunken Shrine door check...also the name of the power thistle give check
             TriggersToIgnoreRandoItemLogic.Add("DecurseQueenCutscene");
             TriggersToIgnoreRandoItemLogic.Add("Bridge"); //Forlorn bridge check
             //These are for the sprite renderings of phoebes

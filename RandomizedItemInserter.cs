@@ -1,4 +1,5 @@
 ﻿using System;
+using MessengerRando.Overrides;
 using Mod.Courier;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
@@ -50,7 +51,9 @@ namespace MessengerRando
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
             On.PhantomEnemy.ReceiveHit += PhantomEnemy_ReceiveHit;
-            
+            On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
+            On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
+
             Console.WriteLine("Randomizer finished loading!");
         }
 
@@ -181,7 +184,7 @@ namespace MessengerRando
             orig(self, slot);
         }
 
-        //Phantom damage function. 
+        //Phantom damage function. (TODO why bother doing this? xD)
         bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
         {
             //We want phantom to not take damage if all notes have not been collected yet.
@@ -192,6 +195,44 @@ namespace MessengerRando
             //Didn't get all the notes...so nothing will happen!!!
             Console.WriteLine("I see you don't have all of the music notes...you thought you could damage phantom without them?!");
             return false;
+        }
+
+        //Fixing necro cutscene check
+        void CatacombLevelInitializer_OnBeforeInitDone(On.CatacombLevelInitializer.orig_OnBeforeInitDone orig, CatacombLevelInitializer self)
+        {
+            
+            if(randoStateManager.IsRandomizedFile)
+            {
+                //check to see if we already have the item at Necro check
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]) <= 0 && !Manager<DemoManager>.Instance.demoMode)
+                {
+                    //Run the cutscene if we dont
+                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]}' from Necro check. Playing cutscene.");
+                    self.necrophobicWorkerCutscene.Play();
+                }
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]) >= 1 || Manager<DemoManager>.Instance.demoMode)
+                {
+                    //set necro inactive if we do
+                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]}' from Necro check. Will not play cutscene.");
+                    self.necrophobicWorkerCutscene.phobekin.gameObject.SetActive(false);
+                }
+                //Call our overriden fixing function
+                RandoCatacombLevelInitializer.FixPlayerStuckInChallengeRoom();
+            }
+            else
+            {
+                //we are not rando here, call orig method
+                orig(self);
+            }
+            
+        }
+
+        // Breaking into Necro cutscene to fix things
+        void NecrophobicWorkerCutscene_Play(On.NecrophobicWorkerCutscene.orig_Play orig, NecrophobicWorkerCutscene self)
+        {
+            //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
+            self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
+            orig(self);
         }
 
         /*TODO Maybe use later, for now will not take a file name
