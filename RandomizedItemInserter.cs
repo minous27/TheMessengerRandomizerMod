@@ -50,7 +50,8 @@ namespace MessengerRando
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
             On.PhantomEnemy.ReceiveHit += PhantomEnemy_ReceiveHit;
-            
+            On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
+
             Console.WriteLine("Randomizer finished loading!");
         }
 
@@ -181,7 +182,7 @@ namespace MessengerRando
             orig(self, slot);
         }
 
-        //Phantom damage function. 
+        //Phantom damage function. (TODO why bother doing this? xD)
         bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
         {
             //We want phantom to not take damage if all notes have not been collected yet.
@@ -192,6 +193,14 @@ namespace MessengerRando
             //Didn't get all the notes...so nothing will happen!!!
             Console.WriteLine("I see you don't have all of the music notes...you thought you could damage phantom without them?!");
             return false;
+        }
+
+        // Breaking into Necro cutscene to fix things
+        void NecrophobicWorkerCutscene_Play(On.NecrophobicWorkerCutscene.orig_Play orig, NecrophobicWorkerCutscene self)
+        {
+            //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
+            self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
+            orig(self);
         }
 
         /*TODO Maybe use later, for now will not take a file name
