@@ -3,6 +3,8 @@ using MessengerRando.Overrides;
 using Mod.Courier;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
+using Mono.Cecil.Cil;
+using MonoMod.Cil;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using static Mod.Courier.UI.TextEntryButtonInfo;
@@ -47,11 +49,12 @@ namespace MessengerRando
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.HasItem.IsTrue += HasItem_IsTrue;
             On.AwardNoteCutscene.ShouldPlay += AwardNoteCutscene_ShouldPlay;
-            //On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
+            On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
             On.PhantomEnemy.ReceiveHit += PhantomEnemy_ReceiveHit;
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
+            IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
 
             Console.WriteLine("Randomizer finished loading!");
@@ -70,18 +73,18 @@ namespace MessengerRando
         {
             //Currently defaulting rando values in case this is not a randomized item like pickups
             EItems randoItemId = itemId;
-            int randoQuantity = quantity;
 
+            Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             //Lets make sure that the item they are collecting is supposed to be randomized
             if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
-                randoQuantity = 1;
+                Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
             }
-
+            
             //Call original add with items
-            orig(self, randoItemId, randoQuantity);
+            orig(self, randoItemId, quantity);
         }
 
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
@@ -90,6 +93,13 @@ namespace MessengerRando
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
             if (randoStateManager.IsRandomizedFile && ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
             {
+                if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.transform.parent.name))
+                {
+                    //Special triggers that need to use normal logic, call orig method.
+                    Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
+                    return orig(self);
+                }
+
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
                 int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.item]);
                 switch (self.conditionOperator)
@@ -138,12 +148,24 @@ namespace MessengerRando
         bool CutsceneHasPlayed_IsTrue(On.CutsceneHasPlayed.orig_IsTrue orig, CutsceneHasPlayed self)
         {
             
-
-            //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
-            if(randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId) && Manager<InventoryManager>.Instance.GetItemQuantity(ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]) >= 1)
+            if(randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId))
             {
-                //Return true, this cutscene has "been played"
-                return true;
+                //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
+                Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}");
+
+                //Check to see if I have the item that is at this check.
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]) >= 1)
+                {
+                    //Return true, this cutscene has "been played"
+                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}' for cutscene '{self.cutsceneId}'. Returning that we have already seen cutscene.");
+                    return self.mustHavePlayed == true;
+                }
+                else
+                {
+                    //Havent seen the cutscene yet. Play it so i can get the item!
+                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}' for cutscene '{self.cutsceneId}'. Returning that we have not seen cutscene yet.");
+                    return self.mustHavePlayed == false;
+                }
             }
             else //call the orig method
             {
@@ -233,6 +255,17 @@ namespace MessengerRando
             //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
             self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
             orig(self);
+        }
+
+        void RuxxtinNoteAndAwardAmuletCutscene_Play(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+
+            while(cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdcI4(55)))
+            {
+                cursor.EmitDelegate<Func<EItems, EItems>>(GetRandoItemByItem);
+            }
+            
         }
 
         /*TODO Maybe use later, for now will not take a file name
@@ -338,6 +371,16 @@ namespace MessengerRando
             Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
         }
 
+        /// <summary>
+        /// Delegate function for getting rando item. This can be used by IL hooks that need to make this call later.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        private EItems GetRandoItemByItem(EItems item)
+        {
+            Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[EItems.RUXXTIN_AMULET]}'");
+            return randoStateManager.CurrentLocationToItemMapping[EItems.RUXXTIN_AMULET];
+        }
 
     }
 }

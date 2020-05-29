@@ -71,7 +71,7 @@ namespace MessengerRando
         {
             LoadRandomizableItems();
             LoadSpecialTriggerNames();
-            //LoadCutsceneMappings();
+            LoadCutsceneMappings();
         }
 
         public static int GenerateSeed()
@@ -91,8 +91,8 @@ namespace MessengerRando
             itemsToLoad.Add(EItems.SEASHELL);
             /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
             itemsToLoad.Add(EItems.TEA_SEED);
-            itemsToLoad.Add(EItems.CANDLE);
             */
+            itemsToLoad.Add(EItems.CANDLE);
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
             itemsToLoad.Add(EItems.SUN_CREST);
@@ -124,9 +124,10 @@ namespace MessengerRando
             //LOAD (initally started as a black list of locations...probably would have been better to make this a whitelist...whatever)
             TriggersToIgnoreRandoItemLogic.Add("CorruptedFuturePortal"); //Need to really check for crown and get access to CF
             TriggersToIgnoreRandoItemLogic.Add("Lucioles"); //CF Fairy Check
-            //TriggersToIgnoreRandoItemLogic.Add("InteractionZone"); //Sunken Shrine door check...also the name of the power thistle give check
             TriggersToIgnoreRandoItemLogic.Add("DecurseQueenCutscene");
             TriggersToIgnoreRandoItemLogic.Add("Bridge"); //Forlorn bridge check
+            TriggersToIgnoreRandoItemLogic.Add("NoUpgrade"); //Dark Cave Candle check
+            TriggersToIgnoreRandoItemLogic.Add("OverlayArt_16"); //...also Dark Cave Candle check
             //These are for the sprite renderings of phoebes
             TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro");
             TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro_16");
@@ -136,19 +137,23 @@ namespace MessengerRando
             TriggersToIgnoreRandoItemLogic.Add("PhobekinClaustro_16");
             TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro");
             TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro_16");
+            //Parents of triggers to handle sassy interaction zones
+            TriggersToIgnoreRandoItemLogic.Add("Colos_8");
+            TriggersToIgnoreRandoItemLogic.Add("Suses_8");
+            TriggersToIgnoreRandoItemLogic.Add("Door");
+            TriggersToIgnoreRandoItemLogic.Add("RuxtinStaff");
         }
 
-        /*Currently not manipulating cutscenes specifically but leaving the code here because I am sure i will at some point.
         private static void LoadCutsceneMappings()
         {
-            //This is where all the cutscene mappings will live. I will map them to items the player should have to indicate this cutscene should have "been played"
+            //This is where all the cutscene mappings will live. These mappings will mean that the cutscene requires additional logic to ensure it has "been played" or not.
             CutsceneMappings = new Dictionary<string, EItems>();
 
             //LOAD
-            CutsceneMappings.Add("CorruptedFuturePortalOpeningCutscene", EItems.DEMON_KING_CROWN);
+            CutsceneMappings.Add("RuxxtinNoteAndAwardAmuletCutscene", EItems.RUXXTIN_AMULET);
 
         }
-        */
+
 
         //Checks to see if all expected notes have already been collected
         public static bool HasAllNotes()
