@@ -93,9 +93,9 @@ namespace MessengerRando
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
             if (randoStateManager.IsRandomizedFile && ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
             {
-                if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.transform.parent.name))
+                if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
-                    //Special triggers that need to use normal logic, call orig method.
+                    //Special triggers that need to use normal logic, call orig method. This also includes the trigger check for the key of love on the sunken door because yeah.
                     Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
                     return orig(self);
                 }
