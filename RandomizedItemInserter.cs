@@ -3,7 +3,6 @@ using MessengerRando.Overrides;
 using Mod.Courier;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
-using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -16,10 +15,14 @@ namespace MessengerRando
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
 
+        // Placing version number here for now
+        private const string RANDO_VERISON = "v0.2.3";
+
         private RandomizerStateManager randoStateManager;       
 
         TextEntryButtonInfo generateSeedButton;
         TextEntryButtonInfo enterSeedButton;
+        SubMenuButtonInfo versionButton;
         SubMenuButtonInfo teleportToHqButton;
 
         public override void Load()
@@ -41,6 +44,9 @@ namespace MessengerRando
             //Add Set seed mod option button
             enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
+
+            //Add Randomizer Version button
+            versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => $"Randomizer Version: {RANDO_VERISON}", null);
 
             //Add teleport to HQ button\
             teleportToHqButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to HQ", OnSelectTeleportToHq);
@@ -66,7 +72,11 @@ namespace MessengerRando
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
+            //Options I only want working while actually in the game
             teleportToHqButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE;
+
+            //Options always available
+            versionButton.IsEnabled = () => true;
         }
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
