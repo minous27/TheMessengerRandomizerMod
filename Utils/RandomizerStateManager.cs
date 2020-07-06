@@ -98,5 +98,14 @@ namespace MessengerRando
             this.noteCutsceneTriggerStates[note] = true;
         }
 
+        public bool IsSafeTeleportState()
+        {
+            //Unsafe teleport states are shops/hq/boss fights
+
+            //Manager<LevelManager>.Instance.CurrentSceneName
+            
+            return true;
+        }
+
     }
 }

@@ -6,6 +6,7 @@ using Mod.Courier.UI;
 using MonoMod.Cil;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 
 
@@ -23,7 +24,9 @@ namespace MessengerRando
         TextEntryButtonInfo generateSeedButton;
         TextEntryButtonInfo enterSeedButton;
         SubMenuButtonInfo versionButton;
+        SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
+        SubMenuButtonInfo teleportToNinjaVillage;
 
         public override void Load()
         {
@@ -48,8 +51,15 @@ namespace MessengerRando
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => $"Randomizer Version: {RANDO_VERISON}", null);
 
-            //Add teleport to HQ button\
+            //Add windmill shuriken toggle button
+            windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
+
+            //Add teleport to HQ button
             teleportToHqButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to HQ", OnSelectTeleportToHq);
+
+            //Add teleport to Ninja Village button
+            teleportToNinjaVillage = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to Ninja Village", OnSelectTeleportToNinjaVillage);
+
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
@@ -73,7 +83,9 @@ namespace MessengerRando
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
+            windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE;
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene")); 
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -86,11 +98,17 @@ namespace MessengerRando
 
             Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId))
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsValue(randoItemId))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
+                
+                //If that item is the windmill shuriken, immediately activate it and the mod option
+                if(EItems.WINDMILL_SHURIKEN.Equals(randoItemId))
+                {
+                    OnToggleWindmillShuriken();
+                }
             }
             
             //Call original add with items
@@ -143,7 +161,7 @@ namespace MessengerRando
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
             //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsValue(self.noteToAward)) //Double checking to prevent errors
             {
                 bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.noteToAward]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
@@ -366,6 +384,19 @@ namespace MessengerRando
             return true;
         }
 
+
+        void OnToggleWindmillShuriken()
+        {
+            //Toggle Shuriken
+            Manager<ProgressionManager>.Instance.useWindmillShuriken = !Manager<ProgressionManager>.Instance.useWindmillShuriken;
+            //Update UI
+            InGameHud view = Manager<UIManager>.Instance.GetView<InGameHud>();
+            if (view != null)
+            {
+                view.UpdateShurikenVisibility();
+            }
+        }
+
         void OnSelectTeleportToHq()
         {
             //Properly close out of the mod options and get the game state back together
@@ -379,6 +410,27 @@ namespace MessengerRando
 
             //Load the HQ
             Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
+        }
+
+        void OnSelectTeleportToNinjaVillage()
+        {
+            Console.WriteLine("Attempting to teleport to Ninja Village.");
+            
+            // Properly close out of the mod options and get the game state back together
+            Manager<PauseManager>.Instance.Resume();
+            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);
+            Courier.UI.ModOptionScreen.Close(false);
+            EBits dimension = Manager<DimensionManager>.Instance.currentDimension;
+
+            //Fade the music out because musiception is annoying
+            Manager<AudioManager>.Instance.FadeMusicVolume(1f, 0f, true);
+
+            //Load to Ninja Village
+            Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = new Vector2(-153.3f, -56.5f);
+            LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo("Level_01_NinjaVillage_Build", false, true, LoadSceneMode.Single, ELevelEntranceID.NONE, dimension);
+            Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
+            
+            Console.WriteLine("Teleport to Ninja Village complete.");
         }
 
         /// <summary>
