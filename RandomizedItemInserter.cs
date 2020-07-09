@@ -81,8 +81,8 @@ namespace MessengerRando
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
-            teleportToHqButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE;
-            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene")); 
+            teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState()); 
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -396,8 +396,7 @@ namespace MessengerRando
 
         void OnSelectTeleportToHq()
         {
-            Console.WriteLine(Manager<LevelManager>.Instance.GetCurrentLevelEnum());
-            /*
+
             //Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
             Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);                
@@ -408,8 +407,7 @@ namespace MessengerRando
             Manager<AudioManager>.Instance.FadeMusicVolume(1f, 0f, true);
 
             //Load the HQ
-            Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);\
-            */
+            Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
         }
 
         void OnSelectTeleportToNinjaVillage()
