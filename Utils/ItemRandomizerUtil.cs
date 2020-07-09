@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Mod.Courier;
+using Mod.Courier.Module;
 
 
 namespace MessengerRando
@@ -205,6 +207,22 @@ namespace MessengerRando
                 return true;
             }
             return false;
+        }
+
+        //Get the version number
+        public static string GetModVersion()
+        {
+            string version = "Unknown";
+            
+            foreach(CourierModuleMetadata modMetadata in Courier.Mods)
+            {
+                if("TheMessengerRandomizer".Equals(modMetadata.Name))
+                {
+                    version = modMetadata.VersionString;
+                }
+            }
+
+            return version;
         }
     }
 }

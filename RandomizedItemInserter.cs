@@ -16,9 +16,6 @@ namespace MessengerRando
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
 
-        // Placing version number here for now
-        private const string RANDO_VERISON = "v0.2.3";
-
         private RandomizerStateManager randoStateManager;       
 
         TextEntryButtonInfo generateSeedButton;
@@ -40,6 +37,9 @@ namespace MessengerRando
             RandomizerSaveMethod randomizerSaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
 
 
+            //Add Randomizer Version button
+            versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
+
             //Add generate mod option button
             generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
@@ -47,9 +47,6 @@ namespace MessengerRando
             //Add Set seed mod option button
             enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
-
-            //Add Randomizer Version button
-            versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => $"Randomizer Version: {RANDO_VERISON}", null);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -399,6 +396,8 @@ namespace MessengerRando
 
         void OnSelectTeleportToHq()
         {
+            Console.WriteLine(Manager<LevelManager>.Instance.GetCurrentLevelEnum());
+            /*
             //Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
             Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);                
@@ -409,7 +408,8 @@ namespace MessengerRando
             Manager<AudioManager>.Instance.FadeMusicVolume(1f, 0f, true);
 
             //Load the HQ
-            Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);
+            Manager<TowerOfTimeHQManager>.Instance.TeleportInToTHQ(true, ELevelEntranceID.ENTRANCE_A, null, null, true);\
+            */
         }
 
         void OnSelectTeleportToNinjaVillage()
