@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Mod.Courier;
+using Mod.Courier.Module;
 
 
 namespace MessengerRando
@@ -70,6 +72,7 @@ namespace MessengerRando
         public static void Load()
         {
             LoadRandomizableItems();
+            LoadRandomizableLocations();
             LoadSpecialTriggerNames();
             LoadCutsceneMappings();
         }
@@ -88,22 +91,27 @@ namespace MessengerRando
             List<EItems> itemsToLoad = new List<EItems>();
             itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
-            itemsToLoad.Add(EItems.SEASHELL);
+            itemsToLoad.Add(EItems.MAGIC_BOOTS);
+            itemsToLoad.Add(EItems.WINDMILL_SHURIKEN);
             /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
             itemsToLoad.Add(EItems.TEA_SEED);
             */
-            itemsToLoad.Add(EItems.CANDLE);
+
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
             itemsToLoad.Add(EItems.SUN_CREST);
             itemsToLoad.Add(EItems.MOON_CREST);
-            itemsToLoad.Add(EItems.MAGIC_BOOTS);
             itemsToLoad.Add(EItems.RUXXTIN_AMULET);
+            itemsToLoad.Add(EItems.DEMON_KING_CROWN);
+
+            itemsToLoad.Add(EItems.CANDLE);
+            itemsToLoad.Add(EItems.SEASHELL);
+
             itemsToLoad.Add(EItems.NECROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.CLAUSTROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.PYROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.ACROPHOBIC_WORKER);
-            itemsToLoad.Add(EItems.DEMON_KING_CROWN);
+
             itemsToLoad.Add(EItems.KEY_OF_CHAOS);
             itemsToLoad.Add(EItems.KEY_OF_COURAGE);
             itemsToLoad.Add(EItems.KEY_OF_HOPE);
@@ -112,9 +120,40 @@ namespace MessengerRando
             itemsToLoad.Add(EItems.KEY_OF_SYMBIOSIS);
 
             RandomizableItems = itemsToLoad;
-            //For now the lists will be the same so lets set the locations as well.
-            RandomizableLocations = new List<EItems>(itemsToLoad);
+        }
 
+        private static void LoadRandomizableLocations()
+        {
+            List<EItems> locationsToLoad = new List<EItems>();
+            
+            locationsToLoad.Add(EItems.WINGSUIT);
+            locationsToLoad.Add(EItems.GRAPLOU);
+            locationsToLoad.Add(EItems.MAGIC_BOOTS);
+            locationsToLoad.Add(EItems.CLIMBING_CLAWS);
+
+            locationsToLoad.Add(EItems.POWER_THISTLE);
+            locationsToLoad.Add(EItems.FAIRY_BOTTLE);
+            locationsToLoad.Add(EItems.SUN_CREST);
+            locationsToLoad.Add(EItems.MOON_CREST);
+            locationsToLoad.Add(EItems.RUXXTIN_AMULET);
+            locationsToLoad.Add(EItems.DEMON_KING_CROWN);
+
+            locationsToLoad.Add(EItems.CANDLE);
+            locationsToLoad.Add(EItems.SEASHELL);
+
+            locationsToLoad.Add(EItems.NECROPHOBIC_WORKER);
+            locationsToLoad.Add(EItems.CLAUSTROPHOBIC_WORKER);
+            locationsToLoad.Add(EItems.PYROPHOBIC_WORKER);
+            locationsToLoad.Add(EItems.ACROPHOBIC_WORKER);
+
+            locationsToLoad.Add(EItems.KEY_OF_CHAOS);
+            locationsToLoad.Add(EItems.KEY_OF_COURAGE);
+            locationsToLoad.Add(EItems.KEY_OF_HOPE);
+            locationsToLoad.Add(EItems.KEY_OF_LOVE);
+            locationsToLoad.Add(EItems.KEY_OF_STRENGTH);
+            locationsToLoad.Add(EItems.KEY_OF_SYMBIOSIS);
+
+            RandomizableLocations = locationsToLoad;
         }
 
         private static void LoadSpecialTriggerNames()
@@ -168,6 +207,22 @@ namespace MessengerRando
                 return true;
             }
             return false;
+        }
+
+        //Get the version number
+        public static string GetModVersion()
+        {
+            string version = "Unknown";
+            
+            foreach(CourierModuleMetadata modMetadata in Courier.Mods)
+            {
+                if("TheMessengerRandomizer".Equals(modMetadata.Name))
+                {
+                    version = modMetadata.VersionString;
+                }
+            }
+
+            return version;
         }
     }
 }

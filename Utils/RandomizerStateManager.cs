@@ -98,5 +98,22 @@ namespace MessengerRando
             this.noteCutsceneTriggerStates[note] = true;
         }
 
+        public bool IsSafeTeleportState()
+        {
+            //Unsafe teleport states are shops/hq/boss fights
+            bool isTeleportSafe = true;
+
+            Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
+            Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
+
+            //ToT HQ or Shop
+            if (Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy || Manager<Shop>.Instance.gameObject.activeInHierarchy)
+            {
+                isTeleportSafe = false;
+            }
+
+            return isTeleportSafe;
+        }
+
     }
 }
