@@ -95,7 +95,7 @@ namespace MessengerRando
 
             Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsValue(randoItemId))
+            if (randoStateManager.IsRandomizedFile && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId)))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
@@ -158,7 +158,7 @@ namespace MessengerRando
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
             //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsValue(self.noteToAward)) //Double checking to prevent errors
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
             {
                 bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.noteToAward]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
