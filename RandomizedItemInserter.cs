@@ -7,8 +7,8 @@ using MonoMod.Cil;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using static Mod.Courier.UI.TextEntryButtonInfo;
-
 
 namespace MessengerRando 
 {
@@ -24,6 +24,8 @@ namespace MessengerRando
         SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
         SubMenuButtonInfo teleportToNinjaVillage;
+        ToggleButtonInfo easyGrapple;
+        ToggleButtonInfo randomPrices;
 
         public override void Load()
         {
@@ -39,14 +41,16 @@ namespace MessengerRando
 
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
-
             //Add generate mod option button
-            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
+            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", null, CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add Set seed mod option button
             enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
+
+            easyGrapple = Courier.UI.RegisterToggleModOptionButton(() => "Grapple at Wingsuit or Tabi", OnEasyGrappleToggle, (b) => ItemRandomizerUtil.isEasyGrapple);
+            randomPrices = Courier.UI.RegisterToggleModOptionButton(() => "Randomize shop prices", OnRandomizePricesToggle, (b) => ItemRandomizerUtil.arePricesRandomized);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -57,8 +61,10 @@ namespace MessengerRando
             //Add teleport to Ninja Village button
             teleportToNinjaVillage = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to Ninja Village", OnSelectTeleportToNinjaVillage);
 
-
+            //  On.ShopUpgradeScreen.SetupUpgrades += ShopUpgradeScreen_SetupUpgrades;
+            //  On.LevelManager.RegisterReloadableObject += LevelManager_RegisterReloadableObject;
             //Plug in my code :3
+            On.UpgradeButtonData.GetPrice += UpgradeButtonData_GetPrice;
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.HasItem.IsTrue += HasItem_IsTrue;
             On.AwardNoteCutscene.ShouldPlay += AwardNoteCutscene_ShouldPlay;
@@ -73,12 +79,40 @@ namespace MessengerRando
             Console.WriteLine("Randomizer finished loading!");
         }
 
+        private void OnRandomizePricesToggle()
+        {
+            ItemRandomizerUtil.arePricesRandomized = !ItemRandomizerUtil.arePricesRandomized;
+            randomPrices.UpdateStateText();
+        }
+
+        private int UpgradeButtonData_GetPrice(On.UpgradeButtonData.orig_GetPrice orig, UpgradeButtonData self)
+        {
+            if (RandomizerStateManager.Instance.IsRandomizedFile && ItemRandomizerUtil.arePricesRandomized)
+            {
+                int price = ItemRandomizerUtil.randomUpgradeData[self.upgradeID];
+                return price;
+            }
+            else
+            {
+                return orig(self);
+            }
+        }
+
+
+        private void OnEasyGrappleToggle()
+        {
+            ItemRandomizerUtil.isEasyGrapple = !ItemRandomizerUtil.isEasyGrapple;
+            easyGrapple.UpdateStateText();
+        }
+
+
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-
+            easyGrapple.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            randomPrices.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
@@ -209,7 +243,11 @@ namespace MessengerRando
             if(randoStateManager.HasSeedForFileSlot(fileSlot))
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+
+                int seed = ItemRandomizerUtil.getSeed(randoStateManager.GetSeedForFileSlot(fileSlot));
+                ItemRandomizerUtil.randomNumberGen = new System.Random(seed);
+                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings();
+                randoStateManager.CurrentPriceToUpgradeMapping = ItemRandomizerUtil.GenerateRandomizedUpgradeMappings();
                 randoStateManager.IsRandomizedFile = true;
             }
             else

@@ -8,6 +8,9 @@ namespace MessengerRando
     {
         public static RandomizerStateManager Instance { private set; get; }
         public Dictionary<EItems, EItems> CurrentLocationToItemMapping { set; get; }
+
+        public Dictionary<EShopUpgradeID, int> CurrentPriceToUpgradeMapping { set; get; }
+
         public bool IsRandomizedFile { set; get; }
         
         private Dictionary<int, int> seeds;
