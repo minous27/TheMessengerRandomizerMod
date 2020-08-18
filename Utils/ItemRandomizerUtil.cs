@@ -18,120 +18,11 @@ namespace MessengerRando
         public static Dictionary<string, EItems> CutsceneMappings { get; private set; }
 
         public static int OfficialSeed { get; private set; }
-        public static Random randomNumberGen;
-
-        public static bool isEasyGrapple = false;
-        public static bool arePricesRandomized = false;
-        public static Dictionary<EShopUpgradeID,int> randomUpgradeData { get; private set; }
-
-
-        public static Dictionary<EShopUpgradeID, int> GenerateRandomizedUpgradeMappings(int passedSeed = Int32.MinValue)
-        {
-            Dictionary<EShopUpgradeID, int> temp = new Dictionary<EShopUpgradeID, int>();
-            foreach(KeyValuePair<EShopUpgradeID,int> KVP in randomUpgradeData)
-            {
-                int currentPrice = KVP.Value;
-                int lowPrice = currentPrice / 2;
-                int highPrice = currentPrice + lowPrice;
-                int newPrice = randomNumberGen.Next(lowPrice, highPrice);
-                Console.WriteLine($"We found { KVP.Key} with price {currentPrice} modified price is {newPrice}");
-                temp.Add(KVP.Key, newPrice);
-            }
-            randomUpgradeData = temp;
-            return randomUpgradeData;
-        }
 
         public static Dictionary<EItems,EItems> GenerateRandomizedMappings(int passedSeed = Int32.MinValue)
         {
-
-            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
-            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
-            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
-
-            //Get our randomizer set up
-            
-
-            List<EItems> safeLocation = new List<EItems>();
-            safeLocation.Add(EItems.WINGSUIT);
-            safeLocation.Add(EItems.MAGIC_BOOTS);
-            safeLocation.Add(EItems.SEASHELL);
-            //Begin filling out the mappings. Both collections need to logically be the same size.
-            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
-            foreach (EItems item in RandomizableItems) //For each item to randomize, pick a random location and create the mapping.
-            {
-                //Make sure the Grapple is found in two early accessable locations - Toggle in menu
-                if (isEasyGrapple && item == EItems.GRAPLOU) 
-                {
-                    int index = randomNumberGen.Next(safeLocation.Count);
-                    mappings.Add(safeLocation[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{safeLocation[index]}'");
-                    locationsForGeneration.Remove(safeLocation[index]);
-                    safeLocation.RemoveAt(index);
-                    
-                }else if(item == EItems.MAGIC_BOOTS) //Makes sure the Lightfoot Tabi is not stuck in a location which requires them.
-                {
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    EItems loc = locationsForGeneration[index];
-                    while(loc == EItems.SUN_CREST || loc == EItems.MOON_CREST || loc == EItems.KEY_OF_CHAOS || loc == EItems.KEY_OF_LOVE || loc == EItems.PYROPHOBIC_WORKER)
-                    {
-                        Console.WriteLine($"Tried to map {item} to {loc} would result in softlock... remapping...");
-                        index = randomNumberGen.Next(locationsForGeneration.Count);
-                        loc = locationsForGeneration[index];
-                    }
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    locationsForGeneration.RemoveAt(index);
-
-                }else if(item == EItems.SUN_CREST || item == EItems.MOON_CREST) //Makes sure the Sun and Moon crest can not be behind the door
-                {
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    EItems loc = locationsForGeneration[index];
-                    while ( loc == EItems.KEY_OF_LOVE)
-                    {
-                        Console.WriteLine($"Tried to map {item} to {loc} would result in softlock... remapping...");
-                        index = randomNumberGen.Next(locationsForGeneration.Count);
-                        loc = locationsForGeneration[index];
-                    }
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    locationsForGeneration.RemoveAt(index);
-                }
-                else
-                {
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    //Remove the used location
-                    locationsForGeneration.RemoveAt(index);
-                }
-            }
-
-            //The mappings should be created now.
-            Console.WriteLine("Mapping generation complete.");
-            return mappings;
-        }
-
-        public static void Load()
-        {
-            LoadRandomizableItems();
-            LoadRandomizableLocations();
-            LoadRandomizableUpgrades();
-            LoadSpecialTriggerNames();
-            LoadCutsceneMappings();
-        }
-
-        public static int GenerateSeed()
-        {
-            int seed = (int)(DateTime.Now.Ticks & 0x0000DEAD);
-            Console.WriteLine($"Seed '{seed}' generated.");
-         //   GenerateRandomizedMappings(seed); //Right now mostly generating here to log mappings before entering game. 
-            return seed;
-        }
-
-        public static int getSeed(int passedSeed)
-        {
             //If no seed was provided, create one
-            if (passedSeed == Int32.MinValue)
+            if(passedSeed == Int32.MinValue)
             {
                 int tempSeed = GenerateSeed();
 
@@ -141,62 +32,66 @@ namespace MessengerRando
                     Thread.Sleep(1000);//Wait a second
                     tempSeed = GenerateSeed();
                     //Do the check one more time and if nothing was fixed then log it.
-                    if (OfficialSeed == tempSeed)
+                    if(OfficialSeed == tempSeed)
                     {
                         Console.WriteLine("2 attempts to get a new seed failed. Moving along...");
                     }
                 }
-
+         
                 OfficialSeed = tempSeed;
-
-
+                
+                
                 Console.WriteLine($"No seed passed, generated seed for this mapping is: {OfficialSeed}");
             }
             else
             {
                 OfficialSeed = passedSeed;
             }
+            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
+            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
+            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
 
-            return OfficialSeed;
+            //Get our randomizer set up
+            Random randomNumberGen = new Random(OfficialSeed);
+
+            //Begin filling out the mappings. Both collections need to logically be the same size.
+            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
+            foreach (EItems item in RandomizableItems) //For each item to randomize, pick a random location and create the mapping.
+            {
+                int index = randomNumberGen.Next(locationsForGeneration.Count);
+                mappings.Add(locationsForGeneration[index], item);
+                Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
+                //Remove the used location
+                locationsForGeneration.RemoveAt(index);
+            }
+            //The mappings should be created now.
+            Console.WriteLine("Mapping generation complete.");
+            return mappings;
         }
-        private static void LoadRandomizableUpgrades()
+
+        public static void Load()
         {
-            Dictionary<EShopUpgradeID, int> newUpgradeData = new Dictionary<EShopUpgradeID, int>();
-            newUpgradeData.Add(EShopUpgradeID.AIR_RECOVER,80);
-            newUpgradeData.Add(EShopUpgradeID.ATTACK_PROJECTILE,40);
-            newUpgradeData.Add(EShopUpgradeID.CHARGED_ATTACK,2000);
-            newUpgradeData.Add(EShopUpgradeID.CHECKPOINT_FULL,550);
-            newUpgradeData.Add(EShopUpgradeID.DAMAGE_REDUCTION,1000);
-            newUpgradeData.Add(EShopUpgradeID.ENEMY_DROP_HP,200);
-            newUpgradeData.Add(EShopUpgradeID.ENEMY_DROP_MANA,200);
-            newUpgradeData.Add(EShopUpgradeID.GLIDE_ATTACK,150);
-            newUpgradeData.Add(EShopUpgradeID.HP_UPGRADE_1,30);
-            newUpgradeData.Add(EShopUpgradeID.HP_UPGRADE_2,320);
-            newUpgradeData.Add(EShopUpgradeID.POTION_FULL_HEAL_AND_HP,350);
-            newUpgradeData.Add(EShopUpgradeID.POWER_SEAL,250);
-            newUpgradeData.Add(EShopUpgradeID.POWER_SEAL_WORLD_MAP,250);
-            newUpgradeData.Add(EShopUpgradeID.QUARBLE_DISCOUNT_50,400);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN,50);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN_UPGRADE_1,250);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN_UPGRADE_2,350);
-            newUpgradeData.Add(EShopUpgradeID.SWIM_DASH,125);
-            newUpgradeData.Add(EShopUpgradeID.TIME_WARP,250);
-            randomUpgradeData = newUpgradeData;
-
-           // randomUpgradeData = listofUpgrades;
+            LoadRandomizableItems();
+            LoadRandomizableLocations();
+            LoadSpecialTriggerNames();
+            LoadCutsceneMappings();
         }
+
+        public static int GenerateSeed()
+        {
+            int seed = (int)(DateTime.Now.Ticks & 0x0000DEAD);
+            Console.WriteLine($"Seed '{seed}' generated.");
+            GenerateRandomizedMappings(seed); //Right now mostly generating here to log mappings before entering game. 
+            return seed;
+        }
+
+
         private static void LoadRandomizableItems()
         {
             List<EItems> itemsToLoad = new List<EItems>();
+            itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
             itemsToLoad.Add(EItems.MAGIC_BOOTS);
-            itemsToLoad.Add(EItems.MOON_CREST);
-            itemsToLoad.Add(EItems.SUN_CREST);
-
-
-
-            itemsToLoad.Add(EItems.WINGSUIT);
-            
             itemsToLoad.Add(EItems.WINDMILL_SHURIKEN);
             /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
             itemsToLoad.Add(EItems.TEA_SEED);
@@ -204,8 +99,8 @@ namespace MessengerRando
 
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
-            
-            
+            itemsToLoad.Add(EItems.SUN_CREST);
+            itemsToLoad.Add(EItems.MOON_CREST);
             itemsToLoad.Add(EItems.RUXXTIN_AMULET);
             itemsToLoad.Add(EItems.DEMON_KING_CROWN);
 
