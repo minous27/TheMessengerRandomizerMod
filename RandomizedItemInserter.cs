@@ -86,67 +86,7 @@ namespace MessengerRando
         }
 
 
-        private void PhobekinCollectCutscene_OnBorderScreenInDone(On.PhobekinCollectCutscene.orig_OnBorderScreenInDone orig, PhobekinCollectCutscene self, View screen)
-        {
-            
-            Console.WriteLine("------------THIS IS A PHOBEKIN-------------");
-            Console.WriteLine($"It has an ID of: {self.phobekinDialogId}");
-
-            string dialogID = self.phobekinDialogId;
-            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
-                //We found a mapped dialog. switch IDs and reload
-                self.phobekinDialogId = mappings[dialogID];
-            }
-            else
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
-            }
-
-            orig(self, screen);
-        }
-
-        private void AwardItemPopupParams_ctor_DialogSequence_bool_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle, bool fadeBackMusic)
-        {
-            Console.WriteLine("------------IT IS A NOTEPIECE------------");
-            string dialogID = dialogSequence.dialogID;
-            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
-                //We found a mapped dialog. switch IDs and reload
-                dialogSequence.dialogID = mappings[dialogID];
-                dialogSequence.GetDialogList();
-            }
-            else
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
-            }
-
-            orig(self, dialogSequence, playNewItemJingle, fadeBackMusic);
-        }
-
-        private void AwardItemPopupParams_ctor_DialogSequence_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle)
-        {
-            Console.WriteLine("------------IT IS AN ITEM------------");
-            string dialogID = dialogSequence.dialogID;
-            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
-                //We found a mapped dialog. switch IDs and reload
-                dialogSequence.dialogID = mappings[dialogID];
-                dialogSequence.GetDialogList();
-            }
-            else
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
-            }
-
-            orig(self, dialogSequence, playNewItemJingle);
-        }
+       
 
         private void OnRandomizePricesToggle()
         {
@@ -216,7 +156,7 @@ namespace MessengerRando
 
 
 
-          
+
         }
 
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
@@ -386,33 +326,53 @@ namespace MessengerRando
 
         }
 
+
+
+        //When a Phobekin cutscene is started switch dialog
+        private void PhobekinCollectCutscene_OnBorderScreenInDone(On.PhobekinCollectCutscene.orig_OnBorderScreenInDone orig, PhobekinCollectCutscene self, View screen)
+        {
+
+            Console.WriteLine("------------THIS IS A PHOBEKIN-------------");
+            string dialogID = self.phobekinDialogId;
+            self.phobekinDialogId = ItemRandomizerUtil.getDialogMapping(dialogID);
+            orig(self, screen);
+        }
+
+        //When a note is collected switch dialog
+        private void AwardItemPopupParams_ctor_DialogSequence_bool_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle, bool fadeBackMusic)
+        {
+            Console.WriteLine("------------IT IS A NOTEPIECE------------");
+            string dialogID = dialogSequence.dialogID;
+
+            dialogSequence.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
+            dialogSequence.GetDialogList();
+
+            orig(self, dialogSequence, playNewItemJingle, fadeBackMusic);
+        }
+
+        //When an item is awarded switch dialog
+        private void AwardItemPopupParams_ctor_DialogSequence_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle)
+        {
+            Console.WriteLine("------------IT IS AN ITEM------------");
+            string dialogID = dialogSequence.dialogID;
+            dialogSequence.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
+            dialogSequence.GetDialogList();
+
+
+            orig(self, dialogSequence, playNewItemJingle);
+        }
+
+
         // Breaking into Necro cutscene to fix things
         void NecrophobicWorkerCutscene_Play(On.NecrophobicWorkerCutscene.orig_Play orig, NecrophobicWorkerCutscene self)
         {
 
 
             string dialogID = self.dialog.dialogID;
-            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
-                //We found a mapped dialog. switch IDs and reload
-                self.dialog.dialogID = mappings[dialogID];
-                self.dialog.GetDialogList();
-            }
-            else
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
-            }
 
 
-
-
-
-
-
-            self.dialog.dialogID = "AWARD_SUN_CREST"; //Swap Dialog ID here for necro 
-
+            self.dialog.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
+            self.dialog.GetDialogList();
             //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
             self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
             orig(self);

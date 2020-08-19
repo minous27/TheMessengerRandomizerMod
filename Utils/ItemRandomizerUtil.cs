@@ -368,6 +368,20 @@ namespace MessengerRando
         }
 
 
+        public static string getDialogMapping(string dialogID)
+        {
+            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
+            if (mappings.ContainsKey(dialogID))
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
+                return mappings[dialogID];
+            }
+            else
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
+                return dialogID;
+            }
+        }
         //Checks to see if all expected notes have already been collected
         public static bool HasAllNotes()
         {
