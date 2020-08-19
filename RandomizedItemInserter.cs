@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using MessengerRando.Overrides;
 using Mod.Courier;
 using Mod.Courier.Module;
@@ -7,16 +9,17 @@ using MonoMod.Cil;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using static Mod.Courier.UI.TextEntryButtonInfo;
+using System.Collections;
 
-
-namespace MessengerRando 
+namespace MessengerRando
 {
     public class RandomizedItemInserter : CourierModule
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
 
-        private RandomizerStateManager randoStateManager;       
+        private RandomizerStateManager randoStateManager;
 
         TextEntryButtonInfo generateSeedButton;
         TextEntryButtonInfo enterSeedButton;
@@ -24,11 +27,13 @@ namespace MessengerRando
         SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
         SubMenuButtonInfo teleportToNinjaVillage;
+        ToggleButtonInfo easyGrapple;
+        ToggleButtonInfo randomPrices;
 
         public override void Load()
         {
             Console.WriteLine("Randomizer loaded and ready to try things!");
-           
+
             //Start the randomizer util initializations
             ItemRandomizerUtil.Load();
             //Initialize the randomizer state manager
@@ -39,14 +44,16 @@ namespace MessengerRando
 
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
-
             //Add generate mod option button
-            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
+            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", null, CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add Set seed mod option button
-            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
+            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null, CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
+
+            easyGrapple = Courier.UI.RegisterToggleModOptionButton(() => "Grapple at Wingsuit or Tabi", OnEasyGrappleToggle, (b) => ItemRandomizerUtil.isEasyGrapple);
+            randomPrices = Courier.UI.RegisterToggleModOptionButton(() => "Randomize shop prices", OnRandomizePricesToggle, (b) => ItemRandomizerUtil.arePricesRandomized);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -57,8 +64,13 @@ namespace MessengerRando
             //Add teleport to Ninja Village button
             teleportToNinjaVillage = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to Ninja Village", OnSelectTeleportToNinjaVillage);
 
-
+            //  On.ShopUpgradeScreen.SetupUpgrades += ShopUpgradeScreen_SetupUpgrades;
+            //  On.LevelManager.RegisterReloadableObject += LevelManager_RegisterReloadableObject;
             //Plug in my code :3
+            On.PhobekinCollectCutscene.OnBorderScreenInDone += PhobekinCollectCutscene_OnBorderScreenInDone;
+            On.AwardItemPopupParams.ctor_DialogSequence_bool_bool += AwardItemPopupParams_ctor_DialogSequence_bool_bool;
+            On.AwardItemPopupParams.ctor_DialogSequence_bool += AwardItemPopupParams_ctor_DialogSequence_bool; //Works for items
+            On.UpgradeButtonData.GetPrice += UpgradeButtonData_GetPrice;
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.HasItem.IsTrue += HasItem_IsTrue;
             On.AwardNoteCutscene.ShouldPlay += AwardNoteCutscene_ShouldPlay;
@@ -73,16 +85,107 @@ namespace MessengerRando
             Console.WriteLine("Randomizer finished loading!");
         }
 
+
+        private void PhobekinCollectCutscene_OnBorderScreenInDone(On.PhobekinCollectCutscene.orig_OnBorderScreenInDone orig, PhobekinCollectCutscene self, View screen)
+        {
+            
+            Console.WriteLine("------------THIS IS A PHOBEKIN-------------");
+            Console.WriteLine($"It has an ID of: {self.phobekinDialogId}");
+
+            string dialogID = self.phobekinDialogId;
+            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
+            if (mappings.ContainsKey(dialogID))
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
+                //We found a mapped dialog. switch IDs and reload
+                self.phobekinDialogId = mappings[dialogID];
+            }
+            else
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
+            }
+
+            orig(self, screen);
+        }
+
+        private void AwardItemPopupParams_ctor_DialogSequence_bool_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle, bool fadeBackMusic)
+        {
+            Console.WriteLine("------------IT IS A NOTEPIECE------------");
+            string dialogID = dialogSequence.dialogID;
+            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
+            if (mappings.ContainsKey(dialogID))
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
+                //We found a mapped dialog. switch IDs and reload
+                dialogSequence.dialogID = mappings[dialogID];
+                dialogSequence.GetDialogList();
+            }
+            else
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
+            }
+
+            orig(self, dialogSequence, playNewItemJingle, fadeBackMusic);
+        }
+
+        private void AwardItemPopupParams_ctor_DialogSequence_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle)
+        {
+            Console.WriteLine("------------IT IS AN ITEM------------");
+            string dialogID = dialogSequence.dialogID;
+            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
+            if (mappings.ContainsKey(dialogID))
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
+                //We found a mapped dialog. switch IDs and reload
+                dialogSequence.dialogID = mappings[dialogID];
+                dialogSequence.GetDialogList();
+            }
+            else
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
+            }
+
+            orig(self, dialogSequence, playNewItemJingle);
+        }
+
+        private void OnRandomizePricesToggle()
+        {
+            ItemRandomizerUtil.arePricesRandomized = !ItemRandomizerUtil.arePricesRandomized;
+            randomPrices.UpdateStateText();
+        }
+
+        private int UpgradeButtonData_GetPrice(On.UpgradeButtonData.orig_GetPrice orig, UpgradeButtonData self)
+        {
+            if (RandomizerStateManager.Instance.IsRandomizedFile && ItemRandomizerUtil.arePricesRandomized)
+            {
+                int price = ItemRandomizerUtil.randomUpgradeData[self.upgradeID];
+                return price;
+            }
+            else
+            {
+                return orig(self);
+            }
+        }
+
+
+        private void OnEasyGrappleToggle()
+        {
+            ItemRandomizerUtil.isEasyGrapple = !ItemRandomizerUtil.isEasyGrapple;
+            easyGrapple.UpdateStateText();
+        }
+
+
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-
+            easyGrapple.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            randomPrices.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
-            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState()); 
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -100,16 +203,20 @@ namespace MessengerRando
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
-                
+
                 //If that item is the windmill shuriken, immediately activate it and the mod option
-                if(EItems.WINDMILL_SHURIKEN.Equals(randoItemId))
+                if (EItems.WINDMILL_SHURIKEN.Equals(randoItemId))
                 {
                     OnToggleWindmillShuriken();
                 }
             }
-            
+
             //Call original add with items
             orig(self, randoItemId, quantity);
+
+
+
+          
         }
 
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
@@ -152,7 +259,7 @@ namespace MessengerRando
             {
                 return orig(self);
             }
-            
+
         }
 
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
@@ -172,8 +279,8 @@ namespace MessengerRando
 
         bool CutsceneHasPlayed_IsTrue(On.CutsceneHasPlayed.orig_IsTrue orig, CutsceneHasPlayed self)
         {
-            
-            if(randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId))
+
+            if (randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId))
             {
                 //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
                 Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}");
@@ -197,7 +304,7 @@ namespace MessengerRando
                 return orig(self);
             }
 
-            
+
         }
 
         void SaveGameSelectionScreen_OnLoadGame(On.SaveGameSelectionScreen.orig_OnLoadGame orig, SaveGameSelectionScreen self, int slotIndex)
@@ -206,10 +313,15 @@ namespace MessengerRando
             //slotIndex is 0-based, going to increment it locally to keep things simple.
             int fileSlot = slotIndex + 1;
             //Generate the mappings based on the seed for the game if a seed was generated.
-            if(randoStateManager.HasSeedForFileSlot(fileSlot))
+            if (randoStateManager.HasSeedForFileSlot(fileSlot))
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+
+                int seed = ItemRandomizerUtil.getSeed(randoStateManager.GetSeedForFileSlot(fileSlot));
+                ItemRandomizerUtil.randomNumberGen = new System.Random(seed);
+                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings();
+                randoStateManager.CurrentPriceToUpgradeMapping = ItemRandomizerUtil.GenerateRandomizedUpgradeMappings();
+                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = ItemRandomizerUtil.GenerateDialogMappingforItems();
                 randoStateManager.IsRandomizedFile = true;
             }
             else
@@ -235,7 +347,7 @@ namespace MessengerRando
         bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
         {
             //We want phantom to not take damage if all notes have not been collected yet.
-            if((!randoStateManager.IsRandomizedFile) || ItemRandomizerUtil.HasAllNotes())
+            if ((!randoStateManager.IsRandomizedFile) || ItemRandomizerUtil.HasAllNotes())
             {
                 return orig(self, hitData);
             }
@@ -247,8 +359,8 @@ namespace MessengerRando
         //Fixing necro cutscene check
         void CatacombLevelInitializer_OnBeforeInitDone(On.CatacombLevelInitializer.orig_OnBeforeInitDone orig, CatacombLevelInitializer self)
         {
-            
-            if(randoStateManager.IsRandomizedFile)
+
+            if (randoStateManager.IsRandomizedFile)
             {
                 //check to see if we already have the item at Necro check
                 if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]) <= 0 && !Manager<DemoManager>.Instance.demoMode)
@@ -271,12 +383,36 @@ namespace MessengerRando
                 //we are not rando here, call orig method
                 orig(self);
             }
-            
+
         }
 
         // Breaking into Necro cutscene to fix things
         void NecrophobicWorkerCutscene_Play(On.NecrophobicWorkerCutscene.orig_Play orig, NecrophobicWorkerCutscene self)
         {
+
+
+            string dialogID = self.dialog.dialogID;
+            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
+            if (mappings.ContainsKey(dialogID))
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
+                //We found a mapped dialog. switch IDs and reload
+                self.dialog.dialogID = mappings[dialogID];
+                self.dialog.GetDialogList();
+            }
+            else
+            {
+                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
+            }
+
+
+
+
+
+
+
+            self.dialog.dialogID = "AWARD_SUN_CREST"; //Swap Dialog ID here for necro 
+
             //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
             self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
             orig(self);
@@ -286,11 +422,11 @@ namespace MessengerRando
         {
             ILCursor cursor = new ILCursor(il);
 
-            while(cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdcI4(55)))
+            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdcI4(55)))
             {
                 cursor.EmitDelegate<Func<EItems, EItems>>(GetRandoItemByItem);
             }
-            
+
         }
 
         /*TODO Maybe use later, for now will not take a file name
@@ -325,14 +461,15 @@ namespace MessengerRando
 
         bool OnEnterSeedNumber(string seed)
         {
-            if(seed == null || seed.Length < 1)
+            if (seed == null || seed.Length < 1)
             {
                 Console.WriteLine($"Invalid seed number '{seed}' provided");
                 return false;
             }
 
             TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
-            fileSlotPopup.onBack += () => {
+            fileSlotPopup.onBack += () =>
+            {
                 fileSlotPopup.gameObject.SetActive(false);
                 enterSeedButton.textEntryPopup.gameObject.SetActive(true);
                 enterSeedButton.textEntryPopup.StartCoroutine(enterSeedButton.textEntryPopup.BackWhenBackButtonReleased());
@@ -399,7 +536,7 @@ namespace MessengerRando
 
             //Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
-            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);                
+            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);
             Console.WriteLine("Teleporting to HQ!");
             Courier.UI.ModOptionScreen.Close(false);
 
@@ -413,7 +550,7 @@ namespace MessengerRando
         void OnSelectTeleportToNinjaVillage()
         {
             Console.WriteLine("Attempting to teleport to Ninja Village.");
-            
+
             // Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
             Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);
@@ -427,7 +564,7 @@ namespace MessengerRando
             Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = new Vector2(-153.3f, -56.5f);
             LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo("Level_01_NinjaVillage_Build", false, true, LoadSceneMode.Single, ELevelEntranceID.NONE, dimension);
             Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
-            
+
             Console.WriteLine("Teleport to Ninja Village complete.");
         }
 
