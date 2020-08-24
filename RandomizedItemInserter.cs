@@ -1,4 +1,8 @@
-﻿using System;
+﻿//Override and add to the shop init function to see if there is a currentEvent and try find where the event dialog may be stored.
+//This should help fix the shop special case of displaying item aquired text.
+
+
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using MessengerRando.Overrides;
@@ -64,12 +68,10 @@ namespace MessengerRando
             //Add teleport to Ninja Village button
             teleportToNinjaVillage = Courier.UI.RegisterSubMenuModOptionButton(() => "Teleport to Ninja Village", OnSelectTeleportToNinjaVillage);
 
-            //  On.ShopUpgradeScreen.SetupUpgrades += ShopUpgradeScreen_SetupUpgrades;
-            //  On.LevelManager.RegisterReloadableObject += LevelManager_RegisterReloadableObject;
-            //Plug in my code :3
-            On.PhobekinCollectCutscene.OnBorderScreenInDone += PhobekinCollectCutscene_OnBorderScreenInDone;
-            On.AwardItemPopupParams.ctor_DialogSequence_bool_bool += AwardItemPopupParams_ctor_DialogSequence_bool_bool;
-            On.AwardItemPopupParams.ctor_DialogSequence_bool += AwardItemPopupParams_ctor_DialogSequence_bool; //Works for items
+
+
+            
+            On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             On.UpgradeButtonData.GetPrice += UpgradeButtonData_GetPrice;
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.HasItem.IsTrue += HasItem_IsTrue;
@@ -86,7 +88,7 @@ namespace MessengerRando
         }
 
 
-       
+
 
         private void OnRandomizePricesToggle()
         {
@@ -149,6 +151,7 @@ namespace MessengerRando
                 {
                     OnToggleWindmillShuriken();
                 }
+
             }
 
             //Call original add with items
@@ -259,10 +262,14 @@ namespace MessengerRando
 
                 int seed = ItemRandomizerUtil.getSeed(randoStateManager.GetSeedForFileSlot(fileSlot));
                 ItemRandomizerUtil.randomNumberGen = new System.Random(seed);
-                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings();
+                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.KRIOGenerateRandomizedMappings();
                 randoStateManager.CurrentPriceToUpgradeMapping = ItemRandomizerUtil.GenerateRandomizedUpgradeMappings();
-                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = ItemRandomizerUtil.GenerateDialogMappingforItems();
+                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
                 randoStateManager.IsRandomizedFile = true;
+                //  LocalizationManager LM = Manager<LocalizationManager>.Instance;
+                // LM.LoadLanguage(LM.CurrentLanguage);
+
+                Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
             }
             else
             {
@@ -326,53 +333,9 @@ namespace MessengerRando
 
         }
 
-
-
-        //When a Phobekin cutscene is started switch dialog
-        private void PhobekinCollectCutscene_OnBorderScreenInDone(On.PhobekinCollectCutscene.orig_OnBorderScreenInDone orig, PhobekinCollectCutscene self, View screen)
-        {
-
-            Console.WriteLine("------------THIS IS A PHOBEKIN-------------");
-            string dialogID = self.phobekinDialogId;
-            self.phobekinDialogId = ItemRandomizerUtil.getDialogMapping(dialogID);
-            orig(self, screen);
-        }
-
-        //When a note is collected switch dialog
-        private void AwardItemPopupParams_ctor_DialogSequence_bool_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle, bool fadeBackMusic)
-        {
-            Console.WriteLine("------------IT IS A NOTEPIECE------------");
-            string dialogID = dialogSequence.dialogID;
-
-            dialogSequence.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
-            dialogSequence.GetDialogList();
-
-            orig(self, dialogSequence, playNewItemJingle, fadeBackMusic);
-        }
-
-        //When an item is awarded switch dialog
-        private void AwardItemPopupParams_ctor_DialogSequence_bool(On.AwardItemPopupParams.orig_ctor_DialogSequence_bool orig, AwardItemPopupParams self, DialogSequence dialogSequence, bool playNewItemJingle)
-        {
-            Console.WriteLine("------------IT IS AN ITEM------------");
-            string dialogID = dialogSequence.dialogID;
-            dialogSequence.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
-            dialogSequence.GetDialogList();
-
-
-            orig(self, dialogSequence, playNewItemJingle);
-        }
-
-
         // Breaking into Necro cutscene to fix things
         void NecrophobicWorkerCutscene_Play(On.NecrophobicWorkerCutscene.orig_Play orig, NecrophobicWorkerCutscene self)
         {
-
-
-            string dialogID = self.dialog.dialogID;
-
-
-            self.dialog.dialogID = ItemRandomizerUtil.getDialogMapping(dialogID);
-            self.dialog.GetDialogList();
             //Cutscene moves Ninja around, lets see if i can stop it by making that "location" the current location the player is.
             self.playerStartPosition = UnityEngine.Object.FindObjectOfType<PlayerController>().transform;
             orig(self);

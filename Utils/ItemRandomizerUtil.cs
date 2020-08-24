@@ -10,8 +10,10 @@ namespace MessengerRando
     //This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
     public class ItemRandomizerUtil
     {
-        public static Dictionary<EItems,string> ItemtoDialogIDMap { get; private set; }
+        
         public static List<EItems> RandomizableItems { get; private set; }
+
+        public static Dictionary<EItems, List<EItems>> unSafeItemLocations { get; private set; }
         public static List<EItems> RandomizableLocations { get; private set; }
         public static List<string> TriggersToIgnoreRandoItemLogic { get; private set; }
 
@@ -41,34 +43,65 @@ namespace MessengerRando
             return randomUpgradeData;
         }
 
-        public static Dictionary<string,string> GenerateDialogMappingforItems()
+       
+
+        //Really rough basic logic check test. It is very very rough but works in most cases
+        //I think it MAY be possible to generate a seed which gets the while loop stuck?
+        //But the way its structured will generate the mappings for items with the most blacklisted locations first.
+        //and then continue to the ones with no restrictions and this should avoid any potential failure.
+        public static Dictionary<EItems, EItems> KRIOGenerateRandomizedMappings(int passedSeed = Int32.MinValue)
         {
 
-            
-            
 
-            Dictionary<string, string> dialogmap = new Dictionary<string, string>();
 
-            Dictionary<EItems, string> currentIDs = ItemRandomizerUtil.ItemtoDialogIDMap;
 
-            Dictionary<EItems, EItems> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-            foreach(KeyValuePair<EItems,EItems> KVP in current)
+            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
+            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
+            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
+            List<EItems> itemsForGeneration = new List<EItems>(RandomizableItems);
+
+            //Choose which item will be located at one of 4 starting points
+            List<EItems> majorItems = new List<EItems> { EItems.GRAPLOU, EItems.WINGSUIT, EItems.MAGIC_BOOTS };
+            List<EItems> majorLocations = new List<EItems> { EItems.SEASHELL, EItems.GRAPLOU, EItems.WINGSUIT, EItems.MAGIC_BOOTS };
+
+            int whichItem = randomNumberGen.Next(0, majorItems.Count);
+            int whichLocation = randomNumberGen.Next(0, majorLocations.Count);
+
+            Console.WriteLine($"Mapping added! Main item {majorItems[whichItem]} can be found at {majorLocations[whichLocation]}");
+
+
+            //Begin filling out the mappings. Both collections need to logically be the same size.
+            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
+            mappings.Add(majorLocations[whichLocation], majorItems[whichItem]);
+            locationsForGeneration.Remove(majorLocations[whichLocation]);
+            itemsForGeneration.Remove(majorItems[whichItem]);
+
+
+            foreach (EItems item in itemsForGeneration) //For each item to randomize, pick a random location and create the mapping.
             {
-                EItems LocationChecked = KVP.Key;
-                EItems ItemActuallyFound = KVP.Value;
-
-                if (currentIDs.ContainsKey(LocationChecked) && currentIDs.ContainsKey(ItemActuallyFound)) //We can map the text
+                int index = randomNumberGen.Next(locationsForGeneration.Count);
+                EItems location = locationsForGeneration[index];
+                if (unSafeItemLocations.ContainsKey(item))
                 {
-                    dialogmap.Add(currentIDs[LocationChecked], currentIDs[ItemActuallyFound]);
+                    while (unSafeItemLocations[item].Contains(location))
+                    {
+                        index = randomNumberGen.Next(locationsForGeneration.Count);
+                        location = locationsForGeneration[index];
+                    }
                 }
-                else
-                {
-                    //Something went wrong and we couldn't map the text
-                }
-
+                mappings.Add(locationsForGeneration[index], item);
+                Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
+                //Remove the used location
+                locationsForGeneration.RemoveAt(index);
             }
-            return dialogmap;
+
+            //The mappings should be created now.
+            Console.WriteLine("Mapping generation complete.");
+            return mappings;
         }
+
+
+
         public static Dictionary<EItems, EItems> GenerateRandomizedMappings(int passedSeed = Int32.MinValue)
         {
 
@@ -87,53 +120,12 @@ namespace MessengerRando
             Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
             foreach (EItems item in RandomizableItems) //For each item to randomize, pick a random location and create the mapping.
             {
-                //Make sure the Grapple is found in two early accessable locations - Toggle in menu
-                if (isEasyGrapple && item == EItems.GRAPLOU)
-                {
-                    int index = randomNumberGen.Next(safeLocation.Count);
-                    mappings.Add(safeLocation[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{safeLocation[index]}'");
-                    locationsForGeneration.Remove(safeLocation[index]);
-                    safeLocation.RemoveAt(index);
 
-                }
-                else if (item == EItems.MAGIC_BOOTS) //Makes sure the Lightfoot Tabi is not stuck in a location which requires them.
-                {
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    EItems loc = locationsForGeneration[index];
-                    while (loc == EItems.SUN_CREST || loc == EItems.MOON_CREST || loc == EItems.KEY_OF_CHAOS || loc == EItems.KEY_OF_LOVE || loc == EItems.PYROPHOBIC_WORKER)
-                    {
-                        Console.WriteLine($"Tried to map {item} to {loc} would result in softlock... remapping...");
-                        index = randomNumberGen.Next(locationsForGeneration.Count);
-                        loc = locationsForGeneration[index];
-                    }
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    locationsForGeneration.RemoveAt(index);
-
-                }
-                else if (item == EItems.SUN_CREST || item == EItems.MOON_CREST) //Makes sure the Sun and Moon crest can not be behind the door
-                {
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    EItems loc = locationsForGeneration[index];
-                    while (loc == EItems.KEY_OF_LOVE)
-                    {
-                        Console.WriteLine($"Tried to map {item} to {loc} would result in softlock... remapping...");
-                        index = randomNumberGen.Next(locationsForGeneration.Count);
-                        loc = locationsForGeneration[index];
-                    }
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    locationsForGeneration.RemoveAt(index);
-                }
-                else
-                {
                     int index = randomNumberGen.Next(locationsForGeneration.Count);
                     mappings.Add(locationsForGeneration[index], item);
                     Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
                     //Remove the used location
                     locationsForGeneration.RemoveAt(index);
-                }
             }
 
             //The mappings should be created now.
@@ -146,7 +138,7 @@ namespace MessengerRando
             LoadRandomizableItems();
             LoadRandomizableLocations();
             LoadRandomizableUpgrades();
-            LoadDialogIDtoItems();
+            DialogChanger.LoadDialogIDtoItems();
             LoadSpecialTriggerNames();
             LoadCutsceneMappings();
         }
@@ -219,34 +211,25 @@ namespace MessengerRando
         private static void LoadRandomizableItems()
         {
             List<EItems> itemsToLoad = new List<EItems>();
+            itemsToLoad.Add(EItems.WINGSUIT);
             itemsToLoad.Add(EItems.GRAPLOU);
             itemsToLoad.Add(EItems.MAGIC_BOOTS);
             itemsToLoad.Add(EItems.MOON_CREST);
             itemsToLoad.Add(EItems.SUN_CREST);
-
-
-
-            itemsToLoad.Add(EItems.WINGSUIT);
-
-            itemsToLoad.Add(EItems.WINDMILL_SHURIKEN);
             /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
             itemsToLoad.Add(EItems.TEA_SEED);
             */
-
             itemsToLoad.Add(EItems.POWER_THISTLE);
             itemsToLoad.Add(EItems.FAIRY_BOTTLE);
-
-
             itemsToLoad.Add(EItems.RUXXTIN_AMULET);
             itemsToLoad.Add(EItems.DEMON_KING_CROWN);
-
-            itemsToLoad.Add(EItems.CANDLE);
-            itemsToLoad.Add(EItems.SEASHELL);
-
             itemsToLoad.Add(EItems.NECROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.CLAUSTROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.PYROPHOBIC_WORKER);
             itemsToLoad.Add(EItems.ACROPHOBIC_WORKER);
+            itemsToLoad.Add(EItems.CANDLE);
+            itemsToLoad.Add(EItems.SEASHELL);
+
 
             itemsToLoad.Add(EItems.KEY_OF_CHAOS);
             itemsToLoad.Add(EItems.KEY_OF_COURAGE);
@@ -254,47 +237,80 @@ namespace MessengerRando
             itemsToLoad.Add(EItems.KEY_OF_LOVE);
             itemsToLoad.Add(EItems.KEY_OF_STRENGTH);
             itemsToLoad.Add(EItems.KEY_OF_SYMBIOSIS);
+            itemsToLoad.Add(EItems.WINDMILL_SHURIKEN);
 
             RandomizableItems = itemsToLoad;
+
+            Dictionary<EItems, List<EItems>> unsafeitems = new Dictionary<EItems, List<EItems>>();
+
+            //Atleast one of Ropedart, Wingsuit or Tabi should appear at the starting 4 checks.
+            List<EItems> ropedart = new List<EItems>();
+            ropedart.Add(EItems.KEY_OF_HOPE);
+            ropedart.Add(EItems.KEY_OF_SYMBIOSIS);
+            ropedart.Add(EItems.POWER_THISTLE);
+            ropedart.Add(EItems.FAIRY_BOTTLE);
+
+            List<EItems> wingsuit = new List<EItems>();
+            wingsuit.Add(EItems.ACROPHOBIC_WORKER);
+            wingsuit.Add(EItems.KEY_OF_HOPE);
+            wingsuit.Add(EItems.DEMON_KING_CROWN);
+            wingsuit.Add(EItems.CLIMBING_CLAWS);
+            wingsuit.Add(EItems.CLAUSTROPHOBIC_WORKER);
+            wingsuit.Add(EItems.CANDLE);
+            wingsuit.Add(EItems.RUXXTIN_AMULET);
+            wingsuit.Add(EItems.NECROPHOBIC_WORKER);
+
+            List<EItems> tabi = new List<EItems>();
+            tabi.Add(EItems.KEY_OF_CHAOS);
+            tabi.Add(EItems.SUN_CREST);
+            tabi.Add(EItems.MOON_CREST);
+            tabi.Add(EItems.PYROPHOBIC_WORKER);
+
+            List<EItems> sun = new List<EItems>();
+            sun.Add(EItems.KEY_OF_LOVE);
+
+            List<EItems> moon = new List<EItems>();
+            moon.Add(EItems.KEY_OF_LOVE);
+
+            List<EItems> crown = new List<EItems>();
+            crown.Add(EItems.KEY_OF_COURAGE);
+
+            List<EItems> firefly = new List<EItems>();
+            firefly.Add(EItems.KEY_OF_COURAGE);
+            firefly.Add(EItems.KEY_OF_SYMBIOSIS);
+
+            List<EItems> powerthistle = new List<EItems>();
+            powerthistle.Add(EItems.KEY_OF_STRENGTH);
+
+            List<EItems> amulet = new List<EItems>();
+            amulet.Add(EItems.ACROPHOBIC_WORKER);
+
+            List<EItems> phobekin = new List<EItems>();
+            phobekin.Add(EItems.DEMON_KING_CROWN);
+
+
+            unsafeitems.Add(EItems.WINGSUIT, wingsuit);
+            unsafeitems.Add(EItems.GRAPLOU, ropedart);
+            unsafeitems.Add(EItems.MAGIC_BOOTS, tabi);
+            unsafeitems.Add(EItems.SUN_CREST, sun);
+            unsafeitems.Add(EItems.MOON_CREST, moon);
+            unsafeitems.Add(EItems.DEMON_KING_CROWN, crown);
+            unsafeitems.Add(EItems.FAIRY_BOTTLE, firefly);
+            unsafeitems.Add(EItems.POWER_THISTLE, powerthistle);
+            unsafeitems.Add(EItems.RUXXTIN_AMULET, amulet);
+            unsafeitems.Add(EItems.ACROPHOBIC_WORKER, phobekin);
+            unsafeitems.Add(EItems.CLAUSTROPHOBIC_WORKER, phobekin);
+            unsafeitems.Add(EItems.NECROPHOBIC_WORKER, phobekin);
+            unsafeitems.Add(EItems.PYROPHOBIC_WORKER, phobekin);
+
+            unSafeItemLocations = unsafeitems;
+
+
         }
 
 
 
-        private static void LoadDialogIDtoItems()
-        {
-            Dictionary<EItems, string> itemDialogID = new Dictionary<EItems, string>();
-
-            itemDialogID.Add(EItems.CLIMBING_CLAWS, "AWARD_GRIMPLOU");
-            itemDialogID.Add(EItems.WINGSUIT, "AWARD_WINGSUIT");
-            itemDialogID.Add(EItems.GRAPLOU, "AWARD_ROPE_DART");
-            itemDialogID.Add(EItems.FAIRY_BOTTLE, "AWARD_FAIRY");
-            itemDialogID.Add(EItems.MAGIC_BOOTS, "AWARD_MAGIC_BOOTS");
-            itemDialogID.Add(EItems.SEASHELL, "AWARD_MAGIC_SEASHELL");
-            itemDialogID.Add(EItems.RUXXTIN_AMULET, "AWARD_AMULET");
-            //itemDialogID.Add(EItems.TEA_SEED, "AWARD_SEED");
-            //itemDialogID.Add(EItems.TEA_LEAVES, "AWARD_ASTRAL_LEAVES");
-            itemDialogID.Add(EItems.POWER_THISTLE, "AWARD_THISTLE");
-            itemDialogID.Add(EItems.CANDLE, "AWARD_CANDLE");
-            //itemDialogID.Add(, "AWARD_THISTLE");
-            itemDialogID.Add(EItems.DEMON_KING_CROWN, "AWARD_CROWN");
-            itemDialogID.Add(EItems.WINDMILL_SHURIKEN, "AWARD_WINDMILL");
-            itemDialogID.Add(EItems.KEY_OF_HOPE, "AWARD_KEY_OF_HOPE");
-            itemDialogID.Add(EItems.KEY_OF_STRENGTH, "AWARD_KEY_OF_STRENGTH");
-            itemDialogID.Add(EItems.KEY_OF_CHAOS, "AWARD_KEY_OF_CHAOS");
-            itemDialogID.Add(EItems.KEY_OF_LOVE, "AWARD_KEY_OF_LOVE");
-            itemDialogID.Add(EItems.KEY_OF_SYMBIOSIS, "AWARD_KEY_OF_SYMBIOSIS");
-            itemDialogID.Add(EItems.KEY_OF_COURAGE, "AWARD_KEY_OF_COURAGE");
-            itemDialogID.Add(EItems.SUN_CREST, "AWARD_SUN_CREST");
-            itemDialogID.Add(EItems.MOON_CREST, "AWARD_MOON_CREST");
-
-            itemDialogID.Add(EItems.PYROPHOBIC_WORKER, "FIND_PYRO");
-            itemDialogID.Add(EItems.ACROPHOBIC_WORKER, "FIND_ACRO");
-            itemDialogID.Add(EItems.NECROPHOBIC_WORKER, "NECRO_PHOBEKIN_DIALOG");
-            itemDialogID.Add(EItems.CLAUSTROPHOBIC_WORKER, "FIND_CLAUSTRO");
-
-            ItemtoDialogIDMap = itemDialogID;
-
-        }
+       
 
         private static void LoadRandomizableLocations()
         {
@@ -368,20 +384,7 @@ namespace MessengerRando
         }
 
 
-        public static string getDialogMapping(string dialogID)
-        {
-            Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} but we gave it {mappings[dialogID]}");
-                return mappings[dialogID];
-            }
-            else
-            {
-                Console.WriteLine($"Game wanted to say dialogID {dialogID} we could not find a mapping so will still say {dialogID}");
-                return dialogID;
-            }
-        }
+       
         //Checks to see if all expected notes have already been collected
         public static bool HasAllNotes()
         {
