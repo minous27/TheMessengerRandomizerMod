@@ -193,13 +193,13 @@ namespace MessengerRando
                 if (Manager<LocalizationManager>.Instance != null)
                 {
                     Type type = typeof(LocalizationManager);
-                    var field = type.GetField("onLanguageChanged", BindingFlags.NonPublic | BindingFlags.Instance);
-                    var eventDelegate = field.GetValue(Manager<LocalizationManager>.Instance) as MulticastDelegate;
+                    FieldInfo field = type.GetField("onLanguageChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+                    MulticastDelegate eventDelegate = field.GetValue(Manager<LocalizationManager>.Instance) as MulticastDelegate;
 
 
                     if (eventDelegate != null)
                     {
-                        foreach (var eventHandler in eventDelegate.GetInvocationList())
+                        foreach (Delegate eventHandler in eventDelegate.GetInvocationList())
                         {
                             eventHandler.Method.Invoke(eventHandler.Target, null);
                         }

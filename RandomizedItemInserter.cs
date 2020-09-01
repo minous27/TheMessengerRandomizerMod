@@ -31,7 +31,6 @@ namespace MessengerRando
         SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
         SubMenuButtonInfo teleportToNinjaVillage;
-        ToggleButtonInfo easyGrapple;
         ToggleButtonInfo randomPrices;
 
         public override void Load()
@@ -55,8 +54,7 @@ namespace MessengerRando
             //Add Set seed mod option button
             enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null, CharsetFlags.Number);
             generateSeedButton.SaveMethod = randomizerSaveMethod;
-
-            easyGrapple = Courier.UI.RegisterToggleModOptionButton(() => "Grapple at Wingsuit or Tabi", OnEasyGrappleToggle, (b) => ItemRandomizerUtil.isEasyGrapple);
+      
             randomPrices = Courier.UI.RegisterToggleModOptionButton(() => "Randomize shop prices", OnRandomizePricesToggle, (b) => ItemRandomizerUtil.arePricesRandomized);
 
             //Add windmill shuriken toggle button
@@ -110,19 +108,11 @@ namespace MessengerRando
         }
 
 
-        private void OnEasyGrappleToggle()
-        {
-            ItemRandomizerUtil.isEasyGrapple = !ItemRandomizerUtil.isEasyGrapple;
-            easyGrapple.UpdateStateText();
-        }
-
-
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            easyGrapple.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             randomPrices.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);

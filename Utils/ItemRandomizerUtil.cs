@@ -22,7 +22,6 @@ namespace MessengerRando
         public static int OfficialSeed { get; private set; }
         public static Random randomNumberGen;
 
-        public static bool isEasyGrapple = false;
         public static bool arePricesRandomized = false;
         public static Dictionary<EShopUpgradeID, int> randomUpgradeData { get; private set; }
 
@@ -292,10 +291,10 @@ namespace MessengerRando
             unsafeitems.Add(EItems.WINGSUIT, wingsuit);
             unsafeitems.Add(EItems.GRAPLOU, ropedart);
             unsafeitems.Add(EItems.MAGIC_BOOTS, tabi);
+            unsafeitems.Add(EItems.FAIRY_BOTTLE, firefly);
             unsafeitems.Add(EItems.SUN_CREST, sun);
             unsafeitems.Add(EItems.MOON_CREST, moon);
             unsafeitems.Add(EItems.DEMON_KING_CROWN, crown);
-            unsafeitems.Add(EItems.FAIRY_BOTTLE, firefly);
             unsafeitems.Add(EItems.POWER_THISTLE, powerthistle);
             unsafeitems.Add(EItems.RUXXTIN_AMULET, amulet);
             unsafeitems.Add(EItems.ACROPHOBIC_WORKER, phobekin);
