@@ -1,5 +1,7 @@
 ﻿using System;
 using MessengerRando.Overrides;
+using MessengerRando.Utils;
+using MessengerRando.RO;
 using Mod.Courier;
 using Mod.Courier.Module;
 using Mod.Courier.UI;
@@ -15,10 +17,12 @@ namespace MessengerRando
     public class RandomizedItemInserter : CourierModule
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
+        private const int MAX_BEATABLE_SEED_ATTEMPTS = 5;
 
         private RandomizerStateManager randoStateManager;       
 
-        TextEntryButtonInfo generateSeedButton;
+        TextEntryButtonInfo generateRandomSeedButton;
+        TextEntryButtonInfo generateBasicSeedButton;
         TextEntryButtonInfo enterSeedButton;
         SubMenuButtonInfo versionButton;
         SubMenuButtonInfo windmillShurikenToggleButton;
@@ -28,9 +32,7 @@ namespace MessengerRando
         public override void Load()
         {
             Console.WriteLine("Randomizer loaded and ready to try things!");
-           
-            //Start the randomizer util initializations
-            ItemRandomizerUtil.Load();
+          
             //Initialize the randomizer state manager
             RandomizerStateManager.Initialize();
             randoStateManager = RandomizerStateManager.Instance;
@@ -40,13 +42,17 @@ namespace MessengerRando
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
-            //Add generate mod option button
-            generateSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterRandoFileSlot, 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
-            generateSeedButton.SaveMethod = randomizerSaveMethod;
+            //Add generate random seed mod option button
+            generateRandomSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Random Seed", OnEnterNoLogicFileSlot, 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
+            generateRandomSeedButton.SaveMethod = randomizerSaveMethod;
+
+            //Add generate basic seed mod option button
+            generateBasicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Basic Seed", OnEnterBasicFileSlot, 1, () => "Which save slot would you like to start a basic rando seed?", () => "1", CharsetFlags.Number);
+            generateBasicSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add Set seed mod option button
-            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
-            generateSeedButton.SaveMethod = randomizerSaveMethod;
+            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterRandomSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
+            generateRandomSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -76,7 +82,7 @@ namespace MessengerRando
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
-            generateSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            generateRandomSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
@@ -92,13 +98,14 @@ namespace MessengerRando
         {
             //Currently defaulting rando values in case this is not a randomized item like pickups
             EItems randoItemId = itemId;
+            LocationRO randoItemCheck = new LocationRO(itemId);
 
             Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemId)))
+            if (randoStateManager.IsRandomizedFile && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
-                randoItemId = randoStateManager.CurrentLocationToItemMapping[itemId];
+                randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
                 
                 //If that item is the windmill shuriken, immediately activate it and the mod option
@@ -115,10 +122,11 @@ namespace MessengerRando
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
         {
             bool hasItem = false;
+            LocationRO check = new LocationRO(self.item);
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
-            if (randoStateManager.IsRandomizedFile && ItemRandomizerUtil.RandomizableLocations.Contains(self.item) && !ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.Owner.name))
+            if (randoStateManager.IsRandomizedFile && RandomizerConstants.GetRandoLocationList().Contains(check) && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
             {
-                if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && ItemRandomizerUtil.TriggersToIgnoreRandoItemLogic.Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
+                if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && RandomizerConstants.GetSpecialTriggerNames().Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
                     //Special triggers that need to use normal logic, call orig method. This also includes the trigger check for the key of love on the sunken door because yeah.
                     Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
@@ -126,7 +134,7 @@ namespace MessengerRando
                 }
 
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
-                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.item]);
+                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check]);
                 switch (self.conditionOperator)
                 {
                     case EConditionOperator.LESS_THAN:
@@ -145,7 +153,7 @@ namespace MessengerRando
                         hasItem = itemQuantity > self.quantityToHave;
                         break;
                 }
-                Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[self.item]}' || Current Check '{self.conditionOperator}' || Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
+                Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[check]}' || Current Check '{self.conditionOperator}' || Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
                 return hasItem;
             }
             else //Call orig method
@@ -158,9 +166,10 @@ namespace MessengerRando
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
             //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(self.noteToAward)) //Double checking to prevent errors
+            LocationRO noteCheck = new LocationRO(self.noteToAward);
+            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(noteCheck)) //Double checking to prevent errors
             {
-                bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[self.noteToAward]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
+                bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
                 return shouldPlay;
             }
@@ -173,22 +182,26 @@ namespace MessengerRando
         bool CutsceneHasPlayed_IsTrue(On.CutsceneHasPlayed.orig_IsTrue orig, CutsceneHasPlayed self)
         {
             
-            if(randoStateManager.IsRandomizedFile && ItemRandomizerUtil.CutsceneMappings.ContainsKey(self.cutsceneId))
+            if(randoStateManager.IsRandomizedFile && RandomizerConstants.GetCutsceneMappings().ContainsKey(self.cutsceneId))
             {
+                LocationRO cutsceneCheck = new LocationRO(RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]);
+
                 //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
-                Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}");
+                Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}");
+
+                
 
                 //Check to see if I have the item that is at this check.
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]) >= 1)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]) >= 1)
                 {
                     //Return true, this cutscene has "been played"
-                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}' for cutscene '{self.cutsceneId}'. Returning that we have already seen cutscene.");
+                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Returning that we have already seen cutscene.");
                     return self.mustHavePlayed == true;
                 }
                 else
                 {
                     //Havent seen the cutscene yet. Play it so i can get the item!
-                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[ItemRandomizerUtil.CutsceneMappings[self.cutsceneId]]}' for cutscene '{self.cutsceneId}'. Returning that we have not seen cutscene yet.");
+                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Returning that we have not seen cutscene yet.");
                     return self.mustHavePlayed == false;
                 }
             }
@@ -251,16 +264,16 @@ namespace MessengerRando
             if(randoStateManager.IsRandomizedFile)
             {
                 //check to see if we already have the item at Necro check
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]) <= 0 && !Manager<DemoManager>.Instance.demoMode)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER)]) <= 0 && !Manager<DemoManager>.Instance.demoMode)
                 {
                     //Run the cutscene if we dont
-                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]}' from Necro check. Playing cutscene.");
+                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER)]}' from Necro check. Playing cutscene.");
                     self.necrophobicWorkerCutscene.Play();
                 }
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]) >= 1 || Manager<DemoManager>.Instance.demoMode)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER)]) >= 1 || Manager<DemoManager>.Instance.demoMode)
                 {
                     //set necro inactive if we do
-                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[EItems.NECROPHOBIC_WORKER]}' from Necro check. Will not play cutscene.");
+                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER)]}' from Necro check. Will not play cutscene.");
                     self.necrophobicWorkerCutscene.phobekin.gameObject.SetActive(false);
                 }
                 //Call our overriden fixing function
@@ -323,7 +336,7 @@ namespace MessengerRando
         }
         */
 
-        bool OnEnterSeedNumber(string seed)
+        bool OnEnterRandomSeedNumber(string seed)
         {
             if(seed == null || seed.Length < 1)
             {
@@ -331,7 +344,7 @@ namespace MessengerRando
                 return false;
             }
 
-            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
+            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), SeedType.None, Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
             fileSlotPopup.onBack += () => {
                 fileSlotPopup.gameObject.SetActive(false);
                 enterSeedButton.textEntryPopup.gameObject.SetActive(true);
@@ -349,16 +362,28 @@ namespace MessengerRando
             return false;
         }
 
-        //On submit of rando file location
-        bool OnEnterRandoFileSlot(string fileSlot)
+        ///On submit of rando file location
+        bool OnEnterNoLogicFileSlot(string fileSlot)
         {
             Console.WriteLine($"Received file slot number: {fileSlot}");
 
-            return SetSeedForFileSlot(Convert.ToInt32(fileSlot));
+            return SetSeedForFileSlot(Convert.ToInt32(fileSlot), SeedType.No_Logic);
+        }
+
+        /// <summary>
+        /// Button logic when generating basic seed for file slot
+        /// </summary>
+        /// <param name="fileSlot">File slot to generate seed for</param>
+        /// <returns></returns>
+        bool OnEnterBasicFileSlot(string fileSlot)
+        {
+            Console.WriteLine($"Received file slot number: {fileSlot}");
+
+            return SetSeedForFileSlot(Convert.ToInt32(fileSlot), SeedType.Basic);
         }
 
         //Moved the seed setting logic out so I could reuse it.
-        bool SetSeedForFileSlot(int fileSlot, int seed = Int32.MinValue)
+        bool SetSeedForFileSlot(int fileSlot, SeedType seedType, int seed = Int32.MinValue)
         {
             //Check to make sure an apporiate save slot was chosen.
             if (fileSlot < 1 || fileSlot > 3)
@@ -373,9 +398,45 @@ namespace MessengerRando
                 Console.WriteLine("Generating seed...");
                 seed = ItemRandomizerUtil.GenerateSeed();
                 Console.WriteLine($"Seed generated: '{seed}'");
+
+                if (seedType == SeedType.Basic && !ItemRandomizerUtil.IsSeedBeatable(seed))
+                {
+                    //We need to try to generate seeds again until we get a beatable seed. Let's try x number of times before we just give up, log something, and return the last seed we got.
+                    for(int i = 0; i < MAX_BEATABLE_SEED_ATTEMPTS; i++)
+                    {
+                        Console.WriteLine($"Seed {seed} failed logic validations. Attempt number {i + 1} in generating a new seed");
+                        seed = ItemRandomizerUtil.GenerateSeed();
+                        Console.WriteLine($"Seed generated: '{seed}'");
+
+                        if(ItemRandomizerUtil.IsSeedBeatable(seed))
+                        {
+                            //We got a good seed
+                            break;
+                        }
+                    }
+                    //Doing check one last time to log issues if we had them
+                    if (!ItemRandomizerUtil.IsSeedBeatable(seed))
+                    {
+                        Console.WriteLine($"Exceeded seed generation attempts. Moving forward with seed '{seed}'");
+                    }
+                }
             }
+
+            //Doing a quick beatable check for passed seeds that have no seed type
+            if(seedType == SeedType.None)
+            {
+                if(ItemRandomizerUtil.IsSeedBeatable(seed))
+                {
+                    seedType = SeedType.Basic;
+                }
+                else
+                {
+                    seedType = SeedType.No_Logic;
+                }
+            }
+
             //Save this seed into the state
-            randoStateManager.AddSeed(fileSlot, seed);
+            randoStateManager.AddSeed(fileSlot,seedType, seed);
 
             Console.WriteLine($"Set seed '{seed}' to file slot '{fileSlot}'");
             return true;
@@ -438,8 +499,8 @@ namespace MessengerRando
         /// <returns></returns>
         private EItems GetRandoItemByItem(EItems item)
         {
-            Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[EItems.RUXXTIN_AMULET]}'");
-            return randoStateManager.CurrentLocationToItemMapping[EItems.RUXXTIN_AMULET];
+            Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET)]}'");
+            return randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET)];
         }
 
     }

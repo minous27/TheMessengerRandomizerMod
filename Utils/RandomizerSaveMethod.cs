@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MessengerRando.Utils;
 using Mod.Courier.Save;
 
 namespace MessengerRando
 {
-    //Format for the mod save value: |seed1|seed2|seed3
+    //Format for the mod save value: |seed1+seedType|seed2+seedType|seed3+seedType
     class RandomizerSaveMethod : OptionSaveMethod
     {
         private const string RANDO_OPTION_VALUE_DELIM = "|";
+        private const string RANDO_OPTION_TYPE_DELIM = "+";
 
         private RandomizerStateManager stateManager;
 
@@ -25,7 +27,7 @@ namespace MessengerRando
             
             for(int i = 1; i <= 3; i++)
             {
-                modValue.Append(RANDO_OPTION_VALUE_DELIM + stateManager.GetSeedForFileSlot(i));
+                modValue.Append(RANDO_OPTION_VALUE_DELIM + stateManager.GetSeedForFileSlot(i).Seed + RANDO_OPTION_TYPE_DELIM + stateManager.GetSeedForFileSlot(i).SeedType);
             }
 
             Console.WriteLine($"Saving seed data: '{modValue}'");
@@ -43,7 +45,10 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Adding '{seeds[i]}' to state manager.");
                 //add seeds to the state manager
-                stateManager.AddSeed(i, Int32.Parse(seeds[i]));
+                string[] seedDetails = seeds[i].Split(RANDO_OPTION_TYPE_DELIM.ToCharArray()); //expecting (0)seed - (1)seedType
+
+
+                stateManager.AddSeed(i, (SeedType)Int32.Parse(seedDetails[1]), Int32.Parse(seedDetails[0]));
                 Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
             }
 
