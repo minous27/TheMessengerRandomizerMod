@@ -117,7 +117,17 @@ namespace MessengerRando.Utils
 
         public static bool IsSeedBeatable(int seed)
         {
-            throw new NotImplementedException("TODO: Do the thing!");
+            try
+            {
+                GenerateRandomizedMappings(new SeedRO(SeedType.Basic, seed));
+                return true;
+            }
+            catch(RandomizerException rde)
+            {
+                //This means that the seed was deemed not beatable
+                Console.WriteLine($"Seed '{seed}' was deemed not beatable during IsSeedBeatable check. Error message received: '{rde.Message}'");
+                return false;
+            }
         }
 
         //Checks to see if all expected notes have already been collected
@@ -153,17 +163,22 @@ namespace MessengerRando.Utils
 
         private static void FastMapping(List<EItems> items, ref Dictionary<LocationRO, EItems> locationToItemMapping)
         {
+            //Setting up local list to make sure of what I am messing with.
+            List<EItems> localItems = new List<EItems>(items); 
+
             //randomly place passed items into available locations without checking logic requirements
-            for (int itemIndex = randomNumberGen.Next(items.Count); items.Count > 0; itemIndex = randomNumberGen.Next(items.Count))
+            for (int itemIndex = randomNumberGen.Next(localItems.Count); localItems.Count > 0; itemIndex = randomNumberGen.Next(localItems.Count))
             {
                 int locationIndex = randomNumberGen.Next(randomizedLocations.Count);
-                Console.WriteLine($"Item Index '{itemIndex}' generated for item list with size '{items.Count}'. Locations index '{locationIndex}' generated for location list with size '{randomizedLocations.Count}'");
-                locationToItemMapping.Add(randomizedLocations[locationIndex], items[itemIndex]);
-                Console.WriteLine($"Fast mapping occurred. Added item '{items[itemIndex]}' to check '{randomizedLocations[locationIndex].LocationName}'.");
+                Console.WriteLine($"Item Index '{itemIndex}' generated for item list with size '{localItems.Count}'. Locations index '{locationIndex}' generated for location list with size '{randomizedLocations.Count}'");
+                locationToItemMapping.Add(randomizedLocations[locationIndex], localItems[itemIndex]);
+                Console.WriteLine($"Fast mapping occurred. Added item '{localItems[itemIndex]}' at index '{itemIndex}' to check '{randomizedLocations[locationIndex].LocationName}' at index '{locationIndex}'.");
                 //Removing mapped items and locations
-                randomizedItems.Remove(items[itemIndex]); //Doing this just in case its in the main list
+                randomizedItems.Remove(localItems[itemIndex]); //Doing this just in case its in the main list
+                Console.WriteLine($"Removing location at index '{locationIndex}' from location list sized '{randomizedLocations.Count}'");
                 randomizedLocations.RemoveAt(locationIndex);
-                items.RemoveAt(itemIndex);
+                Console.WriteLine($"Removing item at index '{itemIndex}' from items list sized '{localItems.Count}'");
+                localItems.RemoveAt(itemIndex);
             }
             //All the passed items should now have a home
         }
@@ -173,7 +188,10 @@ namespace MessengerRando.Utils
         /// </summary>
         private static void LogicalMapping(Dictionary<EItems, HashSet<EItems>> tempRequiredItems, ref Dictionary<LocationRO, EItems> locationToItemMapping)
         {
-            foreach (EItems item in tempRequiredItems.Keys)
+            //Creating local copy of required items so i know what I am messing with.
+            Dictionary<EItems, HashSet<EItems>> localRequiredItems = new Dictionary<EItems, HashSet<EItems>>(tempRequiredItems);
+
+            foreach (EItems item in localRequiredItems.Keys)
             {
                 bool hasAHome = false;
 
@@ -195,7 +213,7 @@ namespace MessengerRando.Utils
                     if (hasAHome)
                     {
                         //Next we need to check the location for each and every item this item blocks. We need to catch the moment an item proves it cannot be here and mark it so we can move on.
-                        foreach (EItems blockedItem in tempRequiredItems[item])
+                        foreach (EItems blockedItem in localRequiredItems[item])
                         {
                             hasAHome = IsLocationSafeForItem(randoSortedLocations[i], blockedItem);
 
@@ -235,7 +253,7 @@ namespace MessengerRando.Utils
 
             switch (item)
             {
-                case EItems.WINGSUIT: //Try to find a home for wingsuit. Currently not putting it in wingsuit or the Either checks
+                case EItems.WINGSUIT: //Try to find a home for wingsuit.
                     if (!location.IsWingsuitRequired)
                     {
                         //if a coin flip on this location hasn't happened yet, do it now.
@@ -283,6 +301,8 @@ namespace MessengerRando.Utils
         {
             //Check through the current mappings and return a mapping of all required items and the items they are blocking. If the required item is already placed in a location, we will ignore it. 
             Dictionary<EItems, HashSet<EItems>> tempRequiredItems = new Dictionary<EItems, HashSet<EItems>>();
+            //Key Items set so I can control how many of those I choose to handle per run
+            HashSet<EItems> keyItems = new HashSet<EItems>();
 
             foreach (LocationRO location in mappings.Keys)
             {
@@ -290,14 +310,17 @@ namespace MessengerRando.Utils
                 if (location.IsWingsuitRequired && randomizedItems.Contains(EItems.WINGSUIT))
                 {
                     tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.WINGSUIT);
                 }
                 if (location.IsRopeDartRequired && randomizedItems.Contains(EItems.GRAPLOU))
                 {
                     tempRequiredItems = AddRequiredItem(EItems.GRAPLOU, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.GRAPLOU);
                 }
                 if (location.IsNinjaTabiRequired && randomizedItems.Contains(EItems.MAGIC_BOOTS))
                 {
                     tempRequiredItems = AddRequiredItem(EItems.MAGIC_BOOTS, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.MAGIC_BOOTS);
                 }
                 //Checking if either Wingsuit OR Rope Dart is required is a separate check.
                 if (location.IsEitherWingsuitOrRopeDartRequired)
@@ -314,24 +337,29 @@ namespace MessengerRando.Utils
                         coinResults.Add(location, coin);
                     }
 
+                    
+
                     switch (coin)
                     {
                         case 0://Wingsuit
                             if (randomizedItems.Contains(EItems.WINGSUIT))
                             {
                                 tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.WINGSUIT);
                             }
                             break;
                         case 1://Rope Dart
                             if (randomizedItems.Contains(EItems.GRAPLOU))
                             {
                                 tempRequiredItems = AddRequiredItem(EItems.GRAPLOU, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.GRAPLOU);
                             }
                             break;
                         default://Something weird happened...just do wingsuit :P
                             if (randomizedItems.Contains(EItems.WINGSUIT))
                             {
                                 tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.WINGSUIT);
                             }
                             break;
                     }
@@ -347,6 +375,20 @@ namespace MessengerRando.Utils
                     }
                 }
             }
+
+            //I was having a problem with some seeds setting all the key items at the beginning and not considering each other. I think how I will handle this is by only allowing one of them set each run through and throwing the rest out. I expect them to get picked up on subsequent runs.
+            if (keyItems.Count > 1)
+            {
+                //This means I have more than 1 key item to process. Let's pick random ones to remove from the required items list until none remain.
+                for (int i = randomNumberGen.Next(keyItems.Count); keyItems.Count > 1; i = randomNumberGen.Next(keyItems.Count))
+                {
+                    EItems itemToRemove = keyItems.ElementAt(i);
+                    Console.WriteLine($"Found multiple key items during required item mapping. Tossing '{itemToRemove}' from this run.");
+                    tempRequiredItems.Remove(itemToRemove);
+                    keyItems.Remove(itemToRemove);
+                }
+            }
+
             //Logging
             Console.WriteLine("For the provided checks: ");
             foreach (LocationRO location in mappings.Keys)

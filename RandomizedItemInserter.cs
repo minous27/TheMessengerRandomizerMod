@@ -83,6 +83,7 @@ namespace MessengerRando
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             generateRandomSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            generateBasicSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
@@ -100,7 +101,11 @@ namespace MessengerRando
             EItems randoItemId = itemId;
             LocationRO randoItemCheck = new LocationRO(itemId);
 
-            Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
+            if(itemId != EItems.TIME_SHARD) //killing the timeshard noise in the logs
+            {
+                Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
+            }
+
             //Lets make sure that the item they are collecting is supposed to be randomized
             if (randoStateManager.IsRandomizedFile && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
             {
@@ -224,6 +229,8 @@ namespace MessengerRando
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
                 randoStateManager.IsRandomizedFile = true;
+                //Log spoiler log
+                randoStateManager.LogCurrentMappings();
             }
             else
             {

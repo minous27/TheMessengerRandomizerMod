@@ -116,5 +116,18 @@ namespace MessengerRando
             return isTeleportSafe;
         }
 
+        /// <summary>
+        /// Helper method to log out the current mappings all nicely for review
+        /// </summary>
+        public void LogCurrentMappings()
+        {
+            Console.WriteLine("----------------BEGIN Current Mappings----------------");
+            foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
+            {
+                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
+            }
+            Console.WriteLine("----------------END Current Mappings----------------");
+        }
+
     }
 }

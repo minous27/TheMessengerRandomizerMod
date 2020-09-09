@@ -48,7 +48,7 @@ namespace MessengerRando
                 string[] seedDetails = seeds[i].Split(RANDO_OPTION_TYPE_DELIM.ToCharArray()); //expecting (0)seed - (1)seedType
 
 
-                stateManager.AddSeed(i, (SeedType)Int32.Parse(seedDetails[1]), Int32.Parse(seedDetails[0]));
+                stateManager.AddSeed(i, (SeedType)Enum.Parse(typeof(SeedType),seedDetails[1], true), Int32.Parse(seedDetails[0]));
                 Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
             }
 
