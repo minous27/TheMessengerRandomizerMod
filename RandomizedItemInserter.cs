@@ -234,8 +234,8 @@ namespace MessengerRando
             }
             else
             {
-                //This save file does not have a seed associated with it. Reset the mappings so everything is back to normal.
-                Console.WriteLine($"This file slot ({fileSlot}) has no seed generated. Resetting the mappings and putting game items back to normal.");
+                //This save file does not have a seed associated with it or is not a randomized file. Reset the mappings so everything is back to normal.
+                Console.WriteLine($"This file slot ({fileSlot}) has no seed generated or is not a randomized file. Resetting the mappings and putting game items back to normal.");
                 randoStateManager.ResetCurrentLocationToItemMappings();
             }
             orig(self, slotIndex);
@@ -397,6 +397,14 @@ namespace MessengerRando
             {
                 Console.WriteLine($"User provided an invalid save slot number {fileSlot}");
                 return false;
+            }
+            
+            // short circuit for default values, this means the user wants this file to not be randomized
+            if(seed == 0)
+            {
+                randoStateManager.ResetSeedForFileSlot(fileSlot);
+                Console.WriteLine($"Seed '{seed}' matched default value of '0'. Seeding fileslot to not be randomized.");
+                return true;
             }
 
             if (seed == Int32.MinValue)

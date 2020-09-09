@@ -66,7 +66,7 @@ namespace MessengerRando
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO();
+                seeds[fileSlot] = new SeedRO(SeedType.None, 0);
             }
             Console.WriteLine("File slot reset complete.");
         }
@@ -75,7 +75,7 @@ namespace MessengerRando
         {
             bool seedFound = false;
 
-            if(this.seeds.ContainsKey(fileSlot) && seeds[fileSlot].SeedType != SeedType.None)
+            if(this.seeds.ContainsKey(fileSlot) && this.seeds[fileSlot].Seed != 0 && this.seeds[fileSlot].SeedType != SeedType.None)
             {
                 seedFound = true;
             }

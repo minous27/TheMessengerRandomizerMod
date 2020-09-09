@@ -47,8 +47,18 @@ namespace MessengerRando
                 //add seeds to the state manager
                 string[] seedDetails = seeds[i].Split(RANDO_OPTION_TYPE_DELIM.ToCharArray()); //expecting (0)seed - (1)seedType
 
+                //spliting up the seed info for clarity and checks as needed
 
-                stateManager.AddSeed(i, (SeedType)Enum.Parse(typeof(SeedType),seedDetails[1], true), Int32.Parse(seedDetails[0]));
+                //This will parse the seed into an int. If the value cannot be parsed for some reason, seed will be 0
+                Int32.TryParse(seedDetails.ElementAtOrDefault(0), out int seed);
+                //This will pull out the seed type. If there is none, default it.
+                SeedType seedType = SeedType.None;
+                if(seedDetails.ElementAtOrDefault(1) != null && Enum.IsDefined(typeof(SeedType), seedDetails[1])) //using IsDefined because I dont have TryParse in this .NET version T_T
+                {
+                    seedType = (SeedType)Enum.Parse(typeof(SeedType), seedDetails.ElementAtOrDefault(1));
+                }
+
+                stateManager.AddSeed(i, seedType, seed);
                 Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
             }
 
