@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>F:\SteamLibrary\steamapps\common\The Messenger\Mods\</OutputPath>
+    <OutputPath>F:\SteamLibrary\steamapps\common\The Messenger\Mods\Randomizer\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -72,7 +72,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
+    <Compile Include="RO\SeedRO.cs" />
+    <Compile Include="RO\LocationRO.cs" />
+    <Compile Include="Utils\DialogChanger.cs" />
+    <Compile Include="Utils\RandomizerConstants.cs" />
+    <Compile Include="Utils\SeedType.cs" />
     <Compile Include="Utils\RandomizerStateManager.cs" />
     <Compile Include="Utils\RandomizerSaveMethod.cs" />
     <Compile Include="Utils\ItemRandomizerUtil.cs" />

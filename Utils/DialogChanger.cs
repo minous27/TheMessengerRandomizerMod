@@ -1,18 +1,18 @@
 ﻿using JetBrains.Annotations;
+using MessengerRando.RO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace MessengerRando
+namespace MessengerRando.Utils
 {
     /// <summary>
     /// A static class to handle replacement of Dialogs for items.
     /// </summary>
     public static class DialogChanger
     {
-        public static Dictionary<EItems, string> ItemtoDialogIDMap { get; private set; }
         /// <summary>
         /// Gets the mapping of a dialog to its replacement
         /// </summary>
@@ -34,58 +34,28 @@ namespace MessengerRando
         {
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
 
-            Dictionary<EItems, EItems> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-            foreach (KeyValuePair<EItems, EItems> KVP in current)
+            Dictionary<EItems, string> ItemtoDialogIDMap = RandomizerConstants.GetDialogIDtoItems();
+
+            Dictionary<LocationRO, EItems> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
+
+           
+            foreach (KeyValuePair<LocationRO, EItems> KVP in current)
             {
-                EItems LocationChecked = KVP.Key;
+                EItems LocationChecked = KVP.Key.LocationName;
                 EItems ItemActuallyFound = KVP.Value;
 
                 if (ItemtoDialogIDMap.ContainsKey(LocationChecked) && ItemtoDialogIDMap.ContainsKey(ItemActuallyFound))
+                {
                     dialogmap.Add(ItemtoDialogIDMap[LocationChecked], ItemtoDialogIDMap[ItemActuallyFound]);
+                    Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound]} to the location {ItemtoDialogIDMap[LocationChecked]}");
+                }
+                    
             }
             return dialogmap;
         }
 
 
-        /// <summary>
-        /// Creates a dictionary which contains the dialogID of the ingame items
-        /// </summary>
-        public static void LoadDialogIDtoItems()
-        {
-            Dictionary<EItems, string> itemDialogID = new Dictionary<EItems, string>();
-
-            itemDialogID.Add(EItems.CLIMBING_CLAWS, "AWARD_GRIMPLOU");
-            itemDialogID.Add(EItems.WINGSUIT, "AWARD_WINGSUIT");
-            itemDialogID.Add(EItems.GRAPLOU, "AWARD_ROPE_DART");
-            itemDialogID.Add(EItems.FAIRY_BOTTLE, "AWARD_FAIRY");
-            itemDialogID.Add(EItems.MAGIC_BOOTS, "AWARD_MAGIC_BOOTS");
-            itemDialogID.Add(EItems.SEASHELL, "AWARD_MAGIC_SEASHELL");
-            itemDialogID.Add(EItems.RUXXTIN_AMULET, "AWARD_AMULET");
-            //itemDialogID.Add(EItems.TEA_SEED, "AWARD_SEED");
-            //itemDialogID.Add(EItems.TEA_LEAVES, "AWARD_ASTRAL_LEAVES");
-            itemDialogID.Add(EItems.POWER_THISTLE, "AWARD_THISTLE");
-            itemDialogID.Add(EItems.CANDLE, "AWARD_CANDLE");
-            itemDialogID.Add(EItems.DEMON_KING_CROWN, "AWARD_CROWN");
-            itemDialogID.Add(EItems.WINDMILL_SHURIKEN, "AWARD_WINDMILL");
-            itemDialogID.Add(EItems.KEY_OF_HOPE, "AWARD_KEY_OF_HOPE");
-            itemDialogID.Add(EItems.KEY_OF_STRENGTH, "AWARD_KEY_OF_STRENGTH");
-            itemDialogID.Add(EItems.KEY_OF_CHAOS, "AWARD_KEY_OF_CHAOS");
-            itemDialogID.Add(EItems.KEY_OF_LOVE, "AWARD_KEY_OF_LOVE");
-            itemDialogID.Add(EItems.KEY_OF_SYMBIOSIS, "AWARD_KEY_OF_SYMBIOSIS");
-            itemDialogID.Add(EItems.KEY_OF_COURAGE, "AWARD_KEY_OF_COURAGE");
-            itemDialogID.Add(EItems.SUN_CREST, "AWARD_SUN_CREST");
-            itemDialogID.Add(EItems.MOON_CREST, "AWARD_MOON_CREST");
-
-            itemDialogID.Add(EItems.PYROPHOBIC_WORKER, "FIND_PYRO");
-            itemDialogID.Add(EItems.ACROPHOBIC_WORKER, "FIND_ACRO");
-            itemDialogID.Add(EItems.NECROPHOBIC_WORKER, "NECRO_PHOBEKIN_DIALOG");
-            itemDialogID.Add(EItems.CLAUSTROPHOBIC_WORKER, "FIND_CLAUSTRO");
-
-            ItemtoDialogIDMap = itemDialogID;
-
-        }
-
-
+   
 
         /// <summary>
         /// Runs whenever the locale is loaded\changed. This should allow it to work in any language.
@@ -102,7 +72,6 @@ namespace MessengerRando
 
             if (RandomizerStateManager.Instance.IsRandomizedFile && RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping != null)
             {
-
                 //Sets the field info so we can use reflection to get and set the private field.
                 FieldInfo dialogByLocIDField = typeof(DialogManager).GetField("dialogByLocID", BindingFlags.NonPublic | BindingFlags.Instance);
 

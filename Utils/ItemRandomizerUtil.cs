@@ -1,389 +1,135 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Mod.Courier;
 using Mod.Courier.Module;
+using MessengerRando.RO;
+using MessengerRando.Exceptions;
 
 
-namespace MessengerRando
+namespace MessengerRando.Utils
 {
     //This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
     public class ItemRandomizerUtil
     {
-        
-        public static List<EItems> RandomizableItems { get; private set; }
 
-        public static Dictionary<EItems, List<EItems>> unSafeItemLocations { get; private set; }
-        public static List<EItems> RandomizableLocations { get; private set; }
-        public static List<string> TriggersToIgnoreRandoItemLogic { get; private set; }
+        //private static SeedRO officialSeed;
 
-        public static Dictionary<string, EItems> CutsceneMappings { get; private set; }
+        private static Random randomNumberGen;
+        private static List<LocationRO> randomizedLocations;
+        private static List<EItems> randomizedItems;
+        private static Dictionary<EItems, HashSet<EItems>> requiredItemsWithBlockers;
+        private static Dictionary<LocationRO, int> coinResults;
 
-        public static int OfficialSeed { get; private set; }
-        public static Random randomNumberGen;
+        private static int REQUIRED_ITEM_PLACEMENT_ATTEMPT_LIMIT = 10; //To prevent infinte loops from bugs in the item placement code
 
-        public static bool arePricesRandomized = false;
-        public static Dictionary<EShopUpgradeID, int> randomUpgradeData { get; private set; }
-
-
-        public static Dictionary<EShopUpgradeID, int> GenerateRandomizedUpgradeMappings(int passedSeed = Int32.MinValue)
-        {
-            Dictionary<EShopUpgradeID, int> temp = new Dictionary<EShopUpgradeID, int>();
-            foreach (KeyValuePair<EShopUpgradeID, int> KVP in randomUpgradeData)
-            {
-                int currentPrice = KVP.Value;
-                int lowPrice = currentPrice / 2;
-                int highPrice = currentPrice + lowPrice;
-                int newPrice = randomNumberGen.Next(lowPrice, highPrice);
-                Console.WriteLine($"We found { KVP.Key} with price {currentPrice} modified price is {newPrice}");
-                temp.Add(KVP.Key, newPrice);
-            }
-            randomUpgradeData = temp;
-            return randomUpgradeData;
-        }
-
-       
-
-        //Really rough basic logic check test. It is very very rough but works in most cases
-        //I think it MAY be possible to generate a seed which gets the while loop stuck?
-        //But the way its structured will generate the mappings for items with the most blacklisted locations first.
-        //and then continue to the ones with no restrictions and this should avoid any potential failure.
-        public static Dictionary<EItems, EItems> KRIOGenerateRandomizedMappings(int passedSeed = Int32.MinValue)
-        {
-
-
-
-
-            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
-            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
-            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
-            List<EItems> itemsForGeneration = new List<EItems>(RandomizableItems);
-
-            //Choose which item will be located at one of 4 starting points
-            List<EItems> majorItems = new List<EItems> { EItems.GRAPLOU, EItems.WINGSUIT, EItems.MAGIC_BOOTS };
-            List<EItems> majorLocations = new List<EItems> { EItems.SEASHELL, EItems.GRAPLOU, EItems.WINGSUIT, EItems.MAGIC_BOOTS };
-
-            int whichItem = randomNumberGen.Next(0, majorItems.Count);
-            int whichLocation = randomNumberGen.Next(0, majorLocations.Count);
-
-            Console.WriteLine($"Mapping added! Main item {majorItems[whichItem]} can be found at {majorLocations[whichLocation]}");
-
-
-            //Begin filling out the mappings. Both collections need to logically be the same size.
-            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
-            mappings.Add(majorLocations[whichLocation], majorItems[whichItem]);
-            locationsForGeneration.Remove(majorLocations[whichLocation]);
-            itemsForGeneration.Remove(majorItems[whichItem]);
-
-
-            foreach (EItems item in itemsForGeneration) //For each item to randomize, pick a random location and create the mapping.
-            {
-                int index = randomNumberGen.Next(locationsForGeneration.Count);
-                EItems location = locationsForGeneration[index];
-                if (unSafeItemLocations.ContainsKey(item))
-                {
-                    while (unSafeItemLocations[item].Contains(location))
-                    {
-                        index = randomNumberGen.Next(locationsForGeneration.Count);
-                        location = locationsForGeneration[index];
-                    }
-                }
-                mappings.Add(locationsForGeneration[index], item);
-                Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                //Remove the used location
-                locationsForGeneration.RemoveAt(index);
-            }
-
-            //The mappings should be created now.
-            Console.WriteLine("Mapping generation complete.");
-            return mappings;
-        }
-
-
-
-        public static Dictionary<EItems, EItems> GenerateRandomizedMappings(int passedSeed = Int32.MinValue)
-        {
-
-            Console.WriteLine($"Beginning mapping generation for seed '{OfficialSeed}'.");
-            //We now have a seed. Lets also create a local copy of the locations so I can mess with it without breaking stuff.
-            List<EItems> locationsForGeneration = new List<EItems>(RandomizableLocations);
-
-            //Get our randomizer set up
-
-
-            List<EItems> safeLocation = new List<EItems>();
-            safeLocation.Add(EItems.WINGSUIT);
-            safeLocation.Add(EItems.MAGIC_BOOTS);
-            safeLocation.Add(EItems.SEASHELL);
-            //Begin filling out the mappings. Both collections need to logically be the same size.
-            Dictionary<EItems, EItems> mappings = new Dictionary<EItems, EItems>();
-            foreach (EItems item in RandomizableItems) //For each item to randomize, pick a random location and create the mapping.
-            {
-
-                    int index = randomNumberGen.Next(locationsForGeneration.Count);
-                    mappings.Add(locationsForGeneration[index], item);
-                    Console.WriteLine($"Mapping added! '{item}' can be found at '{locationsForGeneration[index]}'");
-                    //Remove the used location
-                    locationsForGeneration.RemoveAt(index);
-            }
-
-            //The mappings should be created now.
-            Console.WriteLine("Mapping generation complete.");
-            return mappings;
-        }
-
-        public static void Load()
-        {
-            LoadRandomizableItems();
-            LoadRandomizableLocations();
-            LoadRandomizableUpgrades();
-            DialogChanger.LoadDialogIDtoItems();
-            LoadSpecialTriggerNames();
-            LoadCutsceneMappings();
-        }
-
-        public static int GenerateSeed()
-        {
-            int seed = (int)(DateTime.Now.Ticks & 0x0000DEAD);
-            Console.WriteLine($"Seed '{seed}' generated.");
-            //   GenerateRandomizedMappings(seed); //Right now mostly generating here to log mappings before entering game. 
-            return seed;
-        }
-
-        public static int getSeed(int passedSeed)
+        public static Dictionary<LocationRO, EItems> GenerateRandomizedMappings(SeedRO seed)
         {
             //If no seed was provided, create one
-            if (passedSeed == Int32.MinValue)
+            if(SeedType.None == seed.SeedType)
             {
                 int tempSeed = GenerateSeed();
 
-                if (OfficialSeed == tempSeed)
+                if (seed.Seed == tempSeed)
                 {
                     Console.WriteLine("Generated the same seed again. Will wait a bit and try again.");
                     Thread.Sleep(1000);//Wait a second
                     tempSeed = GenerateSeed();
                     //Do the check one more time and if nothing was fixed then log it.
-                    if (OfficialSeed == tempSeed)
+                    if(seed.Seed == tempSeed)
                     {
                         Console.WriteLine("2 attempts to get a new seed failed. Moving along...");
                     }
                 }
 
-                OfficialSeed = tempSeed;
-
-
-                Console.WriteLine($"No seed passed, generated seed for this mapping is: {OfficialSeed}");
+                seed = new SeedRO(SeedType.No_Logic, tempSeed);
+                
+                
+                Console.WriteLine($"No seed passed, generated seed for this mapping is: {tempSeed}");
             }
-            else
+
+            Console.WriteLine($"Beginning mapping generation for seed '{seed.Seed}'.");
+            //We now have a seed. Let's initialize our locations and items lists.
+            randomizedLocations = RandomizerConstants.GetRandoLocationList();
+            randomizedItems = new List<EItems>(RandomizerConstants.randomizedItems);
+            randomizedItems.AddRange(RandomizerConstants.notes);
+            requiredItemsWithBlockers = new Dictionary<EItems, HashSet<EItems>>();
+            coinResults = new Dictionary<LocationRO, int>();
+
+            //Get our randomizer set up
+            randomNumberGen = new Random(seed.Seed);
+
+            //Begin filling out the mappings. Both collections need to logically be the same size.
+            if (randomizedLocations.Count != randomizedItems.Count)
             {
-                OfficialSeed = passedSeed;
+                //This check is here to make sure nothing was missed during development and check/item counts remain consistent. This should never break during typical usage and should only happen when changes to the logic engine are occurring.
+                throw new RandomizerException($"Mismatched number of items between randomized items({randomizedItems.Count}) and checks({randomizedLocations.Count}). Minous needs to correct this so the world can work again...");
             }
 
-            return OfficialSeed;
+            Dictionary<LocationRO, EItems> mappings = new Dictionary<LocationRO, EItems>();
+
+            //Let the mapping flows begin!
+            switch(seed.SeedType)
+            {
+                case SeedType.No_Logic:
+                    //No logic, fast map EVERYTHING!
+                    FastMapping(randomizedItems, ref mappings);
+                    Console.WriteLine("No-Logic mapping generation complete.");
+                    break;
+                case SeedType.Basic:
+                    //Basic logic. Start by placing the notes then do the logic things!
+                    FastMapping(new List<EItems>(RandomizerConstants.notes), ref mappings);
+                    //Now that the notes have a home, lets get all the items we are going to need to collect them. We will do this potentially a few times to ensure that all required items are accounted for.
+                    Dictionary<EItems, HashSet<EItems>> tempRequiredItems = GetRequiredItemsFromMappings(mappings);
+
+                    int logicalMappingAttempts = 1;
+                    while (tempRequiredItems.Count > 0)
+                    {
+                        if (logicalMappingAttempts > REQUIRED_ITEM_PLACEMENT_ATTEMPT_LIMIT)
+                        {
+                            throw new RandomizerException($"Logical mapping attempts amount exceeded. Check to make sure there are no bugs causing potential infinite loops in seed '{seed}'");
+                        }
+
+                        //Send these items through the logical mapper and get them a home
+                        LogicalMapping(tempRequiredItems, ref mappings);
+                        //Repeat the required item gathering. We expect if all items were accounted for that we would receive an empty set
+                        tempRequiredItems = GetRequiredItemsFromMappings(mappings);
+                        ++logicalMappingAttempts;
+                    }
+
+                    //At this point we should be done with logical mapping. Let's cleanup the remaining items.
+                    FastMapping(randomizedItems, ref mappings);
+                    Console.WriteLine("Basic logic mapping completed.");
+                    break;
+            }
+            //The mappings should be created now.
+            return mappings;
         }
-        private static void LoadRandomizableUpgrades()
+
+
+        public static int GenerateSeed()
         {
-            Dictionary<EShopUpgradeID, int> newUpgradeData = new Dictionary<EShopUpgradeID, int>();
-            newUpgradeData.Add(EShopUpgradeID.AIR_RECOVER, 80);
-            newUpgradeData.Add(EShopUpgradeID.ATTACK_PROJECTILE, 40);
-            newUpgradeData.Add(EShopUpgradeID.CHARGED_ATTACK, 2000);
-            newUpgradeData.Add(EShopUpgradeID.CHECKPOINT_FULL, 550);
-            newUpgradeData.Add(EShopUpgradeID.DAMAGE_REDUCTION, 1000);
-            newUpgradeData.Add(EShopUpgradeID.ENEMY_DROP_HP, 200);
-            newUpgradeData.Add(EShopUpgradeID.ENEMY_DROP_MANA, 200);
-            newUpgradeData.Add(EShopUpgradeID.GLIDE_ATTACK, 150);
-            newUpgradeData.Add(EShopUpgradeID.HP_UPGRADE_1, 30);
-            newUpgradeData.Add(EShopUpgradeID.HP_UPGRADE_2, 320);
-            newUpgradeData.Add(EShopUpgradeID.POTION_FULL_HEAL_AND_HP, 350);
-            newUpgradeData.Add(EShopUpgradeID.POWER_SEAL, 250);
-            newUpgradeData.Add(EShopUpgradeID.POWER_SEAL_WORLD_MAP, 250);
-            newUpgradeData.Add(EShopUpgradeID.QUARBLE_DISCOUNT_50, 400);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN, 50);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN_UPGRADE_1, 250);
-            newUpgradeData.Add(EShopUpgradeID.SHURIKEN_UPGRADE_2, 350);
-            newUpgradeData.Add(EShopUpgradeID.SWIM_DASH, 125);
-            newUpgradeData.Add(EShopUpgradeID.TIME_WARP, 250);
-            randomUpgradeData = newUpgradeData;
-
-            // randomUpgradeData = listofUpgrades;
+            int seed = (int)(DateTime.Now.Ticks & 0x0000DEAD);
+            Console.WriteLine($"Seed '{seed}' generated."); 
+            return seed;
         }
-        private static void LoadRandomizableItems()
+
+        public static bool IsSeedBeatable(int seed)
         {
-            List<EItems> itemsToLoad = new List<EItems>();
-            itemsToLoad.Add(EItems.WINGSUIT);
-            itemsToLoad.Add(EItems.GRAPLOU);
-            itemsToLoad.Add(EItems.MAGIC_BOOTS);
-            itemsToLoad.Add(EItems.MOON_CREST);
-            itemsToLoad.Add(EItems.SUN_CREST);
-            /*Making elder quest chain vanilla for now. Need to handle it's complex checks before i rando it.
-            itemsToLoad.Add(EItems.TEA_SEED);
-            */
-            itemsToLoad.Add(EItems.POWER_THISTLE);
-            itemsToLoad.Add(EItems.FAIRY_BOTTLE);
-            itemsToLoad.Add(EItems.RUXXTIN_AMULET);
-            itemsToLoad.Add(EItems.DEMON_KING_CROWN);
-            itemsToLoad.Add(EItems.NECROPHOBIC_WORKER);
-            itemsToLoad.Add(EItems.CLAUSTROPHOBIC_WORKER);
-            itemsToLoad.Add(EItems.PYROPHOBIC_WORKER);
-            itemsToLoad.Add(EItems.ACROPHOBIC_WORKER);
-            itemsToLoad.Add(EItems.CANDLE);
-            itemsToLoad.Add(EItems.SEASHELL);
-
-
-            itemsToLoad.Add(EItems.KEY_OF_CHAOS);
-            itemsToLoad.Add(EItems.KEY_OF_COURAGE);
-            itemsToLoad.Add(EItems.KEY_OF_HOPE);
-            itemsToLoad.Add(EItems.KEY_OF_LOVE);
-            itemsToLoad.Add(EItems.KEY_OF_STRENGTH);
-            itemsToLoad.Add(EItems.KEY_OF_SYMBIOSIS);
-            itemsToLoad.Add(EItems.WINDMILL_SHURIKEN);
-
-            RandomizableItems = itemsToLoad;
-
-            Dictionary<EItems, List<EItems>> unsafeitems = new Dictionary<EItems, List<EItems>>();
-
-            //Atleast one of Ropedart, Wingsuit or Tabi should appear at the starting 4 checks.
-            List<EItems> ropedart = new List<EItems>();
-            ropedart.Add(EItems.KEY_OF_HOPE);
-            ropedart.Add(EItems.KEY_OF_SYMBIOSIS);
-            ropedart.Add(EItems.POWER_THISTLE);
-            ropedart.Add(EItems.FAIRY_BOTTLE);
-
-            List<EItems> wingsuit = new List<EItems>();
-            wingsuit.Add(EItems.ACROPHOBIC_WORKER);
-            wingsuit.Add(EItems.KEY_OF_HOPE);
-            wingsuit.Add(EItems.DEMON_KING_CROWN);
-            wingsuit.Add(EItems.CLIMBING_CLAWS);
-            wingsuit.Add(EItems.CLAUSTROPHOBIC_WORKER);
-            wingsuit.Add(EItems.CANDLE);
-            wingsuit.Add(EItems.RUXXTIN_AMULET);
-            wingsuit.Add(EItems.NECROPHOBIC_WORKER);
-
-            List<EItems> tabi = new List<EItems>();
-            tabi.Add(EItems.KEY_OF_CHAOS);
-            tabi.Add(EItems.SUN_CREST);
-            tabi.Add(EItems.MOON_CREST);
-            tabi.Add(EItems.PYROPHOBIC_WORKER);
-
-            List<EItems> sun = new List<EItems>();
-            sun.Add(EItems.KEY_OF_LOVE);
-
-            List<EItems> moon = new List<EItems>();
-            moon.Add(EItems.KEY_OF_LOVE);
-
-            List<EItems> crown = new List<EItems>();
-            crown.Add(EItems.KEY_OF_COURAGE);
-
-            List<EItems> firefly = new List<EItems>();
-            firefly.Add(EItems.KEY_OF_COURAGE);
-            firefly.Add(EItems.KEY_OF_SYMBIOSIS);
-
-            List<EItems> powerthistle = new List<EItems>();
-            powerthistle.Add(EItems.KEY_OF_STRENGTH);
-
-            List<EItems> amulet = new List<EItems>();
-            amulet.Add(EItems.ACROPHOBIC_WORKER);
-
-            List<EItems> phobekin = new List<EItems>();
-            phobekin.Add(EItems.DEMON_KING_CROWN);
-
-
-            unsafeitems.Add(EItems.WINGSUIT, wingsuit);
-            unsafeitems.Add(EItems.GRAPLOU, ropedart);
-            unsafeitems.Add(EItems.MAGIC_BOOTS, tabi);
-            unsafeitems.Add(EItems.FAIRY_BOTTLE, firefly);
-            unsafeitems.Add(EItems.SUN_CREST, sun);
-            unsafeitems.Add(EItems.MOON_CREST, moon);
-            unsafeitems.Add(EItems.DEMON_KING_CROWN, crown);
-            unsafeitems.Add(EItems.POWER_THISTLE, powerthistle);
-            unsafeitems.Add(EItems.RUXXTIN_AMULET, amulet);
-            unsafeitems.Add(EItems.ACROPHOBIC_WORKER, phobekin);
-            unsafeitems.Add(EItems.CLAUSTROPHOBIC_WORKER, phobekin);
-            unsafeitems.Add(EItems.NECROPHOBIC_WORKER, phobekin);
-            unsafeitems.Add(EItems.PYROPHOBIC_WORKER, phobekin);
-
-            unSafeItemLocations = unsafeitems;
-
-
+            try
+            {
+                GenerateRandomizedMappings(new SeedRO(SeedType.Basic, seed));
+                return true;
+            }
+            catch(RandomizerException rde)
+            {
+                //This means that the seed was deemed not beatable
+                Console.WriteLine($"Seed '{seed}' was deemed not beatable during IsSeedBeatable check. Error message received: '{rde.Message}'");
+                return false;
+            }
         }
 
-
-
-       
-
-        private static void LoadRandomizableLocations()
-        {
-            List<EItems> locationsToLoad = new List<EItems>();
-
-            locationsToLoad.Add(EItems.WINGSUIT);
-            locationsToLoad.Add(EItems.GRAPLOU);
-            locationsToLoad.Add(EItems.MAGIC_BOOTS);
-            locationsToLoad.Add(EItems.CLIMBING_CLAWS);
-
-            locationsToLoad.Add(EItems.POWER_THISTLE);
-            locationsToLoad.Add(EItems.FAIRY_BOTTLE);
-            locationsToLoad.Add(EItems.SUN_CREST);
-            locationsToLoad.Add(EItems.MOON_CREST);
-            locationsToLoad.Add(EItems.RUXXTIN_AMULET);
-            locationsToLoad.Add(EItems.DEMON_KING_CROWN);
-
-            locationsToLoad.Add(EItems.CANDLE);
-            locationsToLoad.Add(EItems.SEASHELL);
-
-            locationsToLoad.Add(EItems.NECROPHOBIC_WORKER);
-            locationsToLoad.Add(EItems.CLAUSTROPHOBIC_WORKER);
-            locationsToLoad.Add(EItems.PYROPHOBIC_WORKER);
-            locationsToLoad.Add(EItems.ACROPHOBIC_WORKER);
-
-            locationsToLoad.Add(EItems.KEY_OF_CHAOS);
-            locationsToLoad.Add(EItems.KEY_OF_COURAGE);
-            locationsToLoad.Add(EItems.KEY_OF_HOPE);
-            locationsToLoad.Add(EItems.KEY_OF_LOVE);
-            locationsToLoad.Add(EItems.KEY_OF_STRENGTH);
-            locationsToLoad.Add(EItems.KEY_OF_SYMBIOSIS);
-
-            RandomizableLocations = locationsToLoad;
-        }
-
-        private static void LoadSpecialTriggerNames()
-        {
-            TriggersToIgnoreRandoItemLogic = new List<string>();
-
-            //LOAD (initally started as a black list of locations...probably would have been better to make this a whitelist...whatever)
-            TriggersToIgnoreRandoItemLogic.Add("CorruptedFuturePortal"); //Need to really check for crown and get access to CF
-            TriggersToIgnoreRandoItemLogic.Add("Lucioles"); //CF Fairy Check
-            TriggersToIgnoreRandoItemLogic.Add("DecurseQueenCutscene");
-            TriggersToIgnoreRandoItemLogic.Add("Bridge"); //Forlorn bridge check
-            TriggersToIgnoreRandoItemLogic.Add("NoUpgrade"); //Dark Cave Candle check
-            TriggersToIgnoreRandoItemLogic.Add("OverlayArt_16"); //...also Dark Cave Candle check
-            //These are for the sprite renderings of phoebes
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinNecro_16");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinAcro");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinAcro_16");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinClaustro");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinClaustro_16");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro");
-            TriggersToIgnoreRandoItemLogic.Add("PhobekinPyro_16");
-            //Parents of triggers to handle sassy interaction zones
-            TriggersToIgnoreRandoItemLogic.Add("Colos_8");
-            TriggersToIgnoreRandoItemLogic.Add("Suses_8");
-            TriggersToIgnoreRandoItemLogic.Add("Door");
-            TriggersToIgnoreRandoItemLogic.Add("RuxtinStaff");
-        }
-
-        private static void LoadCutsceneMappings()
-        {
-            //This is where all the cutscene mappings will live. These mappings will mean that the cutscene requires additional logic to ensure it has "been played" or not.
-            CutsceneMappings = new Dictionary<string, EItems>();
-
-            //LOAD
-            CutsceneMappings.Add("RuxxtinNoteAndAwardAmuletCutscene", EItems.RUXXTIN_AMULET);
-
-        }
-
-
-       
         //Checks to see if all expected notes have already been collected
         public static bool HasAllNotes()
         {
@@ -403,16 +149,303 @@ namespace MessengerRando
         public static string GetModVersion()
         {
             string version = "Unknown";
-
-            foreach (CourierModuleMetadata modMetadata in Courier.Mods)
+            
+            foreach(CourierModuleMetadata modMetadata in Courier.Mods)
             {
-                if ("TheMessengerRandomizer".Equals(modMetadata.Name))
+                if("TheMessengerRandomizer".Equals(modMetadata.Name))
                 {
                     version = modMetadata.VersionString;
                 }
             }
 
             return version;
+        }
+
+        private static void FastMapping(List<EItems> items, ref Dictionary<LocationRO, EItems> locationToItemMapping)
+        {
+            //Setting up local list to make sure of what I am messing with.
+            List<EItems> localItems = new List<EItems>(items); 
+
+            //randomly place passed items into available locations without checking logic requirements
+            for (int itemIndex = randomNumberGen.Next(localItems.Count); localItems.Count > 0; itemIndex = randomNumberGen.Next(localItems.Count))
+            {
+                int locationIndex = randomNumberGen.Next(randomizedLocations.Count);
+                Console.WriteLine($"Item Index '{itemIndex}' generated for item list with size '{localItems.Count}'. Locations index '{locationIndex}' generated for location list with size '{randomizedLocations.Count}'");
+                locationToItemMapping.Add(randomizedLocations[locationIndex], localItems[itemIndex]);
+                Console.WriteLine($"Fast mapping occurred. Added item '{localItems[itemIndex]}' at index '{itemIndex}' to check '{randomizedLocations[locationIndex].LocationName}' at index '{locationIndex}'.");
+                //Removing mapped items and locations
+                randomizedItems.Remove(localItems[itemIndex]); //Doing this just in case its in the main list
+                Console.WriteLine($"Removing location at index '{locationIndex}' from location list sized '{randomizedLocations.Count}'");
+                randomizedLocations.RemoveAt(locationIndex);
+                Console.WriteLine($"Removing item at index '{itemIndex}' from items list sized '{localItems.Count}'");
+                localItems.RemoveAt(itemIndex);
+            }
+            //All the passed items should now have a home
+        }
+
+        /// <summary>
+        /// Will complete the mappings per item received. This mapping takes in to account the required items for each location it tries to place an item into to avoid basic lockouts. It relies on the tempRequiredItems map.
+        /// </summary>
+        private static void LogicalMapping(Dictionary<EItems, HashSet<EItems>> tempRequiredItems, ref Dictionary<LocationRO, EItems> locationToItemMapping)
+        {
+            //Creating local copy of required items so i know what I am messing with.
+            Dictionary<EItems, HashSet<EItems>> localRequiredItems = new Dictionary<EItems, HashSet<EItems>>(tempRequiredItems);
+
+            foreach (EItems item in localRequiredItems.Keys)
+            {
+                bool hasAHome = false;
+
+                //create a new list based off the randomized locations list that has a randomized order. This will be used to placing things.
+                List<LocationRO> tempRandoLocations = new List<LocationRO>(randomizedLocations);
+                List<LocationRO> randoSortedLocations = new List<LocationRO>();
+                //Populate new list
+                for (int locationIndex = randomNumberGen.Next(tempRandoLocations.Count); tempRandoLocations.Count > 0; locationIndex = randomNumberGen.Next(tempRandoLocations.Count))
+                {
+                    randoSortedLocations.Add(tempRandoLocations[locationIndex]);
+                    tempRandoLocations.RemoveAt(locationIndex);
+                }
+
+                //Find a home
+                for (int i = 0; i < randoSortedLocations.Count; i++)
+                {
+                    hasAHome = IsLocationSafeForItem(randoSortedLocations[i], item);
+                    //Check the item itself
+                    if (hasAHome)
+                    {
+                        //Next we need to check the location for each and every item this item blocks. We need to catch the moment an item proves it cannot be here and mark it so we can move on.
+                        foreach (EItems blockedItem in localRequiredItems[item])
+                        {
+                            hasAHome = IsLocationSafeForItem(randoSortedLocations[i], blockedItem);
+
+                            if (!hasAHome)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        hasAHome = false;
+                    }
+
+
+
+                    if (hasAHome)
+                    {
+                        Console.WriteLine($"Found a home for item '{item}' at location '{randoSortedLocations[i].LocationName}'.");
+                        locationToItemMapping.Add(randoSortedLocations[i], item);
+                        randomizedLocations.Remove(randoSortedLocations[i]);
+                        randomizedItems.Remove(item);
+                        break;
+                    }
+                }
+                if (!hasAHome)
+                {
+                    //Getting here means that we must have checked through all the remaining locations and that none of them could house an item we needed to place. For now let's throw an exception.
+                    throw new RandomizerException("This seed was not completeable due to running out of locations to place things.");
+                }
+            }
+        }
+
+        private static bool IsLocationSafeForItem(LocationRO location, EItems item)
+        {
+            bool isSafe = false;
+
+            switch (item)
+            {
+                case EItems.WINGSUIT: //Try to find a home for wingsuit.
+                    if (!location.IsWingsuitRequired)
+                    {
+                        //if a coin flip on this location hasn't happened yet, do it now.
+                        if (!coinResults.ContainsKey(location))
+                        {
+                            coinResults.Add(location, randomNumberGen.Next(2));
+                        }
+                        //if the location is not a RDorWS check we are good
+                        //If it IS a RDorWS check, check to see if it is locked based on RD(coin flip is 1) If it is we are good. 
+                        isSafe = !(location.IsEitherWingsuitOrRopeDartRequired && coinResults[location] != 1);
+                    }
+                    break;
+                case EItems.GRAPLOU: //same for rope dart
+                    if (!location.IsRopeDartRequired)
+                    {
+                        //if a coin flip on this location hasn't happened yet, do it now.
+                        if (!coinResults.ContainsKey(location))
+                        {
+                            coinResults.Add(location, randomNumberGen.Next(2));
+                        }
+
+                        //if the location is not a RDorWS check we are good
+                        //If it IS a RDorWS check, check to see if it is locked based on RD(coin flip is 1) If it is we are good. 
+                        isSafe = !(location.IsEitherWingsuitOrRopeDartRequired && coinResults[location] == 1);
+                    }
+                    break;
+                case EItems.MAGIC_BOOTS: //Tabis, the check is more simple
+                    if (!location.IsNinjaTabiRequired)
+                    {
+                        isSafe = true;
+                    }
+                    break;
+                default: //All other required items
+                    if (!location.AdditionalRequiredItemsForCheck.Contains(item))
+                    {
+                        isSafe = true;
+                    }
+                    break;
+            }
+            Console.WriteLine($"Item '{item}' is safe at Location '{location.LocationName}' --- {isSafe}");
+            return isSafe;
+        }
+
+        private static Dictionary<EItems, HashSet<EItems>> GetRequiredItemsFromMappings(Dictionary<LocationRO, EItems> mappings)
+        {
+            //Check through the current mappings and return a mapping of all required items and the items they are blocking. If the required item is already placed in a location, we will ignore it. 
+            Dictionary<EItems, HashSet<EItems>> tempRequiredItems = new Dictionary<EItems, HashSet<EItems>>();
+            //Key Items set so I can control how many of those I choose to handle per run
+            HashSet<EItems> keyItems = new HashSet<EItems>();
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                //Lets start interrogating the location object to see what items it has marked as required. Let's start with the key items.
+                if (location.IsWingsuitRequired && randomizedItems.Contains(EItems.WINGSUIT))
+                {
+                    tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.WINGSUIT);
+                }
+                if (location.IsRopeDartRequired && randomizedItems.Contains(EItems.GRAPLOU))
+                {
+                    tempRequiredItems = AddRequiredItem(EItems.GRAPLOU, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.GRAPLOU);
+                }
+                if (location.IsNinjaTabiRequired && randomizedItems.Contains(EItems.MAGIC_BOOTS))
+                {
+                    tempRequiredItems = AddRequiredItem(EItems.MAGIC_BOOTS, mappings[location], tempRequiredItems);
+                    keyItems.Add(EItems.MAGIC_BOOTS);
+                }
+                //Checking if either Wingsuit OR Rope Dart is required is a separate check.
+                if (location.IsEitherWingsuitOrRopeDartRequired)
+                {
+                    //In this case, let's randomly pick one to be placed somewhere
+                    int coin;
+                    if (coinResults.ContainsKey(location))
+                    {
+                        coin = coinResults[location];
+                    }
+                    else
+                    {
+                        coin = randomNumberGen.Next(2);
+                        coinResults.Add(location, coin);
+                    }
+
+                    
+
+                    switch (coin)
+                    {
+                        case 0://Wingsuit
+                            if (randomizedItems.Contains(EItems.WINGSUIT))
+                            {
+                                tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.WINGSUIT);
+                            }
+                            break;
+                        case 1://Rope Dart
+                            if (randomizedItems.Contains(EItems.GRAPLOU))
+                            {
+                                tempRequiredItems = AddRequiredItem(EItems.GRAPLOU, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.GRAPLOU);
+                            }
+                            break;
+                        default://Something weird happened...just do wingsuit :P
+                            if (randomizedItems.Contains(EItems.WINGSUIT))
+                            {
+                                tempRequiredItems = AddRequiredItem(EItems.WINGSUIT, mappings[location], tempRequiredItems);
+                                keyItems.Add(EItems.WINGSUIT);
+                            }
+                            break;
+                    }
+                }
+
+                //Next lets look through the other items. 
+                foreach (EItems requiredItem in location.AdditionalRequiredItemsForCheck)
+                {
+
+                    if (EItems.NONE != requiredItem && randomizedItems.Contains(requiredItem))
+                    {
+                        tempRequiredItems = AddRequiredItem(requiredItem, mappings[location], tempRequiredItems);
+                    }
+                }
+            }
+
+            //I was having a problem with some seeds setting all the key items at the beginning and not considering each other. I think how I will handle this is by only allowing one of them set each run through and throwing the rest out. I expect them to get picked up on subsequent runs.
+            if (keyItems.Count > 1)
+            {
+                //This means I have more than 1 key item to process. Let's pick random ones to remove from the required items list until none remain.
+                for (int i = randomNumberGen.Next(keyItems.Count); keyItems.Count > 1; i = randomNumberGen.Next(keyItems.Count))
+                {
+                    EItems itemToRemove = keyItems.ElementAt(i);
+                    Console.WriteLine($"Found multiple key items during required item mapping. Tossing '{itemToRemove}' from this run.");
+                    tempRequiredItems.Remove(itemToRemove);
+                    keyItems.Remove(itemToRemove);
+                }
+            }
+
+            //Logging
+            Console.WriteLine("For the provided checks: ");
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine(location.LocationName);
+            }
+            Console.WriteLine("Found these items to require for seed:");
+            foreach (EItems requiredItem in tempRequiredItems.Keys)
+            {
+                Console.WriteLine(requiredItem);
+                foreach (EItems blockedItem in tempRequiredItems[requiredItem])
+                {
+                    Console.WriteLine($"\tWhich in turn blocks '{blockedItem}'");
+                }
+            }
+            if (tempRequiredItems.Count == 0)
+            {
+                Console.WriteLine("No required items found, returning an empty set!");
+            }
+            Console.WriteLine("Required item determination complete!");
+            //Logging complete
+            //All done!
+            return tempRequiredItems;
+        }
+
+        private static Dictionary<EItems, HashSet<EItems>> AddRequiredItem(EItems item, EItems blockedItem, Dictionary<EItems, HashSet<EItems>> tempRequiredItems)
+        {
+            //This utility function will help manage the temporary required item dictionary for me.
+
+            //Check to see if the item is already a key in the dictionary. If not, add it.
+            if (!tempRequiredItems.ContainsKey(item))
+            {
+                tempRequiredItems.Add(item, new HashSet<EItems>());
+                //Perform archival of blockers as needed
+                if (!requiredItemsWithBlockers.ContainsKey(item))
+                {
+                    requiredItemsWithBlockers.Add(item, new HashSet<EItems>());
+                }
+            }
+            //Add the blocked item to this item's set
+            if (!RandomizerConstants.notes.Contains(blockedItem)) //dont care about notes
+            {
+                tempRequiredItems[item].Add(blockedItem);
+                requiredItemsWithBlockers[item].Add(blockedItem);
+            }
+
+            //Check through archival and add those to this blocker list as well.
+            if (requiredItemsWithBlockers.ContainsKey(blockedItem))
+            {
+                foreach (EItems nestedBlockedItem in requiredItemsWithBlockers[blockedItem])
+                {
+                    tempRequiredItems[item].Add(nestedBlockedItem);
+                    requiredItemsWithBlockers[item].Add(blockedItem);
+                }
+            }
+
+            return tempRequiredItems;
         }
     }
 }

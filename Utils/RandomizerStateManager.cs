@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using MessengerRando.Utils;
+using MessengerRando.RO;
 
 
 namespace MessengerRando
@@ -7,15 +9,11 @@ namespace MessengerRando
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
-        public Dictionary<EItems, EItems> CurrentLocationToItemMapping { set; get; }
-
-        public Dictionary<EShopUpgradeID, int> CurrentPriceToUpgradeMapping { set; get; }
-
-        public Dictionary<string,string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
-
+        public Dictionary<LocationRO, EItems> CurrentLocationToItemMapping { set; get; }
+        public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
         public bool IsRandomizedFile { set; get; }
 
-        private Dictionary<int, int> seeds;
+        private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
 
@@ -31,7 +29,7 @@ namespace MessengerRando
         private RandomizerStateManager()
         {
             //Create initial values for the state machine
-            this.seeds = new Dictionary<int, int>();
+            this.seeds = new Dictionary<int, SeedRO>();
             this.ResetCurrentLocationToItemMappings();
             this.initializeCutsceneTriggerStates();
         }
@@ -47,20 +45,19 @@ namespace MessengerRando
             noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
-        public void AddSeed(int fileSlot, int seed)
+        public void AddSeed(int fileSlot, SeedType seedType, int seed)
         {
-            seeds[fileSlot] = seed;
+            seeds[fileSlot] = new SeedRO(seedType, seed);
         }
 
-        public int GetSeedForFileSlot(int fileSlot)
+        public SeedRO GetSeedForFileSlot(int fileSlot)
         {
-            int seed = 0;
+            SeedRO seed = new SeedRO();
 
             if (seeds.ContainsKey(fileSlot))
             {
                 seed = seeds[fileSlot];
             }
-
             return seed;
         }
 
@@ -70,7 +67,7 @@ namespace MessengerRando
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = 0;
+                seeds[fileSlot] = new SeedRO(SeedType.None, 0);
             }
             Console.WriteLine("File slot reset complete.");
         }
@@ -79,7 +76,7 @@ namespace MessengerRando
         {
             bool seedFound = false;
 
-            if (this.seeds.ContainsKey(fileSlot) && seeds[fileSlot] != 0)
+            if (this.seeds.ContainsKey(fileSlot) && this.seeds[fileSlot].Seed != 0 && this.seeds[fileSlot].SeedType != SeedType.None)
             {
                 seedFound = true;
             }
@@ -89,7 +86,7 @@ namespace MessengerRando
 
         public void ResetCurrentLocationToItemMappings()
         {
-            CurrentLocationToItemMapping = new Dictionary<EItems, EItems>();
+            CurrentLocationToItemMapping = new Dictionary<LocationRO, EItems>();
             this.IsRandomizedFile = false;
         }
 
@@ -118,6 +115,26 @@ namespace MessengerRando
             }
 
             return isTeleportSafe;
+        }
+
+        /// <summary>
+        /// Helper method to log out the current mappings all nicely for review
+        /// </summary>
+        public void LogCurrentMappings()
+        {
+            Console.WriteLine("----------------BEGIN Current Mappings----------------");
+            foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
+            {
+                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
+            }
+            Console.WriteLine("----------------END Current Mappings----------------");
+
+
+            Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+            foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+            {
+                Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+            }
         }
 
     }
