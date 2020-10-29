@@ -122,7 +122,8 @@ namespace MessengerRando
             Console.WriteLine("----------------BEGIN Current Mappings----------------");
             foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
             {
-                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
+                Console.WriteLine($"Check '{check.PrettyLocationName}' contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
             }
             Console.WriteLine("----------------END Current Mappings----------------");
         }

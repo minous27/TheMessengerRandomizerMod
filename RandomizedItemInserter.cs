@@ -22,7 +22,7 @@ namespace MessengerRando
 
         private RandomizerStateManager randoStateManager;       
 
-        TextEntryButtonInfo generateRandomSeedButton;
+        TextEntryButtonInfo generateNoLogicSeedButton;
         TextEntryButtonInfo generateLogicSeedButton;
         TextEntryButtonInfo enterSeedButton;
         SubMenuButtonInfo versionButton;
@@ -44,11 +44,11 @@ namespace MessengerRando
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
             //Add generate random seed mod option button
-            generateRandomSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", OnEnterNoLogicFileSlot, 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
-            generateRandomSeedButton.SaveMethod = randomizerSaveMethod;
+            generateNoLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", (entry) => OnEnterFileSlot(entry, generateNoLogicSeedButton, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
+            generateNoLogicSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add generate basic seed mod option button
-            generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", OnEnterBasicFileSlot, 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
+            generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", (entry) => OnEnterFileSlot(entry, generateLogicSeedButton, SeedType.Logic), 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
             generateLogicSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add Set seed mod option button
@@ -86,7 +86,7 @@ namespace MessengerRando
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
-            generateRandomSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            generateNoLogicSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             generateLogicSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
@@ -397,7 +397,7 @@ namespace MessengerRando
         }
 
         ///On submit of rando file location
-        bool OnEnterNoLogicFileSlot(string fileSlot)
+        bool OnEnterFileSlot(string fileSlot, TextEntryButtonInfo parentButton, SeedType seedType)
         {
             Console.WriteLine($"Received file slot number: {fileSlot}");
             int slot = Convert.ToInt32(fileSlot);
@@ -407,19 +407,19 @@ namespace MessengerRando
                 return false;
             }
             
-            TextEntryPopup difficultySettingPopup = InitTextEntryPopup(generateRandomSeedButton.addedTo, "Would you like this to be an advanced seed? (yes/no)", (entry) => OnEnterDifficultyChoice(entry, slot, SeedType.No_Logic), 3, null, CharsetFlags.Letter);
+            TextEntryPopup difficultySettingPopup = InitTextEntryPopup(parentButton.addedTo, "Would you like this to be an advanced seed? (yes/no)", (entry) => OnEnterDifficultyChoice(entry, slot, seedType), 3, null, CharsetFlags.Letter);
             difficultySettingPopup.onBack += () =>
             {
                 difficultySettingPopup.gameObject.SetActive(false);
-                generateRandomSeedButton.textEntryPopup.gameObject.SetActive(true);
-                generateRandomSeedButton.textEntryPopup.StartCoroutine(generateRandomSeedButton.textEntryPopup.BackWhenBackButtonReleased());
+                parentButton.textEntryPopup.gameObject.SetActive(true);
+                parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
             };
 
-            generateRandomSeedButton.textEntryPopup.gameObject.SetActive(false);
+            parentButton.textEntryPopup.gameObject.SetActive(false);
             difficultySettingPopup.Init(string.Empty);
             difficultySettingPopup.gameObject.SetActive(true);
-            difficultySettingPopup.transform.SetParent(generateRandomSeedButton.addedTo.transform.parent);
-            generateRandomSeedButton.addedTo.gameObject.SetActive(false);
+            difficultySettingPopup.transform.SetParent(parentButton.addedTo.transform.parent);
+            parentButton.addedTo.gameObject.SetActive(false);
             Canvas.ForceUpdateCanvases();
             difficultySettingPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
             EventSystem.current.SetSelectedGameObject(difficultySettingPopup.initialSelection);
@@ -427,19 +427,6 @@ namespace MessengerRando
 
             return false;
 
-        }
-
-        /// <summary>
-        /// Button logic when generating basic seed for file slot
-        /// </summary>
-        /// <param name="fileSlot">File slot to generate seed for</param>
-        /// <returns></returns>
-        bool OnEnterBasicFileSlot(string fileSlot)
-        {
-            Console.WriteLine($"Received file slot number: {fileSlot}");
-
-            //TODO fix this and provide actual settings
-            return SetSeedForFileSlot(Convert.ToInt32(fileSlot), SeedType.Logic, null);
         }
 
         //Moved the seed setting logic out so I could reuse it.
