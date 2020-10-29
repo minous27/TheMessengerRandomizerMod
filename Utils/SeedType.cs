@@ -9,6 +9,6 @@ namespace MessengerRando.Utils
     {
         None, //No type yet set (signifies a seed yet to be set up)
         No_Logic, //Seed that does no logical checks
-        Basic // Basic Seed (Following basic logic)
+        Logic //Seed that uses logic engine
     }
 }

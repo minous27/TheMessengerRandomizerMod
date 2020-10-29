@@ -43,7 +43,7 @@ namespace MessengerRando.Utils
                     }
                 }
 
-                seed = new SeedRO(SeedType.No_Logic, tempSeed);
+                seed = new SeedRO(SeedType.No_Logic, tempSeed, null);
                 
                 
                 Console.WriteLine($"No seed passed, generated seed for this mapping is: {tempSeed}");
@@ -56,6 +56,14 @@ namespace MessengerRando.Utils
             randomizedItems.AddRange(RandomizerConstants.notes);
             requiredItemsWithBlockers = new Dictionary<EItems, HashSet<EItems>>();
             coinResults = new Dictionary<LocationRO, int>();
+
+            //Difficulty setting - if this is an advanced seed, at the other items and checks into the fray
+            if(seed.Settings.ContainsKey(SettingType.Difficulty) && SettingValue.Advanced.Equals(seed.Settings[SettingType.Difficulty]))
+            {
+                //Advanced difficulty seed
+                randomizedLocations.AddRange(RandomizerConstants.GetAdvancedRandoLocationList());
+                randomizedItems.AddRange(RandomizerConstants.randomizedAdvancedItems);
+            }
 
             //Get our randomizer set up
             randomNumberGen = new Random(seed.Seed);
@@ -77,7 +85,7 @@ namespace MessengerRando.Utils
                     FastMapping(randomizedItems, ref mappings);
                     Console.WriteLine("No-Logic mapping generation complete.");
                     break;
-                case SeedType.Basic:
+                case SeedType.Logic:
                     //Basic logic. Start by placing the notes then do the logic things!
                     FastMapping(new List<EItems>(RandomizerConstants.notes), ref mappings);
                     //Now that the notes have a home, lets get all the items we are going to need to collect them. We will do this potentially a few times to ensure that all required items are accounted for.
@@ -115,11 +123,11 @@ namespace MessengerRando.Utils
             return seed;
         }
 
-        public static bool IsSeedBeatable(int seed)
+        public static bool IsSeedBeatable(int seed, Dictionary<SettingType, SettingValue> settings)
         {
             try
             {
-                GenerateRandomizedMappings(new SeedRO(SeedType.Basic, seed));
+                GenerateRandomizedMappings(new SeedRO(SeedType.Logic, seed, settings));
                 return true;
             }
             catch(RandomizerException rde)
@@ -172,7 +180,7 @@ namespace MessengerRando.Utils
                 int locationIndex = randomNumberGen.Next(randomizedLocations.Count);
                 Console.WriteLine($"Item Index '{itemIndex}' generated for item list with size '{localItems.Count}'. Locations index '{locationIndex}' generated for location list with size '{randomizedLocations.Count}'");
                 locationToItemMapping.Add(randomizedLocations[locationIndex], localItems[itemIndex]);
-                Console.WriteLine($"Fast mapping occurred. Added item '{localItems[itemIndex]}' at index '{itemIndex}' to check '{randomizedLocations[locationIndex].LocationName}' at index '{locationIndex}'.");
+                Console.WriteLine($"Fast mapping occurred. Added item '{localItems[itemIndex]}' at index '{itemIndex}' to check '{randomizedLocations[locationIndex].PrettyLocationName}' at index '{locationIndex}'.");
                 //Removing mapped items and locations
                 randomizedItems.Remove(localItems[itemIndex]); //Doing this just in case its in the main list
                 Console.WriteLine($"Removing location at index '{locationIndex}' from location list sized '{randomizedLocations.Count}'");
@@ -232,7 +240,7 @@ namespace MessengerRando.Utils
 
                     if (hasAHome)
                     {
-                        Console.WriteLine($"Found a home for item '{item}' at location '{randoSortedLocations[i].LocationName}'.");
+                        Console.WriteLine($"Found a home for item '{item}' at location '{randoSortedLocations[i].PrettyLocationName}'.");
                         locationToItemMapping.Add(randoSortedLocations[i], item);
                         randomizedLocations.Remove(randoSortedLocations[i]);
                         randomizedItems.Remove(item);
@@ -293,7 +301,7 @@ namespace MessengerRando.Utils
                     }
                     break;
             }
-            Console.WriteLine($"Item '{item}' is safe at Location '{location.LocationName}' --- {isSafe}");
+            Console.WriteLine($"Item '{item}' is safe at Location '{location.PrettyLocationName}' --- {isSafe}");
             return isSafe;
         }
 
@@ -393,7 +401,7 @@ namespace MessengerRando.Utils
             Console.WriteLine("For the provided checks: ");
             foreach (LocationRO location in mappings.Keys)
             {
-                Console.WriteLine(location.LocationName);
+                Console.WriteLine(location.PrettyLocationName);
             }
             Console.WriteLine("Found these items to require for seed:");
             foreach (EItems requiredItem in tempRequiredItems.Keys)

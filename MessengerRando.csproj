@@ -76,6 +76,8 @@
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />
+    <Compile Include="Utils\SettingValue.cs" />
+    <Compile Include="Utils\SettingType.cs" />
     <Compile Include="Utils\RandomizerConstants.cs" />
     <Compile Include="Utils\SeedType.cs" />
     <Compile Include="Utils\RandomizerStateManager.cs" />

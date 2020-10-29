@@ -44,20 +44,18 @@ namespace MessengerRando
             noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
-        public void AddSeed(int fileSlot, SeedType seedType, int seed)
+        public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings)
         {
-            seeds[fileSlot] = new SeedRO(seedType, seed);
+            seeds[fileSlot] = new SeedRO(seedType, seed, settings);
         }
 
         public SeedRO GetSeedForFileSlot(int fileSlot)
         {
-            SeedRO seed = new SeedRO();
-
-            if (seeds.ContainsKey(fileSlot))
+            if (!seeds.ContainsKey(fileSlot))
             {
-                seed = seeds[fileSlot];
+                seeds[fileSlot] = new SeedRO(SeedType.None, 0, null);
             }
-            return seed;
+            return seeds[fileSlot];
         }
 
         public void ResetSeedForFileSlot(int fileSlot)
@@ -66,7 +64,7 @@ namespace MessengerRando
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(SeedType.None, 0);
+                seeds[fileSlot] = new SeedRO(SeedType.None, 0, null);
             }
             Console.WriteLine("File slot reset complete.");
         }
@@ -124,7 +122,7 @@ namespace MessengerRando
             Console.WriteLine("----------------BEGIN Current Mappings----------------");
             foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
             {
-                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
+                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
             }
             Console.WriteLine("----------------END Current Mappings----------------");
         }
