@@ -64,7 +64,7 @@ namespace MessengerRando.Utils
             //Adding seal locations
 
             //Ninja Village
-            advancedRandomizedLocations.Add(new LocationRO("-436-404-44-28", "Ninja Village Seal - Tree House", new EItems[] { EItems.NONE }, true, false, false)); //Tree House
+            advancedRandomizedLocations.Add(new LocationRO("-436-404-44-28", "Ninja Village Seal - Tree House", new EItems[] { EItems.NONE }, true, true, false)); //Tree House
             //Autumn Hills
             advancedRandomizedLocations.Add(new LocationRO("-52-20-60-44", "Autumn Hills Seal - Trip Saws", new EItems[] { EItems.NONE }, true, false, false)); //Trip Saws
             advancedRandomizedLocations.Add(new LocationRO("556588-44-28", "Autumn Hills Seal - Double Swing Saws", new EItems[] { EItems.NONE }, true, false, false)); //Double Swing Saws
