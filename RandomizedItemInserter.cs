@@ -110,8 +110,7 @@ namespace MessengerRando
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
         {
-            //Currently defaulting rando values in case this is not a randomized item like pickups
-            EItems randoItemId = itemId;
+
             LocationRO randoItemCheck = new LocationRO(itemId.ToString());
 
             if(itemId != EItems.TIME_SHARD) //killing the timeshard noise in the logs
@@ -120,10 +119,10 @@ namespace MessengerRando
             }
 
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(randoItemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
+            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
-                randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
+                RandoItemRO randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
                 
                 //If that item is the windmill shuriken, immediately activate it and the mod option
@@ -136,10 +135,13 @@ namespace MessengerRando
                     Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
                     return; //Collecting timeshards internally call add item so I dont need to do it again.
                 }
+
+                //Set the itemId to the new item
+                itemId = randoItemId.Item;
             }
             
             //Call original add with items
-            orig(self, randoItemId, quantity);
+            orig(self, itemId, quantity);
         }
 
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
@@ -161,7 +163,7 @@ namespace MessengerRando
                     throw new RandomizerException($"Challenge room with room key '{roomKey}' was not found in the list of locations. This will need to be corrected for this challenge room to work.");
                 }
 
-                EItems challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation];
+                EItems challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation].Item;
 
                 Console.WriteLine($"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
                 //Handle timeshards
@@ -200,7 +202,7 @@ namespace MessengerRando
                 
                 //OLD WAY
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
-                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check]);
+                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
                 switch (self.conditionOperator)
                 {
                     case EConditionOperator.LESS_THAN:
@@ -241,7 +243,7 @@ namespace MessengerRando
             LocationRO noteCheck = new LocationRO(self.noteToAward.ToString());
             if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(noteCheck)) //Double checking to prevent errors
             {
-                bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck]) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
+                bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck].Item) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
                 return shouldPlay;
             }
@@ -264,7 +266,7 @@ namespace MessengerRando
                 
 
                 //Check to see if I have the item that is at this check.
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]) >= 1)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[cutsceneCheck].Item) >= 1)
                 {
                     //Return true, this cutscene has "been played"
                     Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Returning that we have already seen cutscene.");
@@ -338,13 +340,13 @@ namespace MessengerRando
             if(randoStateManager.IsRandomizedFile)
             {
                 //check to see if we already have the item at Necro check
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]) <= 0 && !Manager<DemoManager>.Instance.demoMode)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) <= 0 && !Manager<DemoManager>.Instance.demoMode)
                 {
                     //Run the cutscene if we dont
                     Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]}' from Necro check. Playing cutscene.");
                     self.necrophobicWorkerCutscene.Play();
                 }
-                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]) >= 1 || Manager<DemoManager>.Instance.demoMode)
+                if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) >= 1 || Manager<DemoManager>.Instance.demoMode)
                 {
                     //set necro inactive if we do
                     Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]}' from Necro check. Will not play cutscene.");
@@ -630,7 +632,7 @@ namespace MessengerRando
         private EItems GetRandoItemByItem(EItems item)
         {
             Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())]}'");
-            return randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())];
+            return randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())].Item;
         }
 
     }

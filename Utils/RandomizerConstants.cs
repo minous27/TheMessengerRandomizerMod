@@ -8,6 +8,7 @@ namespace MessengerRando.Utils
 {
     class RandomizerConstants
     {
+        /* OLD
         public static readonly EItems[] randomizedItems = new EItems[] {EItems.WINDMILL_SHURIKEN, EItems.WINGSUIT, EItems.GRAPLOU,
             EItems.MAGIC_BOOTS, EItems.CANDLE, EItems.SEASHELL, EItems.POWER_THISTLE, EItems.DEMON_KING_CROWN, EItems.RUXXTIN_AMULET,
             EItems.FAIRY_BOTTLE, EItems.SUN_CREST, EItems.MOON_CREST, EItems.NECROPHOBIC_WORKER, EItems.PYROPHOBIC_WORKER, EItems.CLAUSTROPHOBIC_WORKER, EItems.ACROPHOBIC_WORKER};
@@ -19,6 +20,99 @@ namespace MessengerRando.Utils
             EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD};
 
         public static readonly EItems[] notes = new EItems[] { EItems.KEY_OF_HOPE, EItems.KEY_OF_CHAOS, EItems.KEY_OF_COURAGE, EItems.KEY_OF_LOVE, EItems.KEY_OF_STRENGTH, EItems.KEY_OF_SYMBIOSIS };
+        */
+        public static List<RandoItemRO> GetNotesList()
+        {
+            List<RandoItemRO> notes = new List<RandoItemRO>();
+
+            notes.Add(new RandoItemRO("Key-Of-Hope", EItems.KEY_OF_HOPE));
+            notes.Add(new RandoItemRO("Key-Of-Chaos", EItems.KEY_OF_CHAOS));
+            notes.Add(new RandoItemRO("Key-Of-Courage", EItems.KEY_OF_COURAGE));
+            notes.Add(new RandoItemRO("Key-Of-Love", EItems.KEY_OF_LOVE));
+            notes.Add(new RandoItemRO("Key-Of-Strength", EItems.KEY_OF_STRENGTH));
+            notes.Add(new RandoItemRO("Key-Of-Symbiosis", EItems.KEY_OF_SYMBIOSIS));
+
+            return notes;
+        }
+
+
+        public static List<RandoItemRO> GetRandoItemList()
+        {
+            List<RandoItemRO> randomizedItems = new List<RandoItemRO>();
+
+            randomizedItems.Add(new RandoItemRO("Windmill-Shuriken", EItems.WINDMILL_SHURIKEN));
+            randomizedItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
+            randomizedItems.Add(new RandoItemRO("Rope-Dart", EItems.GRAPLOU));
+            randomizedItems.Add(new RandoItemRO("Ninja-Tabis", EItems.MAGIC_BOOTS));
+            randomizedItems.Add(new RandoItemRO("Candle", EItems.CANDLE));
+            randomizedItems.Add(new RandoItemRO("Seashell", EItems.SEASHELL));
+            randomizedItems.Add(new RandoItemRO("Power-Thistle", EItems.POWER_THISTLE));
+            randomizedItems.Add(new RandoItemRO("Demon-King-Crown", EItems.DEMON_KING_CROWN));
+            randomizedItems.Add(new RandoItemRO("Ruxxtin-Amulet", EItems.RUXXTIN_AMULET));
+            randomizedItems.Add(new RandoItemRO("Fairy-Bottle", EItems.FAIRY_BOTTLE));
+            randomizedItems.Add(new RandoItemRO("Sun-Crest", EItems.SUN_CREST));
+            randomizedItems.Add(new RandoItemRO("Moon-Crest", EItems.MOON_CREST));
+            randomizedItems.Add(new RandoItemRO("Necro", EItems.NECROPHOBIC_WORKER));
+            randomizedItems.Add(new RandoItemRO("Pyro", EItems.PYROPHOBIC_WORKER));
+            randomizedItems.Add(new RandoItemRO("Claustro", EItems.CLAUSTROPHOBIC_WORKER));
+            randomizedItems.Add(new RandoItemRO("Acro", EItems.ACROPHOBIC_WORKER));
+
+            return randomizedItems;
+        }
+        
+        public static List<RandoItemRO> GetAdvancedRandoItemList()
+        {
+            List<RandoItemRO> randomizedItems = new List<RandoItemRO>();
+
+            randomizedItems.Add(new RandoItemRO("Feather-1", EItems.FEATHER));
+            randomizedItems.Add(new RandoItemRO("Feather-2", EItems.FEATHER));
+            randomizedItems.Add(new RandoItemRO("Feather-3", EItems.FEATHER));
+            randomizedItems.Add(new RandoItemRO("Feather-4", EItems.FEATHER));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-1", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-2", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-3", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-4", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-5", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-6", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-7", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-8", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-9", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Mask-Piece-10", EItems.MASK_PIECE));
+            randomizedItems.Add(new RandoItemRO("Money-Wrench", EItems.MONEY_WRENCH));
+            randomizedItems.Add(new RandoItemRO("Potion-1", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-2", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-3", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-4", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-5", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-6", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-7", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-8", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-9", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Potion-10", EItems.POTION));
+            randomizedItems.Add(new RandoItemRO("Timeshard-1", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-2", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-3", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-4", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-5", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-6", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-7", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-8", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-9", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-10", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-11", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-12", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-13", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-14", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-15", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-16", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-17", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-18", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-19", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard-20", EItems.TIME_SHARD));
+
+            return randomizedItems;
+        }
+
 
         public static List<LocationRO> GetRandoLocationList()
         {

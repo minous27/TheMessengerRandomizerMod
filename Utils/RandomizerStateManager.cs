@@ -9,7 +9,7 @@ namespace MessengerRando
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
-        public Dictionary<LocationRO, EItems> CurrentLocationToItemMapping { set; get; }
+        public Dictionary<LocationRO, RandoItemRO> CurrentLocationToItemMapping { set; get; }
         public bool IsRandomizedFile { set; get; }
         
         private Dictionary<int, SeedRO> seeds;
@@ -86,7 +86,7 @@ namespace MessengerRando
 
         public void ResetCurrentLocationToItemMappings()
         {
-            CurrentLocationToItemMapping = new Dictionary<LocationRO, EItems>();
+            CurrentLocationToItemMapping = new Dictionary<LocationRO, RandoItemRO>();
             this.IsRandomizedFile = false;
         }
 
