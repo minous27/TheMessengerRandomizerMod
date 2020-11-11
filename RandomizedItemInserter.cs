@@ -11,7 +11,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using static Mod.Courier.UI.TextEntryButtonInfo;
-
+using MessengerRando.Exceptions;
 
 namespace MessengerRando 
 {
@@ -120,7 +120,7 @@ namespace MessengerRando
             }
 
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
+            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(randoItemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
@@ -131,6 +131,11 @@ namespace MessengerRando
                 {
                     OnToggleWindmillShuriken();
                 }
+                else if (EItems.TIME_SHARD.Equals(randoItemId)) //Handle timeshards
+                {
+                    Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
+                    return; //Collecting timeshards internally call add item so I dont need to do it again.
+                }
             }
             
             //Call original add with items
@@ -139,14 +144,42 @@ namespace MessengerRando
 
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
         {
-            
-            if ("-436-404-44-28".Equals(roomKey))
+            //if this is a rando file, go ahead and give the item we expect to get
+            if (randoStateManager.IsRandomizedFile)
             {
-                Console.WriteLine($"Just completed challenge room '{roomKey}'. Will also give a randomized item reward. Currently it's 20 timeshards. :P");
-                Manager<InventoryManager>.Instance.CollectTimeShard(20);
+                LocationRO powerSealLocation = null;
+                foreach(LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
+                {
+                    if(location.LocationName.Equals(roomKey))
+                    {
+                        powerSealLocation = location;
+                    }
+                }
+
+                if(powerSealLocation == null)
+                {
+                    throw new RandomizerException($"Challenge room with room key '{roomKey}' was not found in the list of locations. This will need to be corrected for this challenge room to work.");
+                }
+
+                EItems challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation];
+
+                Console.WriteLine($"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
+                //Handle timeshards
+                if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem))
+                {
+                    Manager<InventoryManager>.Instance.CollectTimeShard(1);
+                }
+                else
+                {
+                    //Before adding the item to the inventory, add this item to the override
+                    RandomizerStateManager.Instance.AddTempRandoItemOverride(challengeRoomRandoItem);
+                    Manager<InventoryManager>.Instance.AddItem(challengeRoomRandoItem, 1);
+                    //Now remove the override
+                    RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem);
+                }
+
             }
-            
-            
+
             //For now calling the orig method once we are done so the game still things we are collecting seals. We can change this later.
             orig(self, roomKey);
         }
@@ -164,7 +197,8 @@ namespace MessengerRando
                     Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
                     return orig(self);
                 }
-
+                
+                //OLD WAY
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
                 int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check]);
                 switch (self.conditionOperator)
@@ -186,6 +220,12 @@ namespace MessengerRando
                         break;
                 }
                 Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[check]}' || Current Check '{self.conditionOperator}' || Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
+                
+
+                //NEW WAY
+                //Don't actually check for the item I have, check to see if I have done this check before
+
+
                 return hasItem;
             }
             else //Call orig method

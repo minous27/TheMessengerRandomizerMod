@@ -15,6 +15,8 @@ namespace MessengerRando
         private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
+        //This overrides list will be used to track items that, during the giving of items in any particular moment, need to ignore rando logic and just hand the item over.
+        private List<EItems> temporaryRandoOverrides;
 
 
        public static void Initialize()
@@ -31,6 +33,7 @@ namespace MessengerRando
             this.seeds = new Dictionary<int, SeedRO>();
             this.ResetCurrentLocationToItemMappings();
             this.initializeCutsceneTriggerStates();
+            this.temporaryRandoOverrides = new List<EItems>();
         }
 
         private void initializeCutsceneTriggerStates()
@@ -95,6 +98,21 @@ namespace MessengerRando
         public void SetNoteCutsceneTriggered(EItems note)
         {
             this.noteCutsceneTriggerStates[note] = true;
+        }
+
+        public void AddTempRandoItemOverride(EItems randoItem)
+        {
+            temporaryRandoOverrides.Add(randoItem);
+        }
+
+        public void RemoveTempRandoItemOverride(EItems randoItem)
+        {
+            temporaryRandoOverrides.Remove(randoItem);
+        }
+
+        public bool HasTempOverrideOnRandoItem(EItems randoItem)
+        {
+            return temporaryRandoOverrides.Contains(randoItem);
         }
 
         public bool IsSafeTeleportState()
