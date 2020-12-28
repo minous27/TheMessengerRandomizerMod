@@ -43,7 +43,7 @@ namespace MessengerRando.Utils
                     }
                 }
 
-                seed = new SeedRO(SeedType.No_Logic, tempSeed, null);
+                seed = new SeedRO(SeedType.No_Logic, tempSeed, null, null);
                 
                 
                 Console.WriteLine($"No seed passed, generated seed for this mapping is: {tempSeed}");
@@ -127,7 +127,7 @@ namespace MessengerRando.Utils
         {
             try
             {
-                GenerateRandomizedMappings(new SeedRO(SeedType.Logic, seed, settings));
+                GenerateRandomizedMappings(new SeedRO(SeedType.Logic, seed, settings, null));
                 return true;
             }
             catch(RandomizerException rde)

@@ -15,6 +15,7 @@ namespace MessengerRando
         private const char RANDO_OPTION_TYPE_DELIM = '+';
         private const char RANDO_OPTION_SETTING_DELIM = '&';
         private const char RANDO_OPTION_SETTING_VALUE_DELIM = '=';
+        private const char RANDO_OPTION_ITEM_DELIM = ',';
 
         private RandomizerStateManager stateManager;
 
@@ -36,6 +37,17 @@ namespace MessengerRando
                 foreach(SettingType setting in seed.Settings.Keys)
                 {
                     modValue.Append("" + RANDO_OPTION_SETTING_DELIM + setting + RANDO_OPTION_SETTING_VALUE_DELIM + seed.Settings[setting]);
+                }
+                //Capturing collected items per seed
+                if (seed.CollectedItems.Count > 0)
+                {
+                    modValue.Append("" + RANDO_OPTION_SETTING_DELIM + "CollectedItems=");
+                    foreach (RandoItemRO collectedItem in seed.CollectedItems)
+                    {
+                        modValue.Append("" + collectedItem + RANDO_OPTION_ITEM_DELIM);
+                    }
+                    //Shaving off the last ','
+                    modValue.Length--;
                 }
             }
 
@@ -75,6 +87,7 @@ namespace MessengerRando
                 }
                 //If there are settings, I need to pull them out as well
                 Dictionary<SettingType, SettingValue> seedSettings = new Dictionary<SettingType, SettingValue>();
+                List<RandoItemRO> collectedRandoItemList = new List<RandoItemRO>();
 
                 if(randoSettingIndex != -1)
                 {
@@ -85,23 +98,52 @@ namespace MessengerRando
                     
                     foreach(string setting in splitSeedSettings)
                     {
-                        string[] splitSeedSetting = setting.Split(RANDO_OPTION_SETTING_VALUE_DELIM);
-                        string splitSeedSettingType = splitSeedSetting[0];
-                        string splitSeedSettingValue = splitSeedSetting[1];
-
-                        Console.WriteLine($"Split setting '{splitSeedSettingType}' with value '{splitSeedSettingValue}' added to seed split {i}");
-                        
-                        if((splitSeedSettingType != null && Enum.IsDefined(typeof(SettingType), splitSeedSettingType)) && (splitSeedSettingValue != null && Enum.IsDefined(typeof(SettingValue), splitSeedSettingValue)))
+                        //handle collected item loading
+                        if (setting.StartsWith("CollectedItems="))
                         {
-                            seedSettings.Add((SettingType)Enum.Parse(typeof(SettingType), splitSeedSettingType), (SettingValue)Enum.Parse(typeof(SettingValue), splitSeedSettingValue));
+                            string collectedItemsRaw = setting.Substring(setting.IndexOf(RANDO_OPTION_SETTING_VALUE_DELIM) + 1);
+                            //split further to get each rando item
+                            string[] collectedItems = collectedItemsRaw.Split(RANDO_OPTION_ITEM_DELIM);
+                            foreach (string collectedItem in collectedItems)
+                            {
+                                try
+                                {
+                                    collectedRandoItemList.Add(RandoItemRO.ParseString(collectedItem));
+                                    Console.WriteLine($"Added item '{collectedItem}' to Collected Item pool for file slot '{i}'.");
+                                }
+                                catch (Exception)
+                                {
+                                    Console.WriteLine($"ERROR WHILE LOADING FROM MOD SAVE FILE: Found an item that could not be processed. Item in question '{collectedItem}'. Skipping item.");
+                                    continue;
+                                }
+
+                            }
                         }
+                        else //Other settings
+                        {
 
-                        
+                            string[] splitSeedSetting = setting.Split(RANDO_OPTION_SETTING_VALUE_DELIM);
+                            if (splitSeedSetting.Length == 2)
+                            {
+                                string splitSeedSettingType = splitSeedSetting[0];
+                                string splitSeedSettingValue = splitSeedSetting[1];
+
+                                Console.WriteLine($"Split setting '{splitSeedSettingType}' with value '{splitSeedSettingValue}' added to seed split {i}");
+
+                                if ((splitSeedSettingType != null && Enum.IsDefined(typeof(SettingType), splitSeedSettingType)) && (splitSeedSettingValue != null && Enum.IsDefined(typeof(SettingValue), splitSeedSettingValue)))
+                                {
+                                    seedSettings.Add((SettingType)Enum.Parse(typeof(SettingType), splitSeedSettingType), (SettingValue)Enum.Parse(typeof(SettingValue), splitSeedSettingValue));
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"ERROR WHILE LOADING FROM MOD SAVE FILE: Setting not properly formatted in file. Setting in question '{setting}'. Throwing it away and moving on.");
+                            }
+                        }
                     }
-
                 }
 
-                stateManager.AddSeed(i, seedType, seed, seedSettings);
+                stateManager.AddSeed(i, seedType, seed, seedSettings, collectedRandoItemList);
                 Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
             }
 

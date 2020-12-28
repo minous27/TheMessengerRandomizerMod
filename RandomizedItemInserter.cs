@@ -37,7 +37,9 @@ namespace MessengerRando
             //Initialize the randomizer state manager
             RandomizerStateManager.Initialize();
             randoStateManager = RandomizerStateManager.Instance;
+            //Set up save data
             RandomizerSaveMethod randomizerSaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
+            Courier.ModOptionSaveData.Add(randomizerSaveMethod);
 
 
             //Add Randomizer Version button
@@ -45,15 +47,12 @@ namespace MessengerRando
 
             //Add generate random seed mod option button
             generateNoLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", (entry) => OnEnterFileSlot(entry, generateNoLogicSeedButton, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
-            generateNoLogicSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add generate basic seed mod option button
             generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", (entry) => OnEnterFileSlot(entry, generateLogicSeedButton, SeedType.Logic), 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
-            generateLogicSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add Set seed mod option button
             enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterRandomSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
-            enterSeedButton.SaveMethod = randomizerSaveMethod;
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -126,18 +125,21 @@ namespace MessengerRando
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
                 
                 //If that item is the windmill shuriken, immediately activate it and the mod option
-                if(EItems.WINDMILL_SHURIKEN.Equals(randoItemId))
+                if(EItems.WINDMILL_SHURIKEN.Equals(randoItemId.Item))
                 {
                     OnToggleWindmillShuriken();
                 }
-                else if (EItems.TIME_SHARD.Equals(randoItemId)) //Handle timeshards
+                else if (EItems.TIME_SHARD.Equals(randoItemId.Item)) //Handle timeshards
                 {
                     Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
+                    randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItemId);
                     return; //Collecting timeshards internally call add item so I dont need to do it again.
                 }
 
                 //Set the itemId to the new item
                 itemId = randoItemId.Item;
+                //Set this item to have been collected in the state manager
+                randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItemId);
             }
             
             //Call original add with items
@@ -163,21 +165,23 @@ namespace MessengerRando
                     throw new RandomizerException($"Challenge room with room key '{roomKey}' was not found in the list of locations. This will need to be corrected for this challenge room to work.");
                 }
 
-                EItems challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation].Item;
+                RandoItemRO challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation];
 
                 Console.WriteLine($"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
                 //Handle timeshards
-                if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem))
+                if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem.Item))
                 {
                     Manager<InventoryManager>.Instance.CollectTimeShard(1);
+                    //Set this item to have been collected in the state manager
+                    randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(challengeRoomRandoItem);
                 }
                 else
                 {
                     //Before adding the item to the inventory, add this item to the override
-                    RandomizerStateManager.Instance.AddTempRandoItemOverride(challengeRoomRandoItem);
-                    Manager<InventoryManager>.Instance.AddItem(challengeRoomRandoItem, 1);
+                    RandomizerStateManager.Instance.AddTempRandoItemOverride(challengeRoomRandoItem.Item);
+                    Manager<InventoryManager>.Instance.AddItem(challengeRoomRandoItem.Item, 1);
                     //Now remove the override
-                    RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem);
+                    RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem.Item);
                 }
 
             }
@@ -199,10 +203,15 @@ namespace MessengerRando
                     Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
                     return orig(self);
                 }
-                
+
                 //OLD WAY
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
-                int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
+                //int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
+
+                //NEW WAY
+                //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
+                int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
+                
                 switch (self.conditionOperator)
                 {
                     case EConditionOperator.LESS_THAN:
@@ -221,13 +230,9 @@ namespace MessengerRando
                         hasItem = itemQuantity > self.quantityToHave;
                         break;
                 }
+
                 Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[check]}' || Current Check '{self.conditionOperator}' || Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
                 
-
-                //NEW WAY
-                //Don't actually check for the item I have, check to see if I have done this check before
-
-
                 return hasItem;
             }
             else //Call orig method
@@ -298,6 +303,7 @@ namespace MessengerRando
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
                 randoStateManager.IsRandomizedFile = true;
+                randoStateManager.CurrentFileSlot = fileSlot;
                 //Log spoiler log
                 randoStateManager.LogCurrentMappings();
             }
@@ -305,7 +311,7 @@ namespace MessengerRando
             {
                 //This save file does not have a seed associated with it or is not a randomized file. Reset the mappings so everything is back to normal.
                 Console.WriteLine($"This file slot ({fileSlot}) has no seed generated or is not a randomized file. Resetting the mappings and putting game items back to normal.");
-                randoStateManager.ResetCurrentLocationToItemMappings();
+                randoStateManager.ResetRandomizerState();
             }
             orig(self, slotIndex);
         }
@@ -314,7 +320,7 @@ namespace MessengerRando
         {
             //Right now I am not randomizing game slots that are brand new.
             Console.WriteLine($"This file slot is brand new. Resetting the mappings and putting game items back to normal.");
-            randoStateManager.ResetCurrentLocationToItemMappings();
+            randoStateManager.ResetRandomizerState();
             randoStateManager.ResetSeedForFileSlot(slot.slotIndex + 1);
 
             orig(self, slot);
@@ -420,7 +426,7 @@ namespace MessengerRando
                 return false;
             }
             //TODO Need to improve entering seeds for more robust ability
-            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), SeedType.None, new Dictionary<SettingType, SettingValue>(), Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
+            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), SeedType.None, new Dictionary<SettingType, SettingValue>(), null, Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
             fileSlotPopup.onBack += () => {
                 fileSlotPopup.gameObject.SetActive(false);
                 enterSeedButton.textEntryPopup.gameObject.SetActive(true);
@@ -472,7 +478,7 @@ namespace MessengerRando
         }
 
         //Moved the seed setting logic out so I could reuse it.
-        bool SetSeedForFileSlot(int fileSlot, SeedType seedType, Dictionary<SettingType, SettingValue> settings, int seed = Int32.MinValue)
+        bool SetSeedForFileSlot(int fileSlot, SeedType seedType, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, int seed = Int32.MinValue)
         {
             //Check to make sure an apporiate save slot was chosen.
             if (fileSlot < 1 || fileSlot > 3)
@@ -540,7 +546,7 @@ namespace MessengerRando
             }
 
             //Save this seed into the state
-            randoStateManager.AddSeed(fileSlot,seedType, seed, settings);
+            randoStateManager.AddSeed(fileSlot,seedType, seed, settings, collectedItems);
 
             Console.WriteLine($"Set seed '{seed}' to file slot '{fileSlot}'");
             return true;
@@ -618,7 +624,7 @@ namespace MessengerRando
                     Console.WriteLine($"Invalid choice provided for difficultly selection. Expected 'yes' or 'no'. Received '{choice}'");
                     return false;
                 }
-                return SetSeedForFileSlot(slot, seedType, settings);
+                return SetSeedForFileSlot(slot, seedType, settings, null);
             }
             //Bad choice passed
             return false;
