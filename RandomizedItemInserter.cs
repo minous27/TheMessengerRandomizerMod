@@ -46,13 +46,13 @@ namespace MessengerRando
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
             //Add generate random seed mod option button
-            generateNoLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", (entry) => OnEnterFileSlot(entry, generateNoLogicSeedButton, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
+            generateNoLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", (entry) => OnEnterFileSlot(entry, generateNoLogicSeedButton, Int32.MinValue, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
 
             //Add generate basic seed mod option button
-            generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", (entry) => OnEnterFileSlot(entry, generateLogicSeedButton, SeedType.Logic), 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
+            generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", (entry) => OnEnterFileSlot(entry, generateLogicSeedButton, Int32.MinValue, SeedType.Logic), 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
 
             //Add Set seed mod option button
-            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", OnEnterRandomSeedNumber, 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
+            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", (entry) => OnEnterRandomSeedNumber(entry, enterSeedButton), 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -418,35 +418,76 @@ namespace MessengerRando
         }
         */
 
-        bool OnEnterRandomSeedNumber(string seed)
+        bool OnEnterRandomSeedNumber(string response, TextEntryButtonInfo parentButton)
         {
-            if(seed == null || seed.Length < 1)
+            Console.WriteLine($"In Method: OnEnterRandomSeedNumber. Provided value: '{response}'");
+
+            int seed = 0;
+
+            if(!Int32.TryParse(response, out seed))
             {
-                Console.WriteLine($"Invalid seed number '{seed}' provided");
+                Console.WriteLine($"Invalid seed number '{response}' provided");
                 return false;
             }
-            //TODO Need to improve entering seeds for more robust ability
-            TextEntryPopup fileSlotPopup = InitTextEntryPopup(enterSeedButton.addedTo, "Which save slot would you like to set this seed to?", (entry) => SetSeedForFileSlot(Convert.ToInt32(entry), SeedType.None, new Dictionary<SettingType, SettingValue>(), null, Convert.ToInt32(seed)), 1, null, CharsetFlags.Number);
+
+            TextEntryPopup logicPopup = InitTextEntryPopup(parentButton.addedTo, "Run the logic engine against this seed? (yes/no)", (entry) => OnEnterRunLogicEngine(seed, parentButton, entry), 3, null, CharsetFlags.Letter);
+            logicPopup.onBack += () => {
+                logicPopup.gameObject.SetActive(false);
+                //parentButton.textEntryPopup.gameObject.SetActive(true);
+                //parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
+            };
+            parentButton.textEntryPopup.gameObject.SetActive(false);
+            logicPopup.Init(string.Empty);
+            logicPopup.gameObject.SetActive(true);
+            logicPopup.transform.SetParent(parentButton.addedTo.transform.parent);
+            parentButton.addedTo.gameObject.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            logicPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
+            EventSystem.current.SetSelectedGameObject(logicPopup.initialSelection);
+            logicPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
+            return false;
+        }
+
+        bool OnEnterRunLogicEngine(int seed, TextEntryButtonInfo parentButton, string response)
+        {
+            Console.WriteLine($"In Method: OnEnterRunLogicEngine. Provided value: '{response}'");
+            SeedType seedType = SeedType.None;
+
+            if ("yes".Equals(response, StringComparison.OrdinalIgnoreCase) || "no".Equals(response, StringComparison.OrdinalIgnoreCase))
+            {
+                //We got a good value
+                seedType = "yes".Equals(response, StringComparison.OrdinalIgnoreCase) ? SeedType.Logic : SeedType.No_Logic;
+            }
+            else
+            {
+                Console.WriteLine($"In OnEnterRunLogicEngine - value for entry '{response}' is not valid. Must be 'yes' or 'no'.");
+                return false;
+            }
+            
+            //Boilerplate popup code
+            TextEntryPopup fileSlotPopup = InitTextEntryPopup(parentButton.addedTo, "Which save slot would you like to start a rando seed?", (entry) => OnEnterFileSlot(entry, parentButton, seed, seedType, true), 1, null, CharsetFlags.Number);
             fileSlotPopup.onBack += () => {
                 fileSlotPopup.gameObject.SetActive(false);
-                enterSeedButton.textEntryPopup.gameObject.SetActive(true);
-                enterSeedButton.textEntryPopup.StartCoroutine(enterSeedButton.textEntryPopup.BackWhenBackButtonReleased());
+                //parentButton.textEntryPopup.gameObject.SetActive(true);
+                //parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
             };
-            enterSeedButton.textEntryPopup.gameObject.SetActive(false);
+            parentButton.textEntryPopup.gameObject.SetActive(false);
             fileSlotPopup.Init(string.Empty);
             fileSlotPopup.gameObject.SetActive(true);
-            fileSlotPopup.transform.SetParent(enterSeedButton.addedTo.transform.parent);
-            enterSeedButton.addedTo.gameObject.SetActive(false);
+            fileSlotPopup.transform.SetParent(parentButton.addedTo.transform.parent);
+            parentButton.addedTo.gameObject.SetActive(false);
             Canvas.ForceUpdateCanvases();
             fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
             EventSystem.current.SetSelectedGameObject(fileSlotPopup.initialSelection);
             fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
-            return false;
+
+            return true;
         }
 
         ///On submit of rando file location
-        bool OnEnterFileSlot(string fileSlot, TextEntryButtonInfo parentButton, SeedType seedType)
+        bool OnEnterFileSlot(string fileSlot, TextEntryButtonInfo parentButton, int seed, SeedType seedType, bool closeToModMenuOnFinish = false)
         {
+            Console.WriteLine($"In Method: OnEnterFileSlot. Provided value: '{fileSlot}'");
             Console.WriteLine($"Received file slot number: {fileSlot}");
             int slot = Convert.ToInt32(fileSlot);
             if (slot < 1 || slot > 3)
@@ -455,7 +496,7 @@ namespace MessengerRando
                 return false;
             }
             
-            TextEntryPopup difficultySettingPopup = InitTextEntryPopup(parentButton.addedTo, "Would you like this to be an advanced seed? (yes/no)", (entry) => OnEnterDifficultyChoice(entry, slot, seedType), 3, null, CharsetFlags.Letter);
+            TextEntryPopup difficultySettingPopup = InitTextEntryPopup(parentButton.addedTo, "Would you like this to be an advanced seed? (yes/no)", (entry) => OnEnterDifficultyChoice(entry, slot, seed, seedType), 3, null, CharsetFlags.Letter);
             difficultySettingPopup.onBack += () =>
             {
                 difficultySettingPopup.gameObject.SetActive(false);
@@ -473,7 +514,7 @@ namespace MessengerRando
             EventSystem.current.SetSelectedGameObject(difficultySettingPopup.initialSelection);
             difficultySettingPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
 
-            return false;
+            return closeToModMenuOnFinish;
 
         }
 
@@ -602,8 +643,9 @@ namespace MessengerRando
             Console.WriteLine("Teleport to Ninja Village complete.");
         }
 
-        bool OnEnterDifficultyChoice(string choice, int slot, SeedType seedType)
+        bool OnEnterDifficultyChoice(string choice, int slot, int seed, SeedType seedType)
         {
+            Console.WriteLine($"In Method: OnEnterDifficultyChoice. Provided value: '{choice}'");
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
 
             if(settings != null)
@@ -624,7 +666,13 @@ namespace MessengerRando
                     Console.WriteLine($"Invalid choice provided for difficultly selection. Expected 'yes' or 'no'. Received '{choice}'");
                     return false;
                 }
-                return SetSeedForFileSlot(slot, seedType, settings, null);
+
+                if(!SetSeedForFileSlot(slot, seedType, settings, null, seed))
+                {
+                    Console.WriteLine($"Error setting seed '{seed}' in file slot '{slot}'. SeedType - '{seedType}' | Settings - '{settings}'.");
+                    return false;
+                }
+                return true;
             }
             //Bad choice passed
             return false;

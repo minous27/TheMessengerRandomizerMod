@@ -217,7 +217,7 @@ namespace MessengerRando.Utils
             //Elemental Skylands
             advancedRandomizedLocations.Add(new LocationRO("-52-20420436", "Elemental Skylands Seal - Air Seal", new EItems[] { EItems.FAIRY_BOTTLE }, true, false, false)); //Air Seal
             advancedRandomizedLocations.Add(new LocationRO("18361868372388", "Elemental Skylands Seal - Water Seal", new EItems[] { EItems.FAIRY_BOTTLE }, false, true, false)); //Water Seal - Needs water dash
-            advancedRandomizedLocations.Add(new LocationRO("28602892356388", "Elemental Skylands Seal - Fire Seal", new EItems[] { EItems.FAIRY_BOTTLE }, true, true, false)); //Fire Seal
+            advancedRandomizedLocations.Add(new LocationRO("28602892356388", "Elemental Skylands Seal - Fire Seal", new EItems[] { EItems.FAIRY_BOTTLE }, false, true, false)); //Fire Seal
 
 
             return advancedRandomizedLocations;
