@@ -57,7 +57,7 @@ namespace MessengerRando.Utils
             requiredItemsWithBlockers = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>();
             coinResults = new Dictionary<LocationRO, int>();
 
-            //Difficulty setting - if this is an advanced seed, at the other items and checks into the fray
+            //Difficulty setting - if this is an advanced seed, add the other items and checks into the fray
             if(seed.Settings.ContainsKey(SettingType.Difficulty) && SettingValue.Advanced.Equals(seed.Settings[SettingType.Difficulty]))
             {
                 //Advanced difficulty seed
@@ -320,15 +320,15 @@ namespace MessengerRando.Utils
                     tempRequiredItems = AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), mappings[location], tempRequiredItems);
                     keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
                 }
-                if (location.IsRopeDartRequired && randomizedItems.Contains(new RandoItemRO("Rope-Dart", EItems.GRAPLOU)))
+                if (location.IsRopeDartRequired && randomizedItems.Contains(new RandoItemRO("Rope_Dart", EItems.GRAPLOU)))
                 {
-                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope-Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
-                    keyItems.Add(new RandoItemRO("Rope-Dart", EItems.GRAPLOU));
+                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
+                    keyItems.Add(new RandoItemRO("Rope_Dart", EItems.GRAPLOU));
                 }
-                if (location.IsNinjaTabiRequired && randomizedItems.Contains(new RandoItemRO("Ninja-Tabis", EItems.MAGIC_BOOTS)))
+                if (location.IsNinjaTabiRequired && randomizedItems.Contains(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS)))
                 {
-                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Ninja-Tabis", EItems.MAGIC_BOOTS), mappings[location], tempRequiredItems);
-                    keyItems.Add(new RandoItemRO("Ninja-Tabis", EItems.MAGIC_BOOTS));
+                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS), mappings[location], tempRequiredItems);
+                    keyItems.Add(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS));
                 }
                 //Checking if either Wingsuit OR Rope Dart is required is a separate check.
                 if (location.IsEitherWingsuitOrRopeDartRequired)
@@ -338,10 +338,12 @@ namespace MessengerRando.Utils
                     if (coinResults.ContainsKey(location))
                     {
                         coin = coinResults[location];
+                        Console.WriteLine($"Coin previously flipped for location '{location.PrettyLocationName}'. Result was '{coin}'");
                     }
                     else
                     {
                         coin = randomNumberGen.Next(2);
+                        Console.WriteLine($"Coin flipped! Result is '{coin}' for location '{location.PrettyLocationName}'");
                         coinResults.Add(location, coin);
                     }
 
@@ -357,10 +359,10 @@ namespace MessengerRando.Utils
                             }
                             break;
                         case 1://Rope Dart
-                            if (randomizedItems.Contains(new RandoItemRO("Rope-Dart", EItems.GRAPLOU)))
+                            if (randomizedItems.Contains(new RandoItemRO("Rope_Dart", EItems.GRAPLOU)))
                             {
-                                tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope-Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
-                                keyItems.Add(new RandoItemRO("Rope-Dart", EItems.GRAPLOU));
+                                tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
+                                keyItems.Add(new RandoItemRO("Rope_Dart", EItems.GRAPLOU));
                             }
                             break;
                         default://Something weird happened...just do wingsuit :P
@@ -451,7 +453,7 @@ namespace MessengerRando.Utils
             bool isNote = false;
             foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
             {
-                if (note.Item.Equals(blockedItem))
+                if (note.Item.Equals(blockedItem.Item))
                 {
                     isNote = true;
                     break;
