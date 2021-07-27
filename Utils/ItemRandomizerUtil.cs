@@ -153,7 +153,7 @@ namespace MessengerRando.Utils
             return false;
         }
 
-        //Get the version number
+        //Get the version number, returns "Unknown" if it has trouble getting the version number.
         public static string GetModVersion()
         {
             string version = "Unknown";
