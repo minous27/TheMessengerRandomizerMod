@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
+    <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />

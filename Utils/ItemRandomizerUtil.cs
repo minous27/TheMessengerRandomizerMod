@@ -123,6 +123,7 @@ namespace MessengerRando.Utils
             return seed;
         }
 
+        // OLD WAY
         public static bool IsSeedBeatable(int seed, Dictionary<SettingType, SettingValue> settings)
         {
             try
@@ -135,6 +136,150 @@ namespace MessengerRando.Utils
                 //This means that the seed was deemed not beatable
                 Console.WriteLine($"Seed '{seed}' was deemed not beatable during IsSeedBeatable check. Error message received: '{rde.Message}'");
                 return false;
+            }
+        }
+
+        //NEW WAY - I want to simulate running through a seed and checking all I can with what Items I have.
+        public static bool IsSeedBeatable(Dictionary<LocationRO, RandoItemRO> mappings)
+        {
+            //Create an player that will be used to track progress.
+            SamplePlayerRO player = new SamplePlayerRO(false, false, false, 0, new List<RandoItemRO>());
+            
+            //I'll want to start doing runs through the mappings to see if I am able to collect items. I'll keep doing this until I either get the 6 notes or I have no more checks I can do.
+            while (player.NoteCount < 6)
+            {
+                bool collectedItemThisRound = false;
+                //Run through locations, get any items we can
+                foreach (LocationRO location in mappings.Keys)
+                {
+                    //Lets check additional items and get that over with first
+                    EItems[] additionalLocationRequiredItems = location.AdditionalRequiredItemsForCheck;
+
+                    if (!additionalLocationRequiredItems.Contains(EItems.NONE))
+                    {
+                        {
+                            //There are additional items to check
+                            if (!HasAdditionalItemsForBeatableSeedCheck(additionalLocationRequiredItems, player))
+                            {
+                                //Did not pass validations, move to next location.
+                                continue;
+                            }
+                        }
+                    }
+
+                    //Start the fun location checks
+                    if (location.IsWingsuitRequired)
+                    {
+                        //Wingsuit check
+                        if (!player.HasWingsuit)
+                        {
+                            continue;
+                        }
+                    }
+                    //Ropedart check
+                    if (location.IsRopeDartRequired)
+                    {
+                        if (!player.HasRopeDart)
+                        {
+                            continue;
+                        }
+                    }
+                    //Ninja Tabi check
+                    if (location.IsNinjaTabiRequired)
+                    {
+                        if (!player.HasNinjaTabis)
+                        {
+                            continue;
+                        }
+                    }
+                    //Checks that could use either rope dart or wingsuit
+                    if (location.IsEitherWingsuitOrRopeDartRequired)
+                    {
+                        if (!player.HasWingsuit && !player.HasRopeDart)
+                        {
+                            continue;
+                        }
+                    }
+
+                    //If we survived all of that nonsense, then we passed validations. The item is ours!
+                    CollectItemForBeatableSeedCheck(mappings[location], ref player);
+                    collectedItemThisRound = true;
+                }
+                if (!collectedItemThisRound)
+                {
+                    //This seed not beatable
+                    return false;
+                }
+            }
+
+            //We made it through the game with all 6 notes!
+            return true;
+        }
+
+        private static bool HasAdditionalItemsForBeatableSeedCheck(EItems[] additionalLocationRequiredItems, SamplePlayerRO player)
+        {
+            bool hasAdditionalItems = true;
+
+            //Check each item in the list of required items for this location
+            foreach (EItems item in additionalLocationRequiredItems)
+            {
+                bool itemFound = false;
+                //Check each item the player has
+                foreach (RandoItemRO playerItem in player.AdditionalItems)
+                {
+                    if (playerItem.Item.Equals(item))
+                    {
+                        //We have this required item
+                        itemFound = true;
+                        break;
+                    }
+                }
+                if (!itemFound)
+                {
+                    //We were missing at least one required item
+                    hasAdditionalItems = false;
+                    break;
+                }
+            }
+            return hasAdditionalItems;
+        }
+
+        private static void CollectItemForBeatableSeedCheck(RandoItemRO itemToCollect, ref SamplePlayerRO player)
+        {
+            //Handle the various types of items
+            switch(itemToCollect.Item)
+            {
+                case EItems.WINGSUIT:
+                    player.HasWingsuit = true;
+                    break;
+                case EItems.GRAPLOU:
+                    player.HasRopeDart = true;
+                    break;
+                case EItems.MAGIC_BOOTS:
+                    player.HasNinjaTabis = true;
+                    break;
+                case EItems.KEY_OF_CHAOS:
+                    player.NoteCount++;
+                    break;
+                case EItems.KEY_OF_COURAGE:
+                    player.NoteCount++;
+                    break;
+                case EItems.KEY_OF_HOPE:
+                    player.NoteCount++;
+                    break;
+                case EItems.KEY_OF_LOVE:
+                    player.NoteCount++;
+                    break;
+                case EItems.KEY_OF_STRENGTH:
+                    player.NoteCount++;
+                    break;
+                case EItems.KEY_OF_SYMBIOSIS:
+                    player.NoteCount++;
+                    break;
+                default:
+                    //Some other item, just throw it in
+                    player.AdditionalItems.Add(itemToCollect);
+                    break;
             }
         }
 
