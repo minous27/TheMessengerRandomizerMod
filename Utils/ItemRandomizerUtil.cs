@@ -17,12 +17,14 @@ namespace MessengerRando.Utils
         //private static SeedRO officialSeed;
 
         private static Random randomNumberGen;
+        private static Dictionary<LocationRO, RandoItemRO> locationToItemMapping;
         private static List<LocationRO> randomizedLocations;
         private static List<RandoItemRO> randomizedItems;
-        private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> requiredItemsWithBlockers;
         private static Dictionary<LocationRO, int> coinResults;
+        //Used to represent all the required items to complete this seed, along with what they currently block. This is to prevent self locks. 
+        private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> requiredItems = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>();
 
-        private static int REQUIRED_ITEM_PLACEMENT_ATTEMPT_LIMIT = 10; //To prevent infinte loops from bugs in the item placement code
+        private static int REQUIRED_ITEM_PLACEMENT_ATTEMPT_LIMIT = 100; //To prevent infinte loops from bugs in the item placement code
 
         public static Dictionary<LocationRO, RandoItemRO> GenerateRandomizedMappings(SeedRO seed)
         {
@@ -54,7 +56,6 @@ namespace MessengerRando.Utils
             randomizedLocations = RandomizerConstants.GetRandoLocationList();
             randomizedItems = new List<RandoItemRO>(RandomizerConstants.GetRandoItemList());
             randomizedItems.AddRange(RandomizerConstants.GetNotesList());
-            requiredItemsWithBlockers = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>();
             coinResults = new Dictionary<LocationRO, int>();
 
             //Difficulty setting - if this is an advanced seed, add the other items and checks into the fray
@@ -75,46 +76,115 @@ namespace MessengerRando.Utils
                 throw new RandomizerException($"Mismatched number of items between randomized items({randomizedItems.Count}) and checks({randomizedLocations.Count}). Minous needs to correct this so the world can work again...");
             }
 
-            Dictionary<LocationRO, RandoItemRO> mappings = new Dictionary<LocationRO, RandoItemRO>();
+            locationToItemMapping = new Dictionary<LocationRO, RandoItemRO>();
 
             //Let the mapping flows begin!
             switch(seed.SeedType)
             {
                 case SeedType.No_Logic:
                     //No logic, fast map EVERYTHING!
-                    FastMapping(randomizedItems, ref mappings);
+                    FastMapping(randomizedItems);
                     Console.WriteLine("No-Logic mapping generation complete.");
                     break;
                 case SeedType.Logic:
                     //Basic logic. Start by placing the notes then do the logic things!
-                    FastMapping(RandomizerConstants.GetNotesList(), ref mappings);
-                    //Now that the notes have a home, lets get all the items we are going to need to collect them. We will do this potentially a few times to ensure that all required items are accounted for.
-                    Dictionary<RandoItemRO, HashSet<RandoItemRO>> tempRequiredItems = GetRequiredItemsFromMappings(mappings);
+                    FastMapping(RandomizerConstants.GetNotesList());
+                    //Set up required items
+                    //GetRequiredItemsFromMappings();
 
                     int logicalMappingAttempts = 1;
-                    while (tempRequiredItems.Count > 0)
+                    bool isLogicalMappingComplete = false;
+                    do
                     {
                         if (logicalMappingAttempts > REQUIRED_ITEM_PLACEMENT_ATTEMPT_LIMIT)
                         {
                             throw new RandomizerException($"Logical mapping attempts amount exceeded. Check to make sure there are no bugs causing potential infinite loops in seed '{seed}'");
                         }
 
-                        //Send these items through the logical mapper and get them a home
-                        LogicalMapping(tempRequiredItems, ref mappings);
-                        //Repeat the required item gathering. We expect if all items were accounted for that we would receive an empty set
-                        tempRequiredItems = GetRequiredItemsFromMappings(mappings);
+                        //Now that the notes have a home, lets get all the items we are going to need to collect them. We will do this potentially a few times to ensure that all required items are accounted for.
+                        bool hasValidItemToMap = false;
+
+                        while (!hasValidItemToMap)
+                        {
+                            GetRequiredItemsFromMappings();
+
+                            RandoItemRO randomItemToMap = new RandoItemRO();
+                            bool isAllRequiredItemsMapped = true;
+                            foreach (RandoItemRO randoItemRO in requiredItems.Keys)
+                            {
+                                if (!locationToItemMapping.ContainsValue(randoItemRO))
+                                {
+                                    //We have found an item that has not been mapped yet
+                                    randomItemToMap = randoItemRO;
+                                    isAllRequiredItemsMapped = false;
+                                    break;
+                                }
+                            }
+
+                            if (isAllRequiredItemsMapped)
+                            {
+                                //We are done!
+                                isLogicalMappingComplete = true;
+                                break;
+                            }
+
+                            bool isNote = false;
+                            //Note check
+                            foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
+                            {
+                                if (note.Item.Equals(randomItemToMap.Item))
+                                {
+                                    //Tis a note, try again
+                                    isNote = true;
+                                    break;
+                                }
+                            }
+
+                            hasValidItemToMap = !isNote;
+
+                            if (!hasValidItemToMap)
+                            {
+                                continue;
+                            }
+
+                            if (hasValidItemToMap)
+                            {
+                                //Send these items through the logical mapper and get them a home
+                                LogicalMapping(randomItemToMap);
+                            }
+
+                        }
                         ++logicalMappingAttempts;
                     }
+                    while (!isLogicalMappingComplete);
+                    
 
                     //At this point we should be done with logical mapping. Let's cleanup the remaining items.
-                    FastMapping(randomizedItems, ref mappings);
+                    FastMapping(randomizedItems);
                     Console.WriteLine("Basic logic mapping completed.");
                     break;
             }
             //The mappings should be created now.
-            return mappings;
+            return locationToItemMapping;
         }
 
+        private static void TrimRequiredItems()
+        {
+            //Gonna try trimming out any items that were previously mapped 
+            List<RandoItemRO> itemsToTrimOut = new List<RandoItemRO>();
+            foreach (RandoItemRO item in requiredItems.Keys)
+            {
+                if (locationToItemMapping.Values.Contains(item))
+                {
+                    itemsToTrimOut.Add(item);
+                }
+            }
+
+            foreach (RandoItemRO trimItem in itemsToTrimOut)
+            {
+                requiredItems.Remove(trimItem);
+            }
+        }
 
         public static int GenerateSeed()
         {
@@ -123,23 +193,13 @@ namespace MessengerRando.Utils
             return seed;
         }
 
-        // OLD WAY
-        public static bool IsSeedBeatable(int seed, Dictionary<SettingType, SettingValue> settings)
+        public static bool IsSeedBeatable(SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings)
         {
-            try
-            {
-                GenerateRandomizedMappings(new SeedRO(SeedType.Logic, seed, settings, null));
-                return true;
-            }
-            catch(RandomizerException rde)
-            {
-                //This means that the seed was deemed not beatable
-                Console.WriteLine($"Seed '{seed}' was deemed not beatable during IsSeedBeatable check. Error message received: '{rde.Message}'");
-                return false;
-            }
+            return IsSeedBeatable(GenerateRandomizedMappings(new SeedRO(seedType, seed, settings, null)));
         }
+        
 
-        //NEW WAY - I want to simulate running through a seed and checking all I can with what Items I have.
+        //I want to simulate running through a seed and checking all I can with what Items I have.
         public static bool IsSeedBeatable(Dictionary<LocationRO, RandoItemRO> mappings)
         {
             //Create an player that will be used to track progress.
@@ -204,15 +264,38 @@ namespace MessengerRando.Utils
                     //If we survived all of that nonsense, then we passed validations. The item is ours!
                     CollectItemForBeatableSeedCheck(mappings[location], ref player);
                     collectedItemThisRound = true;
+                    mappings.Remove(location);
                 }
                 if (!collectedItemThisRound)
                 {
                     //This seed not beatable
+                    Console.WriteLine("\nSeed was deemed unbeatable.");
+                    //Print out all the items collected so far
+                    Console.WriteLine($"Note Count: {player.NoteCount}");
+                    Console.WriteLine($"Collected Wingsuit: {player.HasWingsuit}");
+                    Console.WriteLine($"Collected Ropedart: {player.HasRopeDart}");
+                    Console.WriteLine($"Collected Ninja Tabis: {player.HasNinjaTabis}");
+
+                    foreach (RandoItemRO additionalItem in player.AdditionalItems)
+                    {
+                        Console.WriteLine($"Additional Item Collected: {additionalItem}");
+                    }
+                    
+
+                    //Print out remaining locations
+                    Console.WriteLine("\nRemaining location mappings:");
+
+                    foreach(LocationRO location in mappings.Keys)
+                    {
+                        Console.WriteLine($"Location: '{location.PrettyLocationName}' | Item at location: '{mappings[location].Name}'");
+                    }
+
                     return false;
                 }
             }
 
             //We made it through the game with all 6 notes!
+            Console.WriteLine("Mapping successfully verified. This seed is beatable.");
             return true;
         }
 
@@ -314,7 +397,7 @@ namespace MessengerRando.Utils
             return version;
         }
 
-        private static void FastMapping(List<RandoItemRO> items, ref Dictionary<LocationRO, RandoItemRO> locationToItemMapping)
+        private static void FastMapping(List<RandoItemRO> items)
         {
             //Setting up local list to make sure of what I am messing with.
             List<RandoItemRO> localItems = new List<RandoItemRO>(items); 
@@ -339,7 +422,7 @@ namespace MessengerRando.Utils
         /// <summary>
         /// Will complete the mappings per item received. This mapping takes in to account the required items for each location it tries to place an item into to avoid basic lockouts. It relies on the tempRequiredItems map.
         /// </summary>
-        private static void LogicalMapping(Dictionary<RandoItemRO, HashSet<RandoItemRO>> tempRequiredItems, ref Dictionary<LocationRO, RandoItemRO> locationToItemMapping)
+        private static void LogicalMapping(Dictionary<RandoItemRO, HashSet<RandoItemRO>> tempRequiredItems)
         {
             //Creating local copy of required items so i know what I am messing with.
             Dictionary<RandoItemRO, HashSet<RandoItemRO>> localRequiredItems = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>(tempRequiredItems);
@@ -400,6 +483,60 @@ namespace MessengerRando.Utils
             }
         }
 
+        /// <summary>
+        /// Will complete the mappings per item received. This mapping takes in to account the required items for each location it tries to place an item into to avoid basic lockouts. It relies on the tempRequiredItems map.
+        /// </summary>
+        private static void LogicalMapping(RandoItemRO item)
+        {
+            Console.WriteLine("|||Using new Logical Mapping flow.|||");
+            bool hasAHome = false;
+
+            //create a new list based off the randomized locations list that has a randomized order. This will be used to placing things.
+            List<LocationRO> tempRandoLocations = new List<LocationRO>(randomizedLocations);
+            List<LocationRO> randoSortedLocations = new List<LocationRO>();
+            //Populate new list
+            for (int locationIndex = randomNumberGen.Next(tempRandoLocations.Count); tempRandoLocations.Count > 0; locationIndex = randomNumberGen.Next(tempRandoLocations.Count))
+            {
+                randoSortedLocations.Add(tempRandoLocations[locationIndex]);
+                tempRandoLocations.RemoveAt(locationIndex);
+            }
+
+            //Find a home
+            for (int i = 0; i < randoSortedLocations.Count; i++)
+            {
+                hasAHome = IsLocationSafeForItem(randoSortedLocations[i], item);
+                //Check the item itself
+                if (hasAHome)
+                {
+                    //Next we need to check the location for each and every item this item blocks. We need to catch the moment an item proves it cannot be here and mark it so we can move on.
+                    foreach (RandoItemRO blockedItem in requiredItems[item])
+                    {
+                        hasAHome = IsLocationSafeForItem(randoSortedLocations[i], blockedItem);
+
+                        if (!hasAHome)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                if (hasAHome)
+                {
+                    Console.WriteLine($"Found a home for item '{item}' at location '{randoSortedLocations[i].PrettyLocationName}'.");
+                    locationToItemMapping.Add(randoSortedLocations[i], item);
+                    randomizedLocations.Remove(randoSortedLocations[i]);
+                    randomizedItems.Remove(item);
+                    break;
+                }
+            }
+            if (!hasAHome)
+            {
+                //Getting here means that we must have checked through all the remaining locations and that none of them could house an item we needed to place. For now let's throw an exception.
+                throw new RandomizerNoMoreLocationsException("This seed was not completeable due to running out of locations to place things.");
+            }
+
+        }
+
         private static bool IsLocationSafeForItem(LocationRO location, RandoItemRO item)
         {
             bool isSafe = false;
@@ -450,29 +587,27 @@ namespace MessengerRando.Utils
             return isSafe;
         }
 
-        private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> GetRequiredItemsFromMappings(Dictionary<LocationRO, RandoItemRO> mappings)
+        private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> GetRequiredItemsFromMappings()
         {
-            //Check through the current mappings and return a mapping of all required items and the items they are blocking. If the required item is already placed in a location, we will ignore it. 
-            Dictionary<RandoItemRO, HashSet<RandoItemRO>> tempRequiredItems = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>();
             //Key Items set so I can control how many of those I choose to handle per run
             HashSet<RandoItemRO> keyItems = new HashSet<RandoItemRO>();
 
-            foreach (LocationRO location in mappings.Keys)
+            foreach (LocationRO location in locationToItemMapping.Keys)
             {
                 //Lets start interrogating the location object to see what items it has marked as required. Let's start with the key items.
-                if (location.IsWingsuitRequired && randomizedItems.Contains(new RandoItemRO("Wingsuit", EItems.WINGSUIT)))
+                if(location.IsWingsuitRequired)
                 {
-                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), mappings[location], tempRequiredItems);
+                    AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), location);
                     keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
                 }
-                if (location.IsRopeDartRequired && randomizedItems.Contains(new RandoItemRO("Rope_Dart", EItems.GRAPLOU)))
+                if (location.IsRopeDartRequired)
                 {
-                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
+                    AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), location);
                     keyItems.Add(new RandoItemRO("Rope_Dart", EItems.GRAPLOU));
                 }
-                if (location.IsNinjaTabiRequired && randomizedItems.Contains(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS)))
+                if (location.IsNinjaTabiRequired)
                 {
-                    tempRequiredItems = AddRequiredItem(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS), mappings[location], tempRequiredItems);
+                    AddRequiredItem(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS), location);
                     keyItems.Add(new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS));
                 }
                 //Checking if either Wingsuit OR Rope Dart is required is a separate check.
@@ -497,25 +632,16 @@ namespace MessengerRando.Utils
                     switch (coin)
                     {
                         case 0://Wingsuit
-                            if (randomizedItems.Contains(new RandoItemRO("Wingsuit", EItems.WINGSUIT)))
-                            {
-                                tempRequiredItems = AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), mappings[location], tempRequiredItems);
-                                keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
-                            }
+                            AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), location);
+                            keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
                             break;
                         case 1://Rope Dart
-                            if (randomizedItems.Contains(new RandoItemRO("Rope_Dart", EItems.GRAPLOU)))
-                            {
-                                tempRequiredItems = AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), mappings[location], tempRequiredItems);
-                                keyItems.Add(new RandoItemRO("Rope_Dart", EItems.GRAPLOU));
-                            }
+                            AddRequiredItem(new RandoItemRO("Rope_Dart", EItems.GRAPLOU), location);
+                            keyItems.Add(new RandoItemRO("Rope_Dart", EItems.GRAPLOU));
                             break;
                         default://Something weird happened...just do wingsuit :P
-                            if (randomizedItems.Contains(new RandoItemRO("Wingsuit", EItems.WINGSUIT)))
-                            {
-                                tempRequiredItems = AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), mappings[location], tempRequiredItems);
-                                keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
-                            }
+                            AddRequiredItem(new RandoItemRO("Wingsuit", EItems.WINGSUIT), location);
+                            keyItems.Add(new RandoItemRO("Wingsuit", EItems.WINGSUIT));
                             break;
                     }
                 }
@@ -530,7 +656,7 @@ namespace MessengerRando.Utils
                         {
                             if(randoItem.Item.Equals(requiredItem))
                             {
-                                tempRequiredItems = AddRequiredItem(randoItem, mappings[location], tempRequiredItems);
+                                AddRequiredItem(randoItem, location);
                                 break;
                             }
                         }
@@ -538,6 +664,26 @@ namespace MessengerRando.Utils
                     }
                 }
             }
+
+            
+            //In case a key item gets slated as a required item but it's already been mapped, we should remove it from our collections
+            List<RandoItemRO> duplicateKeyItems = new List<RandoItemRO>(); //Have to capture the list to clean up AFTER the loop because C# says so. Can't modify the HashSet you are iterating. (Makes sense)
+            foreach (RandoItemRO keyItem in keyItems)
+            {
+                if(!randomizedItems.Contains(keyItem))
+                {
+                    //This means that this key item was already mapped, we do not need to map it again
+                    duplicateKeyItems.Add(keyItem); 
+                }
+            }
+
+            //Duplicate cleanup --- Pretty sure this is a problem. 
+            foreach (RandoItemRO dupKeyItem in duplicateKeyItems)
+            {
+                //Cleanup
+                keyItems.Remove(dupKeyItem);
+            }
+
 
             //I was having a problem with some seeds setting all the key items at the beginning and not considering each other. I think how I will handle this is by only allowing one of them set each run through and throwing the rest out. I expect them to get picked up on subsequent runs.
             if (keyItems.Count > 1)
@@ -547,81 +693,106 @@ namespace MessengerRando.Utils
                 {
                     RandoItemRO itemToRemove = keyItems.ElementAt(i);
                     Console.WriteLine($"Found multiple key items during required item mapping. Tossing '{itemToRemove}' from this run.");
-                    tempRequiredItems.Remove(itemToRemove);
                     keyItems.Remove(itemToRemove);
                 }
             }
 
             //Logging
             Console.WriteLine("For the provided checks: ");
-            foreach (LocationRO location in mappings.Keys)
+            foreach (LocationRO location in locationToItemMapping.Keys)
             {
                 Console.WriteLine(location.PrettyLocationName);
             }
             Console.WriteLine("Found these items to require for seed:");
-            foreach (RandoItemRO requiredItem in tempRequiredItems.Keys)
+            foreach (RandoItemRO requiredItem in requiredItems.Keys)
             {
-                Console.WriteLine(requiredItem);
-                foreach (RandoItemRO blockedItem in tempRequiredItems[requiredItem])
+
+                if(locationToItemMapping.Values.Contains(requiredItem))
+                {
+                    Console.WriteLine($"{requiredItem} (Mapped)");
+                }
+                else
+                {
+                    Console.WriteLine(requiredItem);
+                }
+
+
+
+                //I need to look through blocked items until there are no more for this item
+                foreach (RandoItemRO blockedItem in requiredItems[requiredItem])
                 {
                     Console.WriteLine($"\tWhich in turn blocks '{blockedItem}'");
                 }
             }
-            if (tempRequiredItems.Count == 0)
+            if (requiredItems.Count == 0)
             {
                 Console.WriteLine("No required items found, returning an empty set!");
             }
             Console.WriteLine("Required item determination complete!");
-            //Logging complete
+            
             //All done!
-            return tempRequiredItems;
+            return requiredItems;
         }
 
-        private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> AddRequiredItem(RandoItemRO item, RandoItemRO blockedItem, Dictionary<RandoItemRO, HashSet<RandoItemRO>> tempRequiredItems)
+
+        private static void AddRequiredItem(RandoItemRO item, LocationRO location)
         {
             //This utility function will help manage the temporary required item dictionary for me.
 
             //Check to see if the item is already a key in the dictionary. If not, add it.
-                if (!tempRequiredItems.ContainsKey(item))
+            if (!requiredItems.ContainsKey(item))
+            {
+                requiredItems.Add(item, new HashSet<RandoItemRO>());
+            }
+
+            requiredItems[item].Add(locationToItemMapping[location]);
+
+            HashSet<RandoItemRO> blockerItems = new HashSet<RandoItemRO>(); //C# at it again
+
+            //Let's go through all the item blockers for the items our item blocks
+            foreach(RandoItemRO blockedItem in requiredItems[item])
+            {
+                if(requiredItems.ContainsKey(blockedItem))
                 {
-                    tempRequiredItems.Add(item, new HashSet<RandoItemRO>());
-                    //Perform archival of blockers as needed
-                    if (!requiredItemsWithBlockers.ContainsKey(item))
+                    HashSet<RandoItemRO> recursiveBlockedItems = new HashSet<RandoItemRO>();
+                        
+                    if(requiredItems.TryGetValue(blockedItem, out recursiveBlockedItems))
                     {
-                        requiredItemsWithBlockers.Add(item, new HashSet<RandoItemRO>());
+                        //Let the recursion begin!
+                        RecursiveBlockedItemCheck(recursiveBlockedItems, ref blockerItems);
                     }
                 }
-            
-            //Add the blocked item to this item's set
+            }
 
-            //dont care about notes
-            bool isNote = false;
-            foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
+            //Now that we're done with that nonsense, let's add what we've found
+            foreach(RandoItemRO blockerItem in blockerItems)
             {
-                if (note.Item.Equals(blockedItem.Item))
+                requiredItems[item].Add(blockerItem);
+            }
+        }
+
+        private static void RecursiveBlockedItemCheck(HashSet<RandoItemRO> recursiveBlockedItems, ref HashSet<RandoItemRO> blockerItems)
+        {
+            foreach(RandoItemRO recursiveBlockedItem in recursiveBlockedItems)
+            {
+                //There are situations where a few items might block each other. I'm putting something here to protect against an infinite loop for now.
+                if (blockerItems.Contains(recursiveBlockedItem))
                 {
-                    isNote = true;
-                    break;
+                    //No need to add and look through again this run
+                    return;
+                }
+
+                //tempRequiredItems[origItem].Add(recursiveBlockedItem);
+                blockerItems.Add(recursiveBlockedItem);
+
+                HashSet<RandoItemRO> evenMoreRecursiveBlockedItems = new HashSet<RandoItemRO>();
+                
+
+                if(requiredItems.TryGetValue(recursiveBlockedItem, out evenMoreRecursiveBlockedItems))
+                {
+                    RecursiveBlockedItemCheck(evenMoreRecursiveBlockedItems, ref blockerItems);
                 }
             }
-
-            if (!isNote) 
-            {
-                tempRequiredItems[item].Add(blockedItem);
-                requiredItemsWithBlockers[item].Add(blockedItem);
-            }
-
-            //Check through archival and add those to this blocker list as well.
-            if (requiredItemsWithBlockers.ContainsKey(blockedItem))
-            {
-                foreach (RandoItemRO nestedBlockedItem in requiredItemsWithBlockers[blockedItem])
-                {
-                    tempRequiredItems[item].Add(nestedBlockedItem);
-                    requiredItemsWithBlockers[item].Add(blockedItem);
-                }
-            }
-
-            return tempRequiredItems;
         }
     }
 }

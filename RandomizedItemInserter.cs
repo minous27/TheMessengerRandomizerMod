@@ -550,7 +550,7 @@ namespace MessengerRando
                 seed = ItemRandomizerUtil.GenerateSeed();
                 Console.WriteLine($"Seed generated: '{seed}'");
 
-                if (seedType == SeedType.Logic && !ItemRandomizerUtil.IsSeedBeatable(seed, settings))
+                if (seedType == SeedType.Logic && !ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
                 {
                     //We need to try to generate seeds again until we get a beatable seed. Let's try x number of times before we just give up, log something, and return the last seed we got.
                     for(int i = 0; i < MAX_BEATABLE_SEED_ATTEMPTS; i++)
@@ -559,14 +559,14 @@ namespace MessengerRando
                         seed = ItemRandomizerUtil.GenerateSeed();
                         Console.WriteLine($"Seed generated: '{seed}'");
 
-                        if(ItemRandomizerUtil.IsSeedBeatable(seed, settings))
+                        if(ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
                         {
                             //We got a good seed
                             break;
                         }
                     }
                     //Doing check one last time to log issues if we had them
-                    if (!ItemRandomizerUtil.IsSeedBeatable(seed, settings))
+                    if (!ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
                     {
                         Console.WriteLine($"Exceeded seed generation attempts. Moving forward with seed '{seed}'");
                     }
@@ -576,7 +576,7 @@ namespace MessengerRando
             //Doing a quick beatable check for passed seeds that have no seed type
             if(seedType == SeedType.None)
             {
-                if(ItemRandomizerUtil.IsSeedBeatable(seed, settings))
+                if(ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
                 {
                     seedType = SeedType.Logic;
                 }

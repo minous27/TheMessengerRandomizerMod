@@ -40,6 +40,7 @@ namespace TheMessengerRandomizerTest
                 //Generate seed
                 int seed = ItemRandomizerUtil.GenerateSeed();
 
+                Console.WriteLine($"Seed Generated: '{seed}'");
                 //Check to see if the list contains the generated seed
                 if (!seeds.Contains(seed))
                 {
@@ -65,8 +66,31 @@ namespace TheMessengerRandomizerTest
         public void TestGenerateRandomizedMappingsNoSeed()
         {
             SeedRO seedRO = new SeedRO();
-            //Call for random mappings with this empty seed
-            Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+            Dictionary<LocationRO, RandoItemRO> mappings = null;
+            bool hasValidMappings = false;
+            while(!hasValidMappings)
+            {
+                try
+                {
+                    //Call for random mappings with this empty seed
+                    mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This just means that this seed could not place all it's items. We will try a different seed.
+                    Console.WriteLine($"Seed '{seedRO.Seed}' could not complete it's mappings. Will try again.\n{rnmle}");
+                    continue;
+                }
+            }
+
+            //Logging
+            Console.WriteLine($"\nRandom seed '{seedRO.Seed}' generated. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
 
             //Assuming we get this far and no issues occur during the mappings, make sure a mapping was returned.
             Assert.IsNotNull(mappings);
@@ -74,25 +98,58 @@ namespace TheMessengerRandomizerTest
 
         
         [TestMethod]
-        public void TestGenerateRandomizedMappingsPredeterminedSeedBasicNoLogic()
+        public void TestGenerateRandomizedMappingsSeedBasicNoLogic()
         {
+
+            Dictionary<LocationRO, RandoItemRO> initialMappings = null;
+            Dictionary<LocationRO, RandoItemRO> secondPassMappings = null;
+            SeedRO seedRO;
+            int seed = 0;
 
             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
             settings.Add(SettingType.Difficulty, SettingValue.Basic);
+            
+            bool hasValidMappings = false;
+            while (!hasValidMappings)
+            {
+                try
+                {
+                    //Get a seed for the test
+                    seed = ItemRandomizerUtil.GenerateSeed();
 
-            //Get a seed for the test
-            int seed = ItemRandomizerUtil.GenerateSeed();
+                    //Set up seed object
+                    seedRO = new SeedRO(SeedType.No_Logic, seed, settings, null);
 
-            //Set up seed object
-            SeedRO seedRO = new SeedRO(SeedType.No_Logic, seed, settings, null);
+                    //Generate mappings from seed
+                    initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This just means that this seed could not place all it's items. We will try a different seed.
+                    Console.WriteLine($"Seed '{seed}' could not complete it's mappings. Will try again.\n{rnmle}");
+                    continue;
+                }
+            }
+            //Logging
+            Console.WriteLine($"\nStatic no logic seeds. Mappings for initial mappings are as follows:\n");
 
-            //Generate mappings from seed
-            Dictionary<LocationRO, RandoItemRO> initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
-            Dictionary<LocationRO, RandoItemRO> secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+            foreach (LocationRO location in initialMappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{initialMappings[location]}'");
+            }
+
+            Console.WriteLine($"\nMappings for second pass mappings are as follows:\n");
+
+            foreach (LocationRO location in secondPassMappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{secondPassMappings[location]}'");
+            }
 
             //Compare maps
-            foreach(KeyValuePair < LocationRO, RandoItemRO > mapping in initialMappings)
+            foreach (KeyValuePair < LocationRO, RandoItemRO > mapping in initialMappings)
             {
                 
                 if (!secondPassMappings[mapping.Key].Equals(initialMappings[mapping.Key]))
@@ -103,25 +160,62 @@ namespace TheMessengerRandomizerTest
                 }
             }
             //Success
+            Console.WriteLine("Test successful. Both mappings were identically generated off the same seed.");
         }
 
         [TestMethod]
-        public void TestGenerateRandomizedMappingsPredeterminedSeedBasicLogic()
+        public void TestGenerateRandomizedMappingsSeedBasicLogic()
         {
+            Dictionary<LocationRO, RandoItemRO> initialMappings = null;
+            Dictionary<LocationRO, RandoItemRO> secondPassMappings = null;
 
-            //Set up settings of seed
+             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
             settings.Add(SettingType.Difficulty, SettingValue.Basic);
 
-            //Get a seed for the test
-            int seed = ItemRandomizerUtil.GenerateSeed();
+            
 
-            //Set up seed object
-            SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
-
+            bool hasValidMappings = false;
             //Generate mappings from seed
-            Dictionary<LocationRO, RandoItemRO> initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
-            Dictionary<LocationRO, RandoItemRO> secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+            while (!hasValidMappings)
+            {
+                try
+                {
+                    //Get a seed for the test
+                    int seed = ItemRandomizerUtil.GenerateSeed();
+
+                    //Set up seed object
+                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+
+                    initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
+
+                    continue;
+                }
+            }
+
+
+            //Logging
+            Console.WriteLine($"\nStatic basic logic seeds. Mappings for initial mappings are as follows:\n");
+
+            foreach (LocationRO location in initialMappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{initialMappings[location]}'");
+            }
+
+            Console.WriteLine($"\nMappings for second pass mappings are as follows:\n");
+
+            foreach (LocationRO location in secondPassMappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{secondPassMappings[location]}'");
+            }
+
 
             //Compare maps
             foreach (KeyValuePair<LocationRO, RandoItemRO> mapping in initialMappings)
@@ -135,25 +229,56 @@ namespace TheMessengerRandomizerTest
                 }
             }
             //Success
+            Console.WriteLine("Test successful. Both mappings were identically generated off the same seed.");
         }
 
         [TestMethod]
-        public void TestGenerateRandomizedMappingsPredeterminedSeedAdvancedLogic()
+        public void TestGenerateRandomizedMappingsSeedAdvancedLogic()
         {
+            Dictionary<LocationRO, RandoItemRO> initialMappings = null;
+            Dictionary<LocationRO, RandoItemRO> secondPassMappings = null;
 
             //Set up settings of seed
-            Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
+            Dictionary <SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
             settings.Add(SettingType.Difficulty, SettingValue.Advanced);
 
-            //Get a seed for the test
-            int seed = ItemRandomizerUtil.GenerateSeed();
+            
 
-            //Set up seed object
-            SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
 
+            bool hasValidMappings = false;
             //Generate mappings from seed
-            Dictionary<LocationRO, RandoItemRO> initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
-            Dictionary<LocationRO, RandoItemRO> secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+            while (!hasValidMappings)
+            {
+                try
+                {
+                    //Get a seed for the test
+                    int seed = ItemRandomizerUtil.GenerateSeed();
+
+                    //Set up seed object
+                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+
+                    //Generate mappings from seed
+                    initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
+
+                    continue;
+                }
+            }
+            //Logging
+            Console.WriteLine($"\nStatic advanced logic seeds. Mappings for initial mappings are as follows:\n");
+
+            foreach (LocationRO location in initialMappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{initialMappings[location]}'");
+            }
+
+            Console.WriteLine($"\nMappings for second pass mappings are as follows:\n");
 
             //Compare maps
             foreach (KeyValuePair<LocationRO, RandoItemRO> mapping in initialMappings)
@@ -167,10 +292,11 @@ namespace TheMessengerRandomizerTest
                 }
             }
             //Success
+            Console.WriteLine("Test successful. Both mappings were identically generated off the same seed.");
         }
 
         [TestMethod]
-        public void TestIsSeedBeatableGoodSeed()
+        public void TestIsSeedBeatablePredeterminedGoodSeed()
         {
             //Setup
             EItems[] noAdditionalRequirements = {EItems.NONE};
@@ -221,13 +347,21 @@ namespace TheMessengerRandomizerTest
             mappings.Add(locationAllKeyRequirements3, new RandoItemRO("KEY_OF_STRENGTH", EItems.KEY_OF_STRENGTH));
             mappings.Add(locationAllKeyRequirements4, new RandoItemRO("KEY_OF_SYMBIOSIS", EItems.KEY_OF_SYMBIOSIS));
 
+            //Logging
+            Console.WriteLine($"\nStatic good seed. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
+
             //Validate that this now generated seed is beatable
             Assert.IsTrue(ItemRandomizerUtil.IsSeedBeatable(mappings));
 
         }
 
         [TestMethod]
-        public void TestIsSeedBeatableBadSeed()
+        public void TestIsSeedBeatablePredeterminedBadSeed()
         {
             //Setup
             EItems[] noAdditionalRequirements = { EItems.NONE };
@@ -277,26 +411,93 @@ namespace TheMessengerRandomizerTest
             mappings.Add(locationAllKeyRequirements3, new RandoItemRO("KEY_OF_STRENGTH", EItems.KEY_OF_STRENGTH));
             mappings.Add(locationAllKeyRequirements4, new RandoItemRO("KEY_OF_SYMBIOSIS", EItems.KEY_OF_SYMBIOSIS));
 
+            //Logging
+            Console.WriteLine($"\nStatic Bad Seed. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
+
             //Validate that this seed is not beatable
             Assert.IsFalse(ItemRandomizerUtil.IsSeedBeatable(mappings));
 
         }
 
+        /// <summary>
+        /// This test can be helpful for testing specific seeds that may be problems.
+        /// </summary>
         [TestMethod]
-        public void TestIsBasicSeedBeatableGeneratedSeed()
+        public void TestIsBasicSeedBeatableProvidedSeed()
         {
+
+            //Set a seed for the test
+            int seed = 5125;
+
             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
             settings.Add(SettingType.Difficulty, SettingValue.Basic);
-
-            //Get a seed for the test
-            int seed = ItemRandomizerUtil.GenerateSeed();
 
             //Set up seed object
             SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
 
             //Generate mappings
             Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+
+            //Logging
+            Console.WriteLine($"\nBasic seed '{seed}' provided. Mappings are as follows:\n");
+
+            foreach(LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
+
+            //Validate that this now generated seed is beatable
+            Assert.IsTrue(ItemRandomizerUtil.IsSeedBeatable(mappings));
+
+        }
+
+        [TestMethod]
+        public void TestIsBasicSeedBeatableGeneratedSeed()
+        {
+            Dictionary<LocationRO, RandoItemRO> mappings = null;
+            int seed = 0;
+
+            //Set up settings of seed
+            Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
+            settings.Add(SettingType.Difficulty, SettingValue.Basic);
+
+            bool hasValidMappings = false;
+            //Generate mappings from seed
+            while (!hasValidMappings)
+            {
+                try
+                {
+                    //Get a seed for the test
+                    seed = ItemRandomizerUtil.GenerateSeed();
+
+                    //Set up seed object
+                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+
+                    //Generate mappings
+                    mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch(RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
+
+                    continue;
+                }
+            }
+            //Logging
+            Console.WriteLine($"\nBasic seed '{seed}' generated. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
 
             //Validate that this now generated seed is beatable
             Assert.IsTrue(ItemRandomizerUtil.IsSeedBeatable(mappings));
@@ -307,11 +508,7 @@ namespace TheMessengerRandomizerTest
         public void TestIsMultipleBasicSeedBeatableGeneratedSeed()
         {
             bool isAllBeatableSeeds = true;
-            int iterations = 5;
-
-            //Threshold for acceptable generation errors to prevent an infinite loop.
-            int generationFailureThreshold = 5;
-            int generationFailureCount = 0;
+            int iterations = 15;
 
             for (int i = 0; i < iterations; i++)
             {
@@ -331,22 +528,25 @@ namespace TheMessengerRandomizerTest
                 {
                     mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
                 }
-                catch(RandomizerException)
+                catch(RandomizerNoMoreLocationsException rnmle)
                 {
-                    //This happens when the actual generation can't create a mapping. This is the expected behavior and not what we are testing here.
-                    Console.WriteLine("An error occurred during generation. Logging the errored instance and moving on.");
-                    if(++generationFailureCount >= generationFailureThreshold)
-                    {
-                        //This means that generation is failing WAY too much. There must be something wrong and it needs to be looked into.
-                        Assert.Fail("Generation failures exceeded allowed threshold. We need to look into why generation is having such a hard time making seeds...");
-                    }
-
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
                     //Try again
                     --i;
                     continue;
                 }
+
+                //Logging
+                Console.WriteLine($"\nBasic seed '{seed}' generated. Mappings are as follows:\n");
+
+                foreach (LocationRO location in mappings.Keys)
+                {
+                    Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+                }
+
                 //Validate that this now generated seed is beatable
-                if(!ItemRandomizerUtil.IsSeedBeatable(mappings))
+                if (!ItemRandomizerUtil.IsSeedBeatable(mappings))
                 {
                     isAllBeatableSeeds = false;
                     break;
@@ -358,18 +558,78 @@ namespace TheMessengerRandomizerTest
         [TestMethod]
         public void TestIsAdvancedSeedBeatableGeneratedSeed()
         {
+            Dictionary<LocationRO, RandoItemRO> mappings = null;
+            int seed = 0;
+
             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
             settings.Add(SettingType.Difficulty, SettingValue.Advanced);
 
-            //Get a seed for the test
-            int seed = ItemRandomizerUtil.GenerateSeed();
+
+            bool hasValidMappings = false;
+            //Generate mappings from seed
+            while (!hasValidMappings)
+            {
+                try
+                {
+                    //Get a seed for the test
+                    seed = ItemRandomizerUtil.GenerateSeed();
+
+                    //Set up seed object
+                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+
+                    //Generate mappings
+                    mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                    hasValidMappings = true;
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
+
+                    continue;
+                }
+            }
+            //Logging
+            Console.WriteLine($"\nAdvanced seed '{seed}' generated. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
+
+            //Validate that this now generated seed is beatable
+            Assert.IsTrue(ItemRandomizerUtil.IsSeedBeatable(mappings));
+
+        }
+
+        /// <summary>
+        /// This test can be helpful for testing specific seeds that may be problems.
+        /// </summary>
+        [TestMethod]
+        public void TestIsAdvancedSeedBeatableProvidedSeed()
+        {
+
+            //Set a seed for the test
+            int seed = 20997;
+
+            //Set up settings of seed
+            Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
+            settings.Add(SettingType.Difficulty, SettingValue.Advanced);
 
             //Set up seed object
             SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
 
             //Generate mappings
             Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+
+            //Logging
+            Console.WriteLine($"\nAdvanced seed '{seed}' provided. Mappings are as follows:\n");
+
+            foreach (LocationRO location in mappings.Keys)
+            {
+                Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+            }
 
             //Validate that this now generated seed is beatable
             Assert.IsTrue(ItemRandomizerUtil.IsSeedBeatable(mappings));
@@ -380,7 +640,7 @@ namespace TheMessengerRandomizerTest
         public void TestIsMultipleAdvancedSeedBeatableGeneratedSeed()
         {
             bool isAllBeatableSeeds = true;
-            int iterations = 5;
+            int iterations = 30;
 
             for (int i = 0; i < iterations; i++)
             {
@@ -396,8 +656,29 @@ namespace TheMessengerRandomizerTest
                 //Set up seed object
                 SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
 
+
                 //Generate mappings
-                Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                Dictionary<LocationRO, RandoItemRO> mappings = null;
+                try
+                {
+                    mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
+                }
+                catch (RandomizerNoMoreLocationsException rnmle)
+                {
+                    //This happens when the actual generation can't create a mapping. This is the expected behavior because not all "seeds" are beatable and not what we are testing here.
+                    Console.WriteLine($"An error occurred during generation. Logging the errored instance and moving on.\n{rnmle}");
+                    //Try again
+                    --i;
+                    continue;
+                }
+
+                //Logging
+                Console.WriteLine($"\nAdvanced seed '{seed}' generated. Mappings are as follows:\n");
+
+                foreach (LocationRO location in mappings.Keys)
+                {
+                    Console.WriteLine($"Location '{location.PrettyLocationName}' contains item '{mappings[location]}'");
+                }
 
                 //Validate that this now generated seed is beatable
                 if (!ItemRandomizerUtil.IsSeedBeatable(mappings))

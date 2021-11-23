@@ -64,6 +64,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\RandomizerNoMoreLocationsException.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
