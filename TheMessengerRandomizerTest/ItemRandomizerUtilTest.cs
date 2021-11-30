@@ -432,7 +432,7 @@ namespace TheMessengerRandomizerTest
         {
 
             //Set a seed for the test
-            int seed = 5125;
+            int seed = 7692;
 
             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
@@ -611,7 +611,7 @@ namespace TheMessengerRandomizerTest
         {
 
             //Set a seed for the test
-            int seed = 20997;
+            int seed = 49289;
 
             //Set up settings of seed
             Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();

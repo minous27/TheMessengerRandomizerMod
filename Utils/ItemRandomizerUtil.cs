@@ -204,13 +204,16 @@ namespace MessengerRando.Utils
         {
             //Create an player that will be used to track progress.
             SamplePlayerRO player = new SamplePlayerRO(false, false, false, 0, new List<RandoItemRO>());
-            
+
             //I'll want to start doing runs through the mappings to see if I am able to collect items. I'll keep doing this until I either get the 6 notes or I have no more checks I can do.
             while (player.NoteCount < 6)
             {
+                //Create a copy of the mappings to mess with
+                Dictionary<LocationRO, RandoItemRO> localMappings = new Dictionary<LocationRO, RandoItemRO>(mappings);
+
                 bool collectedItemThisRound = false;
                 //Run through locations, get any items we can
-                foreach (LocationRO location in mappings.Keys)
+                foreach (LocationRO location in localMappings.Keys)
                 {
                     //Lets check additional items and get that over with first
                     EItems[] additionalLocationRequiredItems = location.AdditionalRequiredItemsForCheck;
@@ -262,7 +265,7 @@ namespace MessengerRando.Utils
                     }
 
                     //If we survived all of that nonsense, then we passed validations. The item is ours!
-                    CollectItemForBeatableSeedCheck(mappings[location], ref player);
+                    CollectItemForBeatableSeedCheck(localMappings[location], ref player);
                     collectedItemThisRound = true;
                     mappings.Remove(location);
                 }
