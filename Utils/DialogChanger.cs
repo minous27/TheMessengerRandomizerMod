@@ -10,9 +10,51 @@ namespace MessengerRando.Utils
 {
     /// <summary>
     /// A static class to handle replacement of Dialogs for items.
+    /// Could be made better by adding the award text string to the LocationRO for each item 
     /// </summary>
     public static class DialogChanger
     {
+        /// <summary>
+        /// Gets each items rewards text that is found in Locale
+        /// It is done this way as I don't know how to make a readonly constant dictionary?
+        /// </summary>
+        /// <returns>Dictionary of EItems and their Dialog string</returns>
+        public static Dictionary<EItems, string> GetDialogIDtoItems()
+        {
+            Dictionary<EItems, string> itemDialogID = new Dictionary<EItems, string>();
+
+            itemDialogID.Add(EItems.CLIMBING_CLAWS, "AWARD_GRIMPLOU");
+            itemDialogID.Add(EItems.WINGSUIT, "AWARD_WINGSUIT");
+            itemDialogID.Add(EItems.GRAPLOU, "AWARD_ROPE_DART");
+            itemDialogID.Add(EItems.FAIRY_BOTTLE, "AWARD_FAIRY");
+            itemDialogID.Add(EItems.MAGIC_BOOTS, "AWARD_MAGIC_BOOTS");
+            itemDialogID.Add(EItems.SEASHELL, "AWARD_MAGIC_SEASHELL");
+            itemDialogID.Add(EItems.RUXXTIN_AMULET, "AWARD_AMULET");
+            //itemDialogID.Add(EItems.TEA_SEED, "AWARD_SEED");
+            //itemDialogID.Add(EItems.TEA_LEAVES, "AWARD_ASTRAL_LEAVES");
+            itemDialogID.Add(EItems.POWER_THISTLE, "AWARD_THISTLE");
+            itemDialogID.Add(EItems.CANDLE, "AWARD_CANDLE");
+            itemDialogID.Add(EItems.DEMON_KING_CROWN, "AWARD_CROWN");
+            itemDialogID.Add(EItems.WINDMILL_SHURIKEN, "AWARD_WINDMILL");
+            itemDialogID.Add(EItems.KEY_OF_HOPE, "AWARD_KEY_OF_HOPE");
+            itemDialogID.Add(EItems.KEY_OF_STRENGTH, "AWARD_KEY_OF_STRENGTH");
+            itemDialogID.Add(EItems.KEY_OF_CHAOS, "AWARD_KEY_OF_CHAOS");
+            itemDialogID.Add(EItems.KEY_OF_LOVE, "AWARD_KEY_OF_LOVE");
+            itemDialogID.Add(EItems.KEY_OF_SYMBIOSIS, "AWARD_KEY_OF_SYMBIOSIS");
+            itemDialogID.Add(EItems.KEY_OF_COURAGE, "AWARD_KEY_OF_COURAGE");
+            itemDialogID.Add(EItems.SUN_CREST, "AWARD_SUN_CREST");
+            itemDialogID.Add(EItems.MOON_CREST, "AWARD_MOON_CREST");
+
+            itemDialogID.Add(EItems.PYROPHOBIC_WORKER, "FIND_PYRO");
+            itemDialogID.Add(EItems.ACROPHOBIC_WORKER, "FIND_ACRO");
+            itemDialogID.Add(EItems.NECROPHOBIC_WORKER, "NECRO_PHOBEKIN_DIALOG");
+            itemDialogID.Add(EItems.CLAUSTROPHOBIC_WORKER, "FIND_CLAUSTRO");
+
+            return itemDialogID;
+
+        }
+
+
         /// <summary>
         /// Gets the mapping of a dialog to its replacement
         /// </summary>
@@ -26,19 +68,22 @@ namespace MessengerRando.Utils
             else
                 return dialogID;
         }
+
         /// <summary>
         /// The initial generation of the dictionary of dialog replacement based on the currently randomized item locations
         /// </summary>
         /// <returns>A Dictionary containing keys of locationdialogID and values of replacementdialogID</returns>
+        /// 
         public static Dictionary<string, string> GenerateDialogMappingforItems()
         {
+
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
 
-            Dictionary<EItems, string> ItemtoDialogIDMap = RandomizerConstants.GetDialogIDtoItems();
+            Dictionary<EItems, string> ItemtoDialogIDMap = GetDialogIDtoItems();
 
             Dictionary<LocationRO, EItems> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
 
-           
+
             foreach (KeyValuePair<LocationRO, EItems> KVP in current)
             {
                 EItems LocationChecked = KVP.Key.LocationName;
@@ -49,13 +94,13 @@ namespace MessengerRando.Utils
                     dialogmap.Add(ItemtoDialogIDMap[LocationChecked], ItemtoDialogIDMap[ItemActuallyFound]);
                     Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound]} to the location {ItemtoDialogIDMap[LocationChecked]}");
                 }
-                    
+
             }
             return dialogmap;
         }
 
 
-   
+
 
         /// <summary>
         /// Runs whenever the locale is loaded\changed. This should allow it to work in any language.

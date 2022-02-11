@@ -10,17 +10,16 @@ namespace MessengerRando
     {
         public static RandomizerStateManager Instance { private set; get; }
         public Dictionary<LocationRO, EItems> CurrentLocationToItemMapping { set; get; }
-        public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
         public bool IsRandomizedFile { set; get; }
-
+        
         private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
-
+        public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
 
         public static void Initialize()
         {
-            if (Instance == null)
+            if(Instance == null)
             {
                 Instance = new RandomizerStateManager();
             }
@@ -76,7 +75,7 @@ namespace MessengerRando
         {
             bool seedFound = false;
 
-            if (this.seeds.ContainsKey(fileSlot) && this.seeds[fileSlot].Seed != 0 && this.seeds[fileSlot].SeedType != SeedType.None)
+            if(this.seeds.ContainsKey(fileSlot) && this.seeds[fileSlot].Seed != 0 && this.seeds[fileSlot].SeedType != SeedType.None)
             {
                 seedFound = true;
             }
@@ -123,11 +122,12 @@ namespace MessengerRando
         public void LogCurrentMappings()
         {
             Console.WriteLine("----------------BEGIN Current Mappings----------------");
-            foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
+            foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
             {
                 Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
             }
             Console.WriteLine("----------------END Current Mappings----------------");
+
 
 
             Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
@@ -135,6 +135,8 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
             }
+            Console.WriteLine("----------------END Current Dialog Mappings----------------");
+
         }
 
     }

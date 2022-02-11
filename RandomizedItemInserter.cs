@@ -233,7 +233,6 @@ namespace MessengerRando
                 //Log spoiler log
                 randoStateManager.LogCurrentMappings();
 
-
                 //We force a reload of all dialog when loading the game
                 Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
             }
