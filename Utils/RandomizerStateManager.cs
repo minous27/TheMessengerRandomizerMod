@@ -128,8 +128,6 @@ namespace MessengerRando
             }
             Console.WriteLine("----------------END Current Mappings----------------");
 
-
-
             Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
             foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
             {

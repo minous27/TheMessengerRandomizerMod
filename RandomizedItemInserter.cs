@@ -454,6 +454,21 @@ namespace MessengerRando
                 }
             }
 
+            }
+
+            //Doing a quick beatable check for passed seeds that have no seed type
+            if(seedType == SeedType.None)
+            {
+                if(ItemRandomizerUtil.IsSeedBeatable(seed))
+                {
+                    seedType = SeedType.Basic;
+                }
+                else
+                {
+                    seedType = SeedType.No_Logic;
+                }
+            }
+
             //Save this seed into the state
             randoStateManager.AddSeed(fileSlot,seedType, seed);
 
