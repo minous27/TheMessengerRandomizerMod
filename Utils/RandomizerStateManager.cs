@@ -15,9 +15,9 @@ namespace MessengerRando
         private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
+        public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
 
-
-       public static void Initialize()
+        public static void Initialize()
         {
             if(Instance == null)
             {
@@ -127,6 +127,14 @@ namespace MessengerRando
                 Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
             }
             Console.WriteLine("----------------END Current Mappings----------------");
+
+            Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+            foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+            {
+                Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+            }
+            Console.WriteLine("----------------END Current Dialog Mappings----------------");
+
         }
 
     }

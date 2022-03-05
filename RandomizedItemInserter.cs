@@ -75,7 +75,7 @@ namespace MessengerRando
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
-
+            On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             Console.WriteLine("Randomizer finished loading!");
         }
 
@@ -228,9 +228,13 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
                 randoStateManager.IsRandomizedFile = true;
                 //Log spoiler log
                 randoStateManager.LogCurrentMappings();
+
+                //We force a reload of all dialog when loading the game
+                Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
             }
             else
             {
@@ -434,6 +438,19 @@ namespace MessengerRando
                     {
                         Console.WriteLine($"Exceeded seed generation attempts. Moving forward with seed '{seed}'");
                     }
+                }
+            }
+
+            //Doing a quick beatable check for passed seeds that have no seed type
+            if(seedType == SeedType.None)
+            {
+                if(ItemRandomizerUtil.IsSeedBeatable(seed))
+                {
+                    seedType = SeedType.Basic;
+                }
+                else
+                {
+                    seedType = SeedType.No_Logic;
                 }
             }
 
