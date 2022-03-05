@@ -454,8 +454,6 @@ namespace MessengerRando
                 }
             }
 
-            }
-
             //Doing a quick beatable check for passed seeds that have no seed type
             if(seedType == SeedType.None)
             {
