@@ -15,12 +15,16 @@ using MessengerRando.Exceptions;
 
 namespace MessengerRando 
 {
-    public class RandomizedItemInserter : CourierModule
+    /// <summary>
+    /// Where it all begins! This class defines and injects all the necessary for the mod.
+    /// </summary>
+    public class RandomizerMain : CourierModule
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
         private const int MAX_BEATABLE_SEED_ATTEMPTS = 5;
 
-        private RandomizerStateManager randoStateManager;       
+        private RandomizerStateManager randoStateManager;
+        private RandomizerSaveMethod randomizerSaveMethod;
 
         TextEntryButtonInfo generateNoLogicSeedButton;
         TextEntryButtonInfo generateLogicSeedButton;
@@ -30,17 +34,20 @@ namespace MessengerRando
         SubMenuButtonInfo teleportToHqButton;
         SubMenuButtonInfo teleportToNinjaVillage;
 
+        //Set up save data
+        public override Type ModuleSaveType => typeof(RandoSave);
+        public RandoSave Save => (RandoSave)ModuleSave;
+
         public override void Load()
         {
-            Console.WriteLine("Randomizer loaded and ready to try things!");
+            Console.WriteLine("Randomizer loading and ready to try things!");
           
             //Initialize the randomizer state manager
             RandomizerStateManager.Initialize();
             randoStateManager = RandomizerStateManager.Instance;
-            //Set up save data
-            RandomizerSaveMethod randomizerSaveMethod = new RandomizerSaveMethod(RANDO_OPTION_KEY);
-            Courier.ModOptionSaveData.Add(randomizerSaveMethod);
 
+            //Set up save data utility
+            randomizerSaveMethod = new RandomizerSaveMethod();
 
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
@@ -76,6 +83,7 @@ namespace MessengerRando
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
+            On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
 
@@ -96,6 +104,12 @@ namespace MessengerRando
 
             //Options always available
             versionButton.IsEnabled = () => true;
+            
+            //Save loading
+            Debug.Log("Start loading seeds from save");
+            randomizerSaveMethod.Load(Save.seedData);
+            Debug.Log($"Save data after change: '{Save.seedData}'");
+            Debug.Log("Finished loading seeds from save");
         }
 
         //temp function for seal research
@@ -140,10 +154,13 @@ namespace MessengerRando
                 itemId = randoItemId.Item;
                 //Set this item to have been collected in the state manager
                 randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItemId);
+                //Save
+                Save.seedData = randomizerSaveMethod.GenerateSaveData();
             }
             
             //Call original add with items
             orig(self, itemId, quantity);
+            
         }
 
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
@@ -302,10 +319,14 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
                 randoStateManager.IsRandomizedFile = true;
                 randoStateManager.CurrentFileSlot = fileSlot;
                 //Log spoiler log
                 randoStateManager.LogCurrentMappings();
+
+                //We force a reload of all dialog when loading the game
+                Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
             }
             else
             {
@@ -586,10 +607,12 @@ namespace MessengerRando
                 }
             }
 
-            //Save this seed into the state
-            randoStateManager.AddSeed(fileSlot,seedType, seed, settings, collectedItems);
+            SeedRO seedRO = new SeedRO(fileSlot, seedType, seed, settings, collectedItems);
 
-            Console.WriteLine($"Set seed '{seed}' to file slot '{fileSlot}'");
+            //Save this seed into the state
+            randoStateManager.AddSeed(seedRO);
+            //Save to file
+            Save.seedData = randomizerSaveMethod.GenerateSaveData();
             return true;
         }
 
@@ -688,6 +711,5 @@ namespace MessengerRando
             Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())]}'");
             return randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())].Item;
         }
-
     }
 }

@@ -16,11 +16,11 @@ namespace MessengerRando
         private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
+        public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
         //This overrides list will be used to track items that, during the giving of items in any particular moment, need to ignore rando logic and just hand the item over.
         private List<EItems> temporaryRandoOverrides;
 
-
-       public static void Initialize()
+        public static void Initialize()
         {
             if(Instance == null)
             {
@@ -32,6 +32,9 @@ namespace MessengerRando
         {
             //Create initial values for the state machine
             this.seeds = new Dictionary<int, SeedRO>();
+
+            
+
             this.ResetRandomizerState();
             this.initializeCutsceneTriggerStates();
             this.temporaryRandoOverrides = new List<EItems>();
@@ -50,14 +53,19 @@ namespace MessengerRando
 
         public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems)
         {
-            seeds[fileSlot] = new SeedRO(seedType, seed, settings, collectedItems);
+            AddSeed(new SeedRO(fileSlot, seedType, seed, settings, collectedItems));
+        }
+
+        public void AddSeed(SeedRO seed)
+        {
+            seeds[seed.FileSlot] = seed;
         }
 
         public SeedRO GetSeedForFileSlot(int fileSlot)
         {
             if (!seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(SeedType.None, 0, null, null);
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null);
             }
             return seeds[fileSlot];
         }
@@ -68,7 +76,7 @@ namespace MessengerRando
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(SeedType.None, 0, null, null);
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null);
             }
             Console.WriteLine("File slot reset complete.");
         }
@@ -145,6 +153,14 @@ namespace MessengerRando
                 //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
             }
             Console.WriteLine("----------------END Current Mappings----------------");
+
+            Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+            foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+            {
+                Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+            }
+            Console.WriteLine("----------------END Current Dialog Mappings----------------");
+
         }
 
     }

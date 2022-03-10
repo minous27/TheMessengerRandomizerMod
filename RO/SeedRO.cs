@@ -6,8 +6,11 @@ using MessengerRando.Utils;
 
 namespace MessengerRando.RO
 {
+    [Serializable]
     public struct SeedRO
     {
+
+        public int FileSlot { get; }
         // Type of seed so we know what logic to run against it.
         public SeedType SeedType { get; }
         //seed number
@@ -17,8 +20,9 @@ namespace MessengerRando.RO
         //Collected Items this seed
         public List<RandoItemRO> CollectedItems { set; get; }
 
-        public SeedRO(SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems)
+        public SeedRO(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems)
         {
+            FileSlot = fileSlot;
             SeedType = seedType;
             Seed = seed;
             
@@ -53,7 +57,7 @@ namespace MessengerRando.RO
             }
             settingsSB.Append("'");
 
-            return $"{SeedType}|{Seed}|{settingsSB.ToString()}|{collectedItemsSB.ToString()}|";
+            return $"{FileSlot}|{SeedType}|{Seed}|{settingsSB.ToString()}|{collectedItemsSB.ToString()}|";
         }
 
         public override bool Equals(object obj)

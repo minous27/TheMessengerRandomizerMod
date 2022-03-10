@@ -8,8 +8,9 @@ using Mod.Courier.Save;
 
 namespace MessengerRando
 {
+    
     //Format for the mod save value: |seed1+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value|seed2+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value|seed3+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value
-    class RandomizerSaveMethod : OptionSaveMethod
+    public class RandomizerSaveMethod 
     {
         private const char RANDO_OPTION_VALUE_DELIM = '|';
         private const char RANDO_OPTION_TYPE_DELIM = '+';
@@ -19,13 +20,12 @@ namespace MessengerRando
 
         private RandomizerStateManager stateManager;
 
-        public RandomizerSaveMethod(string optionKey)
+        public RandomizerSaveMethod()
         {
-            this.optionKey = optionKey;
             this.stateManager = RandomizerStateManager.Instance;
         }
 
-        public override string Save()
+        public string GenerateSaveData()
         {
             StringBuilder modValue = new StringBuilder();
             
@@ -56,7 +56,7 @@ namespace MessengerRando
             return modValue.ToString();
         }
 
-        public override void Load(string load)
+        public void Load(string load)
         {
             Console.WriteLine($"Received value during mod option load: '{load}'");
             //Split on delimeter to get all seeds
@@ -150,4 +150,5 @@ namespace MessengerRando
             Console.WriteLine("Loading into state manager complete.");
         }
     }
+    
 }

@@ -45,7 +45,7 @@ namespace MessengerRando.Utils
                     }
                 }
 
-                seed = new SeedRO(SeedType.No_Logic, tempSeed, null, null);
+                seed = new SeedRO(seed.FileSlot,SeedType.No_Logic, tempSeed, null, null);
                 
                 
                 Console.WriteLine($"No seed passed, generated seed for this mapping is: {tempSeed}");
@@ -195,7 +195,7 @@ namespace MessengerRando.Utils
 
         public static bool IsSeedBeatable(SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings)
         {
-            return IsSeedBeatable(GenerateRandomizedMappings(new SeedRO(seedType, seed, settings, null)));
+            return IsSeedBeatable(GenerateRandomizedMappings(new SeedRO(0, seedType, seed, settings, null)));
         }
         
 

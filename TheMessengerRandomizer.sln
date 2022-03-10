@@ -29,7 +29,7 @@ Global
 		SolutionGuid = {7039E307-FE1A-44E9-A063-DAB3B0FAE9E1}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		outputpath = ..\..\..\..\..\Steam\steamapps\common\The Messenger\Mods\TheMessengerRandomizer
+		outputpath = "C:\Program Files (x86)\Steam\steamapps\common\The Messenger\Mods\TheMessengerRandomizer"
 		Policies = $0
 		$0.DotNetNamingPolicy = $1
 		$1.DirectoryNamespaceAssociation = PrefixedHierarchical

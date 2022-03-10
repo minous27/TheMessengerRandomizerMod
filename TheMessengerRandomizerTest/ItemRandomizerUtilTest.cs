@@ -7,6 +7,9 @@ using MessengerRando.Exceptions;
 using Mod.Courier;
 using Mod.Courier.Module;
 using System.Threading;
+using System.Text.Json;
+using UnityEngine;
+
 
 namespace TheMessengerRandomizerTest
 {
@@ -119,7 +122,7 @@ namespace TheMessengerRandomizerTest
                     seed = ItemRandomizerUtil.GenerateSeed();
 
                     //Set up seed object
-                    seedRO = new SeedRO(SeedType.No_Logic, seed, settings, null);
+                    seedRO = new SeedRO(0,SeedType.No_Logic, seed, settings, null);
 
                     //Generate mappings from seed
                     initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -185,7 +188,7 @@ namespace TheMessengerRandomizerTest
                     int seed = ItemRandomizerUtil.GenerateSeed();
 
                     //Set up seed object
-                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                    SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
                     initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
                     secondPassMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -255,7 +258,7 @@ namespace TheMessengerRandomizerTest
                     int seed = ItemRandomizerUtil.GenerateSeed();
 
                     //Set up seed object
-                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                    SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
                     //Generate mappings from seed
                     initialMappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -439,7 +442,7 @@ namespace TheMessengerRandomizerTest
             settings.Add(SettingType.Difficulty, SettingValue.Basic);
 
             //Set up seed object
-            SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+            SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
             //Generate mappings
             Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -477,7 +480,7 @@ namespace TheMessengerRandomizerTest
                     seed = ItemRandomizerUtil.GenerateSeed();
 
                     //Set up seed object
-                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                    SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
                     //Generate mappings
                     mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -520,7 +523,7 @@ namespace TheMessengerRandomizerTest
                 int seed = ItemRandomizerUtil.GenerateSeed();
 
                 //Set up seed object
-                SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
                 //Generate mappings
                 Dictionary<LocationRO, RandoItemRO> mappings = null;
@@ -576,7 +579,7 @@ namespace TheMessengerRandomizerTest
                     seed = ItemRandomizerUtil.GenerateSeed();
 
                     //Set up seed object
-                    SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                    SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
                     //Generate mappings
                     mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -618,7 +621,7 @@ namespace TheMessengerRandomizerTest
             settings.Add(SettingType.Difficulty, SettingValue.Advanced);
 
             //Set up seed object
-            SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+            SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
             //Generate mappings
             Dictionary<LocationRO, RandoItemRO> mappings = ItemRandomizerUtil.GenerateRandomizedMappings(seedRO);
@@ -654,7 +657,7 @@ namespace TheMessengerRandomizerTest
                 int seed = ItemRandomizerUtil.GenerateSeed();
 
                 //Set up seed object
-                SeedRO seedRO = new SeedRO(SeedType.Logic, seed, settings, null);
+                SeedRO seedRO = new SeedRO(0, SeedType.Logic, seed, settings, null);
 
 
                 //Generate mappings

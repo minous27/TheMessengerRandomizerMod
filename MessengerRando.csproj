@@ -80,14 +80,16 @@
     <Compile Include="RO\RandoItemRO.cs" />
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />
+    <Compile Include="Utils\RandoSave.cs" />
     <Compile Include="Utils\SettingValue.cs" />
     <Compile Include="Utils\SettingType.cs" />
+    <Compile Include="Utils\DialogChanger.cs" />
     <Compile Include="Utils\RandomizerConstants.cs" />
     <Compile Include="Utils\SeedType.cs" />
     <Compile Include="Utils\RandomizerStateManager.cs" />
     <Compile Include="Utils\RandomizerSaveMethod.cs" />
     <Compile Include="Utils\ItemRandomizerUtil.cs" />
-    <Compile Include="RandomizedItemInserter.cs" />
+    <Compile Include="RandomizerMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
