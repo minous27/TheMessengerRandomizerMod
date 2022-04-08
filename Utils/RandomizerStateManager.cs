@@ -146,21 +146,34 @@ namespace MessengerRando
         /// </summary>
         public void LogCurrentMappings()
         {
-            Console.WriteLine("----------------BEGIN Current Mappings----------------");
-            foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
+            if(this.CurrentLocationToItemMapping != null)
             {
-                Console.WriteLine($"Check '{check.PrettyLocationName}' contains Item '{this.CurrentLocationToItemMapping[check]}'");
-                //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
+                Console.WriteLine("----------------BEGIN Current Mappings----------------");
+                foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
+                {
+                    Console.WriteLine($"Check '{check.PrettyLocationName}' contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                    //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
+                }
+                Console.WriteLine("----------------END Current Mappings----------------");
             }
-            Console.WriteLine("----------------END Current Mappings----------------");
-
-            Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
-            foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+            else
             {
-                Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                Console.WriteLine("Location mappings were not set for this seed.");
             }
-            Console.WriteLine("----------------END Current Dialog Mappings----------------");
 
+            if (CurrentLocationDialogtoRandomDialogMapping != null)
+            {
+                Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+                foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+                {
+                    Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                }
+                Console.WriteLine("----------------END Current Dialog Mappings----------------");
+            }
+            else
+            {
+                Console.WriteLine("Dialog mappings were not set for this seed.");
+            }
         }
 
     }

@@ -21,7 +21,7 @@ namespace MessengerRando
     public class RandomizerMain : CourierModule
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
-        private const int MAX_BEATABLE_SEED_ATTEMPTS = 5;
+        private const int MAX_BEATABLE_SEED_ATTEMPTS = 10;
 
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
@@ -318,8 +318,26 @@ namespace MessengerRando
             if(randoStateManager.HasSeedForFileSlot(fileSlot))
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
-                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
+                try
+                {
+                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                }
+                catch(RandomizerNoMoreLocationsException)
+                {
+                    //This could happen if a seed is set manually as a completable seed but isn't actually completable
+                    Console.WriteLine($"This seed '{randoStateManager.GetSeedForFileSlot(fileSlot).Seed}' was manually set as beatable, but it was not. For now, just fast load it.");
+                    SeedRO unbeatableSeed = new SeedRO(randoStateManager.GetSeedForFileSlot(fileSlot).FileSlot, SeedType.No_Logic, randoStateManager.GetSeedForFileSlot(fileSlot).Seed, randoStateManager.GetSeedForFileSlot(fileSlot).Settings, randoStateManager.GetSeedForFileSlot(fileSlot).CollectedItems);
+                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(unbeatableSeed);
+                }
+
+                //for now, only turn on dialog mappings for basic seeds
+                SettingValue currentDifficultySetting = SettingValue.Advanced;
+                randoStateManager.GetSeedForFileSlot(fileSlot).Settings.TryGetValue(SettingType.Difficulty, out currentDifficultySetting);
+                if (currentDifficultySetting.Equals(SettingValue.Basic))
+                {
+                    randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
+                }
+ 
                 randoStateManager.IsRandomizedFile = true;
                 randoStateManager.CurrentFileSlot = fileSlot;
                 //Log spoiler log

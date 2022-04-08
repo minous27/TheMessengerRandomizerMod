@@ -195,7 +195,17 @@ namespace MessengerRando.Utils
 
         public static bool IsSeedBeatable(SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings)
         {
-            return IsSeedBeatable(GenerateRandomizedMappings(new SeedRO(0, seedType, seed, settings, null)));
+            bool isBeatable = false;
+            try
+            {
+                isBeatable = IsSeedBeatable(GenerateRandomizedMappings(new SeedRO(0, seedType, seed, settings, null)));
+            }
+            catch(RandomizerNoMoreLocationsException rnmle)
+            {
+                Console.WriteLine($"Seed '{seed}' was not beatable due to:");
+                rnmle.LogDetailed();
+            }
+            return isBeatable;
         }
         
 
