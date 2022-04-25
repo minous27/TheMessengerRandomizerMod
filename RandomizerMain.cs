@@ -21,7 +21,7 @@ namespace MessengerRando
     public class RandomizerMain : CourierModule
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
-        private const int MAX_BEATABLE_SEED_ATTEMPTS = 10;
+        private const int MAX_BEATABLE_SEED_ATTEMPTS = 1;
 
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
@@ -86,6 +86,7 @@ namespace MessengerRando
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
+            On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
 
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -118,6 +119,36 @@ namespace MessengerRando
             //just print out some info for me
             Console.WriteLine($"Entered power seal room: {Manager<Level>.Instance.GetRoomAtPosition(self.transform.position).roomKey}");
             orig(self, teleportedInRoom);
+        }
+
+        List<DialogInfo> DialogSequence_GetDialogList(On.DialogSequence.orig_GetDialogList orig, DialogSequence self)
+        {
+            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "SEED_NOT_BEATABLE"))
+            {
+                Console.WriteLine("Trying some rando dialog stuff.");
+                List<DialogInfo> dialogInfoList = new List<DialogInfo>();
+                DialogInfo dialog = new DialogInfo();
+                switch (self.dialogID)
+                {
+                    case "RANDO_ITEM":
+                        dialog.text = $"You have received item: '{self.name}'";
+                        break;
+                    case "SEED_NOT_BEATABLE":
+                        //TODO remove
+                        dialog.text = $"Seed '{self.name}' was not beatable. Submit again to retry.";
+                        break;
+                    default:
+                        dialog.text = "???";
+                        break;
+                }
+                    
+                
+                dialogInfoList.Add(dialog);
+
+                return dialogInfoList;
+            }
+
+            return orig(self);
         }
 
 
@@ -154,6 +185,7 @@ namespace MessengerRando
                 itemId = randoItemId.Item;
                 //Set this item to have been collected in the state manager
                 randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItemId);
+
                 //Save
                 Save.seedData = randomizerSaveMethod.GenerateSaveData();
             }
@@ -201,7 +233,17 @@ namespace MessengerRando
                     RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem.Item);
                 }
 
+                //I want to try to have a dialog popup say what the player got.
+                DialogSequence challengeSequence = ScriptableObject.CreateInstance<DialogSequence>();
+                challengeSequence.dialogID = "RANDO_ITEM";
+                challengeSequence.name = challengeRoomRandoItem.Item.ToString();
+                challengeSequence.choices = new List<DialogSequenceChoice>();
+                AwardItemPopupParams challengeAwardItemParams = new AwardItemPopupParams(challengeSequence, true);
+                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, challengeAwardItemParams, true);
+
+
             }
+
 
             //For now calling the orig method once we are done so the game still things we are collecting seals. We can change this later.
             orig(self, roomKey);
@@ -616,6 +658,18 @@ namespace MessengerRando
                     if (!ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
                     {
                         Console.WriteLine($"Exceeded seed generation attempts. Moving forward with seed '{seed}'");
+                        /*
+                        DialogSequence sequence = ScriptableObject.CreateInstance<DialogSequence>();
+                        sequence.dialogID = "SEED_NOT_BEATABLE";
+                        sequence.name = seed.ToString();
+                        sequence.choices = new List<DialogSequenceChoice>();
+                        AwardItemPopupParams awardItemParams = new AwardItemPopupParams(sequence, true);\
+                        */
+
+                        UnityEngine.Object.Instantiate();
+                        Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.MODAL, awardItemParams, true);
+
+                        return false;
                     }
                 }
             }
