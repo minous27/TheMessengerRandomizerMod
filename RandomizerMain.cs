@@ -53,7 +53,7 @@ namespace MessengerRando
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
             //Add generate random seed mod option button
-            loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry, Int32.MinValue, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
+            loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry), 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -358,7 +358,7 @@ namespace MessengerRando
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
                
                 //Load mappings
-                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.LoadMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
 
                 //for now, only turn on dialog mappings for basic seeds
                 SettingValue currentDifficultySetting = SettingValue.Advanced;
@@ -477,7 +477,7 @@ namespace MessengerRando
         */
 
         ///On submit of rando file location
-        bool OnEnterFileSlot(string fileSlot, int seed, SeedType seedType)
+        bool OnEnterFileSlot(string fileSlot)
         {
             Console.WriteLine($"In Method: OnEnterFileSlot. Provided value: '{fileSlot}'");
             Console.WriteLine($"Received file slot number: {fileSlot}");
@@ -489,14 +489,16 @@ namespace MessengerRando
             }
 
             //Load in mappings and save them to the state
-            string mappingString = ItemRandomizerUtil.LoadMappingsFromFile(slot);
-            Console.WriteLine($"File reading complete. Received the following mappings: '{mappingString}'");
-            SeedRO seedRO = randoStateManager.GetSeedForFileSlot(slot);
-            seedRO.MappingB64 = mappingString;
-            randoStateManager.AddSeed(seedRO);
 
-            //********TODO REMOVE*********
-            ItemRandomizerUtil.LoadMappings(seedRO);
+            //Load encoded seed information
+            string encodedSeedInfo = ItemRandomizerUtil.LoadMappingsFromFile(slot);
+            Console.WriteLine($"File reading complete. Received the following encoded seed info: '{encodedSeedInfo}'");
+            string decodedSeedInfo = ItemRandomizerUtil.DecryptSeedInfo(encodedSeedInfo);
+            Console.WriteLine($"Decryption complete. Received the following seed info: '{decodedSeedInfo}'");
+
+            SeedRO seedRO = ItemRandomizerUtil.ParseSeed(slot, decodedSeedInfo);
+
+            randoStateManager.AddSeed(seedRO);
 
             //Save
             Save.seedData = randomizerSaveMethod.GenerateSaveData();

@@ -80,7 +80,6 @@
     <Compile Include="Exceptions\RandomizerNoMoreLocationsException.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
-    <Compile Include="RO\MappingJsonRO.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
     <Compile Include="RO\SeedRO.cs" />

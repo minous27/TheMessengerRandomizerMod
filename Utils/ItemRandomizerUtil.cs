@@ -48,30 +48,6 @@ namespace MessengerRando.Utils
 
             return version;
         }
-
-        public static Dictionary<LocationRO, RandoItemRO> LoadMappings(SeedRO seed)
-        {
-            //We'll need to take the b64 string and decrypt it so we can get the mappings back.
-
-            byte[] bytes = Convert.FromBase64String(seed.MappingB64);
-
-            string mappingInfo = Encoding.ASCII.GetString(bytes);
-
-            Console.WriteLine($"Decoded mapping string: '{mappingInfo}'");
-
-            string mappingText = mappingInfo.Substring(mappingInfo.IndexOf('=') + 1, mappingInfo.IndexOf('|') - mappingInfo.IndexOf('='));
-
-            string[] mappings = mappingText.Split(',');
-
-            foreach(string mapping in mappings)
-            {
-                Console.WriteLine($"Mapping: '{mapping}'");
-            }
-
-
-            return null;
-        }
-
         
         public static string LoadMappingsFromFile(int fileSlot)
         {
@@ -181,6 +157,130 @@ namespace MessengerRando.Utils
             //We made it through the game with all 6 notes!
             Console.WriteLine("Mapping successfully verified. This seed is beatable.");
             return true;
+        }
+
+        public static string DecryptSeedInfo(string b64SeedInfo)
+        {
+            //We'll need to take the b64 string and decrypt it so we can get the seed info.
+
+            byte[] bytes = Convert.FromBase64String(b64SeedInfo);
+
+            string seedInfo = Encoding.ASCII.GetString(bytes);
+
+            Console.WriteLine($"Decoded seed info string: '{seedInfo}'");
+
+            return seedInfo;
+        }
+
+        public static SeedRO ParseSeed(int fileSlot, string seedInfo)
+        {
+
+
+            //Break up mapping string
+            string[] fullSeedInfoArr = seedInfo.Split('|');
+
+            string mappingText = fullSeedInfoArr[0].Substring(fullSeedInfoArr[0].IndexOf('=') + 1);
+            Console.WriteLine($"Mapping text: '{mappingText}'");
+
+            string settingsText = fullSeedInfoArr[1];
+            Console.WriteLine($"Settings text: '{settingsText}'");
+
+            string seedTypeText = fullSeedInfoArr[2];
+            Console.WriteLine($"Seed Type text: '{seedTypeText}'");
+
+            string seedNumStr = fullSeedInfoArr[3];
+            Console.WriteLine($"Seed Number text: '{seedTypeText}'");
+
+            
+            //Settings
+            Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
+            string[] settingsArr = settingsText.Split(',');
+
+            foreach (string setting in settingsArr)
+            {
+                Console.WriteLine($"Settings - Working with: '{setting}'");
+                string[] settingKV = setting.Split('=');
+                settings.Add((SettingType) Enum.Parse(typeof(SettingType), settingKV[0]), (SettingValue) Enum.Parse(typeof(SettingValue), settingKV[1]));
+            }
+
+            //Seedtype
+            string seedTypeStr = seedTypeText.Substring(seedTypeText.IndexOf('=') + 1);
+            SeedType seedType = (SeedType)Enum.Parse(typeof(SeedType), seedTypeStr);
+
+            //Seed Number
+
+            int seedNum = Int32.Parse(seedNumStr.Substring(seedNumStr.IndexOf('=') + 1));
+
+            return new SeedRO(fileSlot,seedType,seedNum, settings, null, mappingText);
+        }
+
+        public static Dictionary<LocationRO, RandoItemRO> ParseLocationToItemMappings(SeedRO seed)
+        {
+            //Prep
+            Dictionary<LocationRO, RandoItemRO> mappings = new Dictionary<LocationRO, RandoItemRO>();
+            Dictionary<string, LocationRO> officialLocations = new Dictionary<string, LocationRO>();
+            Dictionary<string, RandoItemRO> officialItems = new Dictionary<string, RandoItemRO>();
+
+            //Fill official collections for easy searching
+            foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
+            {
+                officialLocations.Add(location.LocationName, location);
+            }
+
+            foreach(LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
+            {
+                officialLocations.Add(location.LocationName, location);
+            }
+
+            foreach(RandoItemRO item in RandomizerConstants.GetRandoItemList())
+            {
+                officialItems.Add(item.Name, item);
+            }
+
+            foreach (RandoItemRO item in RandomizerConstants.GetNotesList())
+            {
+                officialItems.Add(item.Name, item);
+            }
+
+            //Split up all the mappings
+            string[] mappingsArr = seed.MappingInfo.Split(',');
+
+            foreach(string mappingStr in mappingsArr)
+            {
+                //Split off the location and item string
+                string[] mappingArr = mappingStr.Split('-');
+                LocationRO location = null;
+                RandoItemRO item = new RandoItemRO();
+
+
+                //Get the LocationRO and RandoItemRO from the list of known items
+                if(officialLocations.ContainsKey(mappingArr[0]))
+                {
+                    location = officialLocations[mappingArr[0]];
+                }
+                else
+                {
+                    //If for some reason something that could not be mapped to an official location, let's fail for now.
+                    throw new RandomizerException($"Location named '{mappingArr[0]}' could not be located in collection of official locations.");
+                }
+
+                if (officialItems.ContainsKey(mappingArr[1]))
+                {
+                    item = officialItems[mappingArr[1]];
+                }
+                else
+                {
+                    //If for some reason something that could not be mapped to an official location, let's fail for now.
+                    throw new RandomizerException($"Item named '{mappingArr[1]}' could not be located in collection of official items.");
+                }
+
+                //We get here, then we are good. Save off this mapping and move on.
+                mappings.Add(location, item);
+
+            }
+
+            Console.WriteLine("Mapping parsed successfully!");
+            return mappings;
         }
 
         private static bool HasAdditionalItemsForBeatableSeedCheck(EItems[] additionalLocationRequiredItems, SamplePlayerRO player)

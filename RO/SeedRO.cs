@@ -10,17 +10,17 @@ namespace MessengerRando.RO
     public struct SeedRO
     {
 
-        public int FileSlot { get; }
+        public int FileSlot { get; set; }
         // Type of seed so we know what logic to run against it.
-        public SeedType SeedType { get; }
+        public SeedType SeedType { get; set; }
         //seed number
-        public int Seed { get; }
+        public int Seed { get; set; }
         // Settings
-        public Dictionary<SettingType, SettingValue> Settings{get; }
+        public Dictionary<SettingType, SettingValue> Settings{ get; set; }
         //Collected Items this seed
         public List<RandoItemRO> CollectedItems { set; get; }
         //Base64 encrypted string representing all the mappings for this seed
-        public string MappingB64 { get; set; }
+        public string MappingInfo { get; set; }
 
         public SeedRO(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, string mappingString)
         {
@@ -36,7 +36,7 @@ namespace MessengerRando.RO
 
             CollectedItems = collectedItems == null ? new List<RandoItemRO>() : collectedItems;
 
-            MappingB64 = mappingString;
+            MappingInfo = mappingString;
         }
 
         public override string ToString()

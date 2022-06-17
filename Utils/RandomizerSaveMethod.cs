@@ -49,10 +49,10 @@ namespace MessengerRando
                     //Shaving off the last ','
                     modValue.Length--;
                 }
-                //Add encrypted item mappings
-                if (seed.MappingB64 != null && !seed.MappingB64.Equals(""))
+                //Add seed info
+                if (seed.MappingInfo != null && !seed.MappingInfo.Equals(""))
                 {
-                    modValue.Append("" + RANDO_OPTION_SETTING_DELIM + "Mappings=" + seed.MappingB64);
+                    modValue.Append("" + RANDO_OPTION_SETTING_DELIM + "Mappings=" + seed.MappingInfo);
                 }
             }
 

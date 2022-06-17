@@ -120,33 +120,33 @@ namespace MessengerRando.Utils
             //Create a LocationRO for every check and put it in a list
             List<LocationRO> randomizedLocations = new List<LocationRO>();
             //Phase 1 section, no key items required
-            randomizedLocations.Add(new LocationRO(EItems.SEASHELL.ToString(), EItems.SEASHELL.ToString(), new EItems[] { EItems.NONE }, false, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.MAGIC_BOOTS.ToString(), EItems.MAGIC_BOOTS.ToString(), new EItems[] { EItems.NONE }, false, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.GRAPLOU.ToString(), EItems.GRAPLOU.ToString(), new EItems[] { EItems.NONE }, false, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.WINGSUIT.ToString(), EItems.WINGSUIT.ToString(), new EItems[] { EItems.NONE }, false, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_LOVE.ToString(), EItems.KEY_OF_LOVE.ToString(), new EItems[] { EItems.SUN_CREST, EItems.MOON_CREST }, false, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_COURAGE.ToString(), EItems.KEY_OF_COURAGE.ToString(), new EItems[] { EItems.DEMON_KING_CROWN, EItems.FAIRY_BOTTLE }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Seashell", EItems.SEASHELL.ToString(), new EItems[] { EItems.NONE }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Ninja_Tabis", EItems.MAGIC_BOOTS.ToString(), new EItems[] { EItems.NONE }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Rope_Dart", EItems.GRAPLOU.ToString(), new EItems[] { EItems.NONE }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Wingsuit", EItems.WINGSUIT.ToString(), new EItems[] { EItems.NONE }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Key_Of_Love", EItems.KEY_OF_LOVE.ToString(), new EItems[] { EItems.SUN_CREST, EItems.MOON_CREST }, false, false, false));
+            randomizedLocations.Add(new LocationRO("Key_Of_Courage", EItems.KEY_OF_COURAGE.ToString(), new EItems[] { EItems.DEMON_KING_CROWN, EItems.FAIRY_BOTTLE }, false, false, false));
             //Tabi locked section
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_CHAOS.ToString(), EItems.KEY_OF_CHAOS.ToString(), new EItems[] { EItems.NONE }, false, false, true));
-            randomizedLocations.Add(new LocationRO(EItems.SUN_CREST.ToString(), EItems.SUN_CREST.ToString(), new EItems[] { EItems.NONE }, false, false, true));
-            randomizedLocations.Add(new LocationRO(EItems.MOON_CREST.ToString(), EItems.MOON_CREST.ToString(), new EItems[] { EItems.NONE }, false, false, true));
-            randomizedLocations.Add(new LocationRO(EItems.PYROPHOBIC_WORKER.ToString(), EItems.PYROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, false, false, true));
+            randomizedLocations.Add(new LocationRO("Key_Of_Chaos", EItems.KEY_OF_CHAOS.ToString(), new EItems[] { EItems.NONE }, false, false, true));
+            randomizedLocations.Add(new LocationRO("Sun_Crest", EItems.SUN_CREST.ToString(), new EItems[] { EItems.NONE }, false, false, true));
+            randomizedLocations.Add(new LocationRO("Moon_Crest", EItems.MOON_CREST.ToString(), new EItems[] { EItems.NONE }, false, false, true));
+            randomizedLocations.Add(new LocationRO("Pyro", EItems.PYROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, false, false, true));
             //Wingsuit locked section
-            randomizedLocations.Add(new LocationRO(EItems.ACROPHOBIC_WORKER.ToString(), EItems.ACROPHOBIC_WORKER.ToString(), new EItems[] { EItems.RUXXTIN_AMULET }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.NECROPHOBIC_WORKER.ToString(), EItems.NECROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.RUXXTIN_AMULET.ToString(), EItems.RUXXTIN_AMULET.ToString(), new EItems[] { EItems.NONE }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.CANDLE.ToString(), EItems.CANDLE.ToString(), new EItems[] { EItems.NONE }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.CLAUSTROPHOBIC_WORKER.ToString(), EItems.CLAUSTROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.CLIMBING_CLAWS.ToString(), EItems.CLIMBING_CLAWS.ToString(), new EItems[] { EItems.NONE }, true, false, false));
-            randomizedLocations.Add(new LocationRO(EItems.DEMON_KING_CROWN.ToString(), EItems.DEMON_KING_CROWN.ToString(), new EItems[] { EItems.NECROPHOBIC_WORKER, EItems.CLAUSTROPHOBIC_WORKER, EItems.PYROPHOBIC_WORKER, EItems.ACROPHOBIC_WORKER }, true, false, false, false));
+            randomizedLocations.Add(new LocationRO("Acro", EItems.ACROPHOBIC_WORKER.ToString(), new EItems[] { EItems.RUXXTIN_AMULET }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Necro", EItems.NECROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Ruxxtin_Amulet", EItems.RUXXTIN_AMULET.ToString(), new EItems[] { EItems.NONE }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Candle", EItems.CANDLE.ToString(), new EItems[] { EItems.NONE }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Claustro", EItems.CLAUSTROPHOBIC_WORKER.ToString(), new EItems[] { EItems.NONE }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Climbing_Claws", EItems.CLIMBING_CLAWS.ToString(), new EItems[] { EItems.NONE }, true, false, false));
+            randomizedLocations.Add(new LocationRO("Demon_King_Crown", EItems.DEMON_KING_CROWN.ToString(), new EItems[] { EItems.NECROPHOBIC_WORKER, EItems.CLAUSTROPHOBIC_WORKER, EItems.PYROPHOBIC_WORKER, EItems.ACROPHOBIC_WORKER }, true, false, false, false));
             //Rope Dart locked section
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_SYMBIOSIS.ToString(), EItems.KEY_OF_SYMBIOSIS.ToString(), new EItems[] { EItems.FAIRY_BOTTLE }, false, true, false));
+            randomizedLocations.Add(new LocationRO("Key_Of_Symbiosis", EItems.KEY_OF_SYMBIOSIS.ToString(), new EItems[] { EItems.FAIRY_BOTTLE }, false, true, false));
             //This section needs either the Wingsuit OR the Ropedart (plus other items). If you have one you are good.
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_STRENGTH.ToString(), EItems.KEY_OF_STRENGTH.ToString(), new EItems[] { EItems.POWER_THISTLE }, false, false, false, true));
-            randomizedLocations.Add(new LocationRO(EItems.POWER_THISTLE.ToString(), EItems.POWER_THISTLE.ToString(), new EItems[] { EItems.NONE }, false, false, false, true));
-            randomizedLocations.Add(new LocationRO(EItems.FAIRY_BOTTLE.ToString(), EItems.FAIRY_BOTTLE.ToString(), new EItems[] { EItems.NONE }, false, false, false, true));
+            randomizedLocations.Add(new LocationRO("Key_Of_Strength", EItems.KEY_OF_STRENGTH.ToString(), new EItems[] { EItems.POWER_THISTLE }, false, false, false, true));
+            randomizedLocations.Add(new LocationRO("Power_Thistle", EItems.POWER_THISTLE.ToString(), new EItems[] { EItems.NONE }, false, false, false, true));
+            randomizedLocations.Add(new LocationRO("Fairy_Bottle", EItems.FAIRY_BOTTLE.ToString(), new EItems[] { EItems.NONE }, false, false, false, true));
             //Wingsuit AND Ropedart locked
-            randomizedLocations.Add(new LocationRO(EItems.KEY_OF_HOPE.ToString(), EItems.KEY_OF_HOPE.ToString(), new EItems[] { EItems.NONE }, true, true, false));
+            randomizedLocations.Add(new LocationRO("Key_Of_Hope", EItems.KEY_OF_HOPE.ToString(), new EItems[] { EItems.NONE }, true, true, false));
 
             return randomizedLocations;
         }
