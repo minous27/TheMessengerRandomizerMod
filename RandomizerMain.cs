@@ -26,10 +26,10 @@ namespace MessengerRando
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
 
-        TextEntryButtonInfo generateNoLogicSeedButton;
-        TextEntryButtonInfo generateLogicSeedButton;
-        TextEntryButtonInfo enterSeedButton;
+        TextEntryButtonInfo loadRandomizerFileForFileSlotButton;
+  
         SubMenuButtonInfo versionButton;
+
         SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
         SubMenuButtonInfo teleportToNinjaVillage;
@@ -53,13 +53,7 @@ namespace MessengerRando
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
             //Add generate random seed mod option button
-            generateNoLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate No Logic Seed", (entry) => OnEnterFileSlot(entry, generateNoLogicSeedButton, Int32.MinValue, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed? (No Logic!)", () => "1", CharsetFlags.Number);
-
-            //Add generate basic seed mod option button
-            generateLogicSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Generate Logic Seed", (entry) => OnEnterFileSlot(entry, generateLogicSeedButton, Int32.MinValue, SeedType.Logic), 1, () => "Which save slot would you like to start a logical rando seed?", () => "1", CharsetFlags.Number);
-
-            //Add Set seed mod option button
-            enterSeedButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Set Randomizer Seed", (entry) => OnEnterRandomSeedNumber(entry, enterSeedButton), 15, () => "What is the seed you would like to play?", null,  CharsetFlags.Number);
+            loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry, Int32.MinValue, SeedType.No_Logic), 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
@@ -79,7 +73,6 @@ namespace MessengerRando
             On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
-            On.PhantomEnemy.ReceiveHit += PhantomEnemy_ReceiveHit;
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
@@ -94,9 +87,7 @@ namespace MessengerRando
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
-            generateNoLogicSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            generateLogicSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            enterSeedButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            loadRandomizerFileForFileSlotButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -150,7 +141,6 @@ namespace MessengerRando
 
             return orig(self);
         }
-
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
         {
@@ -366,17 +356,9 @@ namespace MessengerRando
             if(randoStateManager.HasSeedForFileSlot(fileSlot))
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                try
-                {
-                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
-                }
-                catch(RandomizerNoMoreLocationsException)
-                {
-                    //This could happen if a seed is set manually as a completable seed but isn't actually completable
-                    Console.WriteLine($"This seed '{randoStateManager.GetSeedForFileSlot(fileSlot).Seed}' was manually set as beatable, but it was not. For now, just fast load it.");
-                    SeedRO unbeatableSeed = new SeedRO(randoStateManager.GetSeedForFileSlot(fileSlot).FileSlot, SeedType.No_Logic, randoStateManager.GetSeedForFileSlot(fileSlot).Seed, randoStateManager.GetSeedForFileSlot(fileSlot).Settings, randoStateManager.GetSeedForFileSlot(fileSlot).CollectedItems);
-                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.GenerateRandomizedMappings(unbeatableSeed);
-                }
+               
+                //Load mappings
+                randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.LoadMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
 
                 //for now, only turn on dialog mappings for basic seeds
                 SettingValue currentDifficultySetting = SettingValue.Advanced;
@@ -411,19 +393,6 @@ namespace MessengerRando
             randoStateManager.ResetSeedForFileSlot(slot.slotIndex + 1);
 
             orig(self, slot);
-        }
-
-        //Phantom damage function. (TODO why bother doing this? xD)
-        bool PhantomEnemy_ReceiveHit(On.PhantomEnemy.orig_ReceiveHit orig, PhantomEnemy self, HitData hitData)
-        {
-            //We want phantom to not take damage if all notes have not been collected yet.
-            if((!randoStateManager.IsRandomizedFile) || ItemRandomizerUtil.HasAllNotes())
-            {
-                return orig(self, hitData);
-            }
-            //Didn't get all the notes...so nothing will happen!!!
-            Console.WriteLine("I see you don't have all of the music notes...you thought you could damage phantom without them?!");
-            return false;
         }
 
         //Fixing necro cutscene check
@@ -507,74 +476,8 @@ namespace MessengerRando
         }
         */
 
-        bool OnEnterRandomSeedNumber(string response, TextEntryButtonInfo parentButton)
-        {
-            Console.WriteLine($"In Method: OnEnterRandomSeedNumber. Provided value: '{response}'");
-
-            int seed = 0;
-
-            if(!Int32.TryParse(response, out seed))
-            {
-                Console.WriteLine($"Invalid seed number '{response}' provided");
-                return false;
-            }
-
-            TextEntryPopup logicPopup = InitTextEntryPopup(parentButton.addedTo, "Run the logic engine against this seed? (yes/no)", (entry) => OnEnterRunLogicEngine(seed, parentButton, entry), 3, null, CharsetFlags.Letter);
-            logicPopup.onBack += () => {
-                logicPopup.gameObject.SetActive(false);
-                //parentButton.textEntryPopup.gameObject.SetActive(true);
-                //parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
-            };
-            parentButton.textEntryPopup.gameObject.SetActive(false);
-            logicPopup.Init(string.Empty);
-            logicPopup.gameObject.SetActive(true);
-            logicPopup.transform.SetParent(parentButton.addedTo.transform.parent);
-            parentButton.addedTo.gameObject.SetActive(false);
-            Canvas.ForceUpdateCanvases();
-            logicPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
-            EventSystem.current.SetSelectedGameObject(logicPopup.initialSelection);
-            logicPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
-            return false;
-        }
-
-        bool OnEnterRunLogicEngine(int seed, TextEntryButtonInfo parentButton, string response)
-        {
-            Console.WriteLine($"In Method: OnEnterRunLogicEngine. Provided value: '{response}'");
-            SeedType seedType = SeedType.None;
-
-            if ("yes".Equals(response, StringComparison.OrdinalIgnoreCase) || "no".Equals(response, StringComparison.OrdinalIgnoreCase))
-            {
-                //We got a good value
-                seedType = "yes".Equals(response, StringComparison.OrdinalIgnoreCase) ? SeedType.Logic : SeedType.No_Logic;
-            }
-            else
-            {
-                Console.WriteLine($"In OnEnterRunLogicEngine - value for entry '{response}' is not valid. Must be 'yes' or 'no'.");
-                return false;
-            }
-            
-            //Boilerplate popup code
-            TextEntryPopup fileSlotPopup = InitTextEntryPopup(parentButton.addedTo, "Which save slot would you like to start a rando seed?", (entry) => OnEnterFileSlot(entry, parentButton, seed, seedType, true), 1, null, CharsetFlags.Number);
-            fileSlotPopup.onBack += () => {
-                fileSlotPopup.gameObject.SetActive(false);
-                //parentButton.textEntryPopup.gameObject.SetActive(true);
-                //parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
-            };
-            parentButton.textEntryPopup.gameObject.SetActive(false);
-            fileSlotPopup.Init(string.Empty);
-            fileSlotPopup.gameObject.SetActive(true);
-            fileSlotPopup.transform.SetParent(parentButton.addedTo.transform.parent);
-            parentButton.addedTo.gameObject.SetActive(false);
-            Canvas.ForceUpdateCanvases();
-            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
-            EventSystem.current.SetSelectedGameObject(fileSlotPopup.initialSelection);
-            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
-
-            return true;
-        }
-
         ///On submit of rando file location
-        bool OnEnterFileSlot(string fileSlot, TextEntryButtonInfo parentButton, int seed, SeedType seedType, bool closeToModMenuOnFinish = false)
+        bool OnEnterFileSlot(string fileSlot, int seed, SeedType seedType)
         {
             Console.WriteLine($"In Method: OnEnterFileSlot. Provided value: '{fileSlot}'");
             Console.WriteLine($"Received file slot number: {fileSlot}");
@@ -584,118 +487,22 @@ namespace MessengerRando
                 Console.WriteLine($"Invalid slot number provided: {slot}");
                 return false;
             }
-            
-            TextEntryPopup difficultySettingPopup = InitTextEntryPopup(parentButton.addedTo, "Would you like this to be an advanced seed? (yes/no)", (entry) => OnEnterDifficultyChoice(entry, slot, seed, seedType), 3, null, CharsetFlags.Letter);
-            difficultySettingPopup.onBack += () =>
-            {
-                difficultySettingPopup.gameObject.SetActive(false);
-                parentButton.textEntryPopup.gameObject.SetActive(true);
-                parentButton.textEntryPopup.StartCoroutine(parentButton.textEntryPopup.BackWhenBackButtonReleased());
-            };
 
-            parentButton.textEntryPopup.gameObject.SetActive(false);
-            difficultySettingPopup.Init(string.Empty);
-            difficultySettingPopup.gameObject.SetActive(true);
-            difficultySettingPopup.transform.SetParent(parentButton.addedTo.transform.parent);
-            parentButton.addedTo.gameObject.SetActive(false);
-            Canvas.ForceUpdateCanvases();
-            difficultySettingPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
-            EventSystem.current.SetSelectedGameObject(difficultySettingPopup.initialSelection);
-            difficultySettingPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
-
-            return closeToModMenuOnFinish;
-
-        }
-
-        //Moved the seed setting logic out so I could reuse it.
-        bool SetSeedForFileSlot(int fileSlot, SeedType seedType, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, int seed = Int32.MinValue)
-        {
-            //Check to make sure an apporiate save slot was chosen.
-            if (fileSlot < 1 || fileSlot > 3)
-            {
-                Console.WriteLine($"User provided an invalid save slot number {fileSlot}");
-                return false;
-            }
-            
-            // short circuit for default values, this means the user wants this file to not be randomized
-            if(seed == 0)
-            {
-                randoStateManager.ResetSeedForFileSlot(fileSlot);
-                Console.WriteLine($"Seed '{seed}' matched default value of '0'. Seeding fileslot to not be randomized.");
-                return true;
-            }
-
-            //Null check the settings
-            if(settings == null)
-            {
-                Console.WriteLine("Settings provided by calling function were null when trying to set seed for a file slot.");
-                return false;
-            }
-
-            if (seed == Int32.MinValue)
-            {
-                //Generate a seed
-                Console.WriteLine("Generating seed...");
-                seed = ItemRandomizerUtil.GenerateSeed();
-                Console.WriteLine($"Seed generated: '{seed}'");
-
-                if (seedType == SeedType.Logic && !ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
-                {
-                    //We need to try to generate seeds again until we get a beatable seed. Let's try x number of times before we just give up, log something, and return the last seed we got.
-                    for(int i = 0; i < MAX_BEATABLE_SEED_ATTEMPTS; i++)
-                    {
-                        Console.WriteLine($"Seed {seed} failed logic validations. Attempt number {i + 1} in generating a new seed");
-                        seed = ItemRandomizerUtil.GenerateSeed();
-                        Console.WriteLine($"Seed generated: '{seed}'");
-
-                        if(ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
-                        {
-                            //We got a good seed
-                            break;
-                        }
-                    }
-                    //Doing check one last time to log issues if we had them
-                    if (!ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
-                    {
-                        Console.WriteLine($"Exceeded seed generation attempts. Moving forward with seed '{seed}'");
-                        /*
-                        DialogSequence sequence = ScriptableObject.CreateInstance<DialogSequence>();
-                        sequence.dialogID = "SEED_NOT_BEATABLE";
-                        sequence.name = seed.ToString();
-                        sequence.choices = new List<DialogSequenceChoice>();
-                        AwardItemPopupParams awardItemParams = new AwardItemPopupParams(sequence, true);\
-                        */
-
-                        UnityEngine.Object.Instantiate();
-                        Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.MODAL, awardItemParams, true);
-
-                        return false;
-                    }
-                }
-            }
-
-            //Doing a quick beatable check for passed seeds that have no seed type
-            if(seedType == SeedType.None)
-            {
-                if(ItemRandomizerUtil.IsSeedBeatable(seedType, seed, settings))
-                {
-                    seedType = SeedType.Logic;
-                }
-                else
-                {
-                    seedType = SeedType.No_Logic;
-                }
-            }
-
-            SeedRO seedRO = new SeedRO(fileSlot, seedType, seed, settings, collectedItems);
-
-            //Save this seed into the state
+            //Load in mappings and save them to the state
+            string mappingString = ItemRandomizerUtil.LoadMappingsFromFile(slot);
+            Console.WriteLine($"File reading complete. Received the following mappings: '{mappingString}'");
+            SeedRO seedRO = randoStateManager.GetSeedForFileSlot(slot);
+            seedRO.MappingB64 = mappingString;
             randoStateManager.AddSeed(seedRO);
-            //Save to file
+
+            //********TODO REMOVE*********
+            ItemRandomizerUtil.LoadMappings(seedRO);
+
+            //Save
             Save.seedData = randomizerSaveMethod.GenerateSaveData();
+
             return true;
         }
-
 
         void OnToggleWindmillShuriken()
         {
@@ -744,41 +551,6 @@ namespace MessengerRando
             Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
             
             Console.WriteLine("Teleport to Ninja Village complete.");
-        }
-
-        bool OnEnterDifficultyChoice(string choice, int slot, int seed, SeedType seedType)
-        {
-            Console.WriteLine($"In Method: OnEnterDifficultyChoice. Provided value: '{choice}'");
-            Dictionary<SettingType, SettingValue> settings = new Dictionary<SettingType, SettingValue>();
-
-            if(settings != null)
-            {
-                if ("yes".Equals(choice, StringComparison.OrdinalIgnoreCase))
-                {
-                    //This is an advanced seed
-                    settings.Add(SettingType.Difficulty, SettingValue.Advanced);
-                }
-                else if ("no".Equals(choice, StringComparison.OrdinalIgnoreCase))
-                {
-                    //This is a basic seed
-                    settings.Add(SettingType.Difficulty, SettingValue.Basic);
-                }
-                else
-                {
-                    //Bad choice passed
-                    Console.WriteLine($"Invalid choice provided for difficultly selection. Expected 'yes' or 'no'. Received '{choice}'");
-                    return false;
-                }
-
-                if(!SetSeedForFileSlot(slot, seedType, settings, null, seed))
-                {
-                    Console.WriteLine($"Error setting seed '{seed}' in file slot '{slot}'. SeedType - '{seedType}' | Settings - '{settings}'.");
-                    return false;
-                }
-                return true;
-            }
-            //Bad choice passed
-            return false;
         }
 
         /// <summary>

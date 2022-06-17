@@ -59,6 +59,10 @@
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
@@ -76,10 +80,12 @@
     <Compile Include="Exceptions\RandomizerNoMoreLocationsException.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
+    <Compile Include="RO\MappingJsonRO.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />
+    <Compile Include="UI\RandoTextAlert.cs" />
     <Compile Include="Utils\RandoSave.cs" />
     <Compile Include="Utils\SettingValue.cs" />
     <Compile Include="Utils\SettingType.cs" />

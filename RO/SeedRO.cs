@@ -19,8 +19,10 @@ namespace MessengerRando.RO
         public Dictionary<SettingType, SettingValue> Settings{get; }
         //Collected Items this seed
         public List<RandoItemRO> CollectedItems { set; get; }
+        //Base64 encrypted string representing all the mappings for this seed
+        public string MappingB64 { get; set; }
 
-        public SeedRO(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems)
+        public SeedRO(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, string mappingString)
         {
             FileSlot = fileSlot;
             SeedType = seedType;
@@ -33,6 +35,8 @@ namespace MessengerRando.RO
             Settings = settings;
 
             CollectedItems = collectedItems == null ? new List<RandoItemRO>() : collectedItems;
+
+            MappingB64 = mappingString;
         }
 
         public override string ToString()

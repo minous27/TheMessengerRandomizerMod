@@ -49,6 +49,11 @@ namespace MessengerRando
                     //Shaving off the last ','
                     modValue.Length--;
                 }
+                //Add encrypted item mappings
+                if (seed.MappingB64 != null && !seed.MappingB64.Equals(""))
+                {
+                    modValue.Append("" + RANDO_OPTION_SETTING_DELIM + "Mappings=" + seed.MappingB64);
+                }
             }
 
             Console.WriteLine($"Saving seed data: '{modValue}'");
@@ -73,23 +78,27 @@ namespace MessengerRando
 
                 string seedSub = seedDetails.Substring(0, randoTypeIndex);
                 Console.WriteLine($"Extracted seed '{seedSub}' from seed split {i}");
+                
                 //This will parse the seed into an int. If the value cannot be parsed for some reason, seed will be 0
                 Int32.TryParse(seedSub, out int seed);
 
                 //Need to check if there are settings for this seed. If so, consider them when getting the seedtype. If not, the rest of the string is the seedtype.
                 string seedTypeSub = randoSettingIndex != -1 ? seedDetails.Substring(randoTypeIndex + 1, randoSettingIndex - (randoTypeIndex + 1)) : seedDetails.Substring(randoTypeIndex + 1);
                 Console.WriteLine($"Extracted seedtype '{seedTypeSub}' from seed split {i}");
+                
                 //This will pull out the seed type. If there is none, default it.
                 SeedType seedType = SeedType.None;
                 if (seedTypeSub != null && Enum.IsDefined(typeof(SeedType), seedTypeSub)) //using IsDefined because I dont have TryParse in this .NET version T_T
                 {
                     seedType = (SeedType)Enum.Parse(typeof(SeedType), seedTypeSub);
                 }
+                
                 //If there are settings, I need to pull them out as well
                 Dictionary<SettingType, SettingValue> seedSettings = new Dictionary<SettingType, SettingValue>();
                 List<RandoItemRO> collectedRandoItemList = new List<RandoItemRO>();
+                string mappingString = "";
 
-                if(randoSettingIndex != -1)
+                if (randoSettingIndex != -1)
                 {
                     string seedSettingSub = seedDetails.Substring(seedDetails.IndexOf(RANDO_OPTION_SETTING_DELIM) + 1);
                     Console.WriteLine($"Extracted seed settings '{seedSettingSub}' from seed split {i}");
@@ -119,6 +128,12 @@ namespace MessengerRando
 
                             }
                         }
+                        else if (setting.StartsWith("Mappings="))
+                        {
+                            //Load mappings string
+                            mappingString = setting.Substring(setting.IndexOf(RANDO_OPTION_SETTING_VALUE_DELIM) + 1);
+                            
+                        }
                         else //Other settings
                         {
 
@@ -143,7 +158,7 @@ namespace MessengerRando
                     }
                 }
 
-                stateManager.AddSeed(i, seedType, seed, seedSettings, collectedRandoItemList);
+                stateManager.AddSeed(i, seedType, seed, seedSettings, collectedRandoItemList, mappingString);
                 Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
             }
 

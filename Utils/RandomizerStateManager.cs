@@ -10,6 +10,7 @@ namespace MessengerRando
     {
         public static RandomizerStateManager Instance { private set; get; }
         public Dictionary<LocationRO, RandoItemRO> CurrentLocationToItemMapping { set; get; }
+
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
 
@@ -51,9 +52,9 @@ namespace MessengerRando
             noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
-        public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems)
+        public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, string mappingJson)
         {
-            AddSeed(new SeedRO(fileSlot, seedType, seed, settings, collectedItems));
+            AddSeed(new SeedRO(fileSlot, seedType, seed, settings, collectedItems, mappingJson));
         }
 
         public void AddSeed(SeedRO seed)
@@ -65,7 +66,7 @@ namespace MessengerRando
         {
             if (!seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null);
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
             }
             return seeds[fileSlot];
         }
@@ -76,7 +77,7 @@ namespace MessengerRando
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null);
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
             }
             Console.WriteLine("File slot reset complete.");
         }
