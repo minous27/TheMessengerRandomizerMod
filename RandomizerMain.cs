@@ -363,6 +363,8 @@ namespace MessengerRando
                 //for now, only turn on dialog mappings for basic seeds
                 SettingValue currentDifficultySetting = SettingValue.Advanced;
                 randoStateManager.GetSeedForFileSlot(fileSlot).Settings.TryGetValue(SettingType.Difficulty, out currentDifficultySetting);
+                
+                //Currently only doing dialog mapping for basic seeds.
                 if (currentDifficultySetting.Equals(SettingValue.Basic))
                 {
                     randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();

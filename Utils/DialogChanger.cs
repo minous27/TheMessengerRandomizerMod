@@ -86,8 +86,8 @@ namespace MessengerRando.Utils
 
             foreach (KeyValuePair<LocationRO, RandoItemRO> KVP in current)
             {
-                Console.WriteLine($"Dialog mapping -- {KVP.Key.LocationName}");
-                EItems LocationChecked = (EItems)Enum.Parse(typeof(EItems), KVP.Key.LocationName);
+                Console.WriteLine($"Dialog mapping -- {KVP.Key.PrettyLocationName}");
+                EItems LocationChecked = (EItems)Enum.Parse(typeof(EItems), KVP.Key.PrettyLocationName);
                 RandoItemRO ItemActuallyFound = KVP.Value;
 
                 if (ItemtoDialogIDMap.ContainsKey(LocationChecked) && ItemtoDialogIDMap.ContainsKey(ItemActuallyFound.Item))
