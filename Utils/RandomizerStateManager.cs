@@ -143,6 +143,67 @@ namespace MessengerRando
         }
 
         /// <summary>
+        /// Check through the mappings for any location that is represented by vanilla location item(since that is the key used to uniquely identify locations).
+        /// </summary>
+        /// <param name="vanillaLocationItem">EItem being used to look up location.</param>
+        /// <param name="locationFromItem">Out parameter used to return the location found.</param>
+        /// <returns>true if location was found, otherwise false(location item will be null in this case)</returns>
+        public bool IsLocationRandomized(EItems vanillaLocationItem, out LocationRO locationFromItem)
+        {
+            bool isLocationRandomized = false;
+            locationFromItem = null;
+
+            //We'll check through notes first
+            foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
+            {
+                if (note.Item.Equals(vanillaLocationItem))
+                {
+                    
+                    locationFromItem = new LocationRO(note.Name);
+
+                    if (CurrentLocationToItemMapping.ContainsKey(locationFromItem))
+                    {
+                        isLocationRandomized = true;
+                    }
+                    else
+                    {
+                        //Then we know for certain it was not randomized. No reason to continue.
+                        locationFromItem = null;
+                        return false;
+                    }
+                }
+            }
+
+            //If it wasn't a note we'll look through the rest of the items
+            if (!isLocationRandomized)
+            {
+                foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
+                {
+                    if (item.Item.Equals(vanillaLocationItem))
+                    { 
+
+                        locationFromItem = new LocationRO(item.Name);
+
+                        if (CurrentLocationToItemMapping.ContainsKey(locationFromItem))
+                        {
+                            isLocationRandomized = true;
+                        }
+                        else
+                        {
+                            //Then we know for certain it was not randomized.
+                            locationFromItem = null;
+                            return false;
+                        }
+
+                    }
+                }
+            }
+
+            //Return whether we found it or not.
+            return isLocationRandomized;
+        }
+
+        /// <summary>
         /// Helper method to log out the current mappings all nicely for review
         /// </summary>
         public void LogCurrentMappings()
@@ -152,7 +213,7 @@ namespace MessengerRando
                 Console.WriteLine("----------------BEGIN Current Mappings----------------");
                 foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
                 {
-                    Console.WriteLine($"Check '{check.PrettyLocationName}' contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
                     //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
                 }
                 Console.WriteLine("----------------END Current Mappings----------------");

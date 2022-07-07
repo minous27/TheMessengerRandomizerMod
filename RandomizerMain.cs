@@ -114,7 +114,8 @@ namespace MessengerRando
 
         List<DialogInfo> DialogSequence_GetDialogList(On.DialogSequence.orig_GetDialogList orig, DialogSequence self)
         {
-            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "SEED_NOT_BEATABLE"))
+            //Using this function to add some of my own dialog stuff to the game.
+            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM"))
             {
                 Console.WriteLine("Trying some rando dialog stuff.");
                 List<DialogInfo> dialogInfoList = new List<DialogInfo>();
@@ -123,10 +124,6 @@ namespace MessengerRando
                 {
                     case "RANDO_ITEM":
                         dialog.text = $"You have received item: '{self.name}'";
-                        break;
-                    case "SEED_NOT_BEATABLE":
-                        //TODO remove
-                        dialog.text = $"Seed '{self.name}' was not beatable. Submit again to retry.";
                         break;
                     default:
                         dialog.text = "???";
@@ -145,15 +142,22 @@ namespace MessengerRando
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
         {
 
-            LocationRO randoItemCheck = new LocationRO(itemId.ToString());
+            LocationRO randoItemCheck;
 
             if(itemId != EItems.TIME_SHARD) //killing the timeshard noise in the logs
             {
                 Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             }
 
+            /*
+            //Debug log
+            Console.WriteLine($"Checking if item collected should be randomized: Is a random file - {randoStateManager.IsRandomizedFile} | Is there and override on {itemId}: '{!RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId)}' | Mappings check contain this '{randoItemCheck.LocationName}': {randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)}");
+            
+            Console.WriteLine($"Will we handle this randomized item: '{(randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))}'");
+            */
+
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))
+            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && randoStateManager.IsLocationRandomized(itemId, out randoItemCheck))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 RandoItemRO randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
@@ -242,9 +246,9 @@ namespace MessengerRando
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
         {
             bool hasItem = false;
-            LocationRO check = new LocationRO(self.item.ToString());
+            LocationRO check;
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
-            if (randoStateManager.IsRandomizedFile && RandomizerConstants.GetRandoLocationList().Contains(check) && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
+            if (randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(self.item, out check) && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
             {
                 if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && RandomizerConstants.GetSpecialTriggerNames().Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
@@ -294,8 +298,8 @@ namespace MessengerRando
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
             //Need to handle note cutscene triggers so they will play as long as I dont have the actual item it grants
-            LocationRO noteCheck = new LocationRO(self.noteToAward.ToString());
-            if (randoStateManager.IsRandomizedFile && randoStateManager.CurrentLocationToItemMapping.ContainsKey(noteCheck)) //Double checking to prevent errors
+            LocationRO noteCheck;
+            if (randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(self.noteToAward, out noteCheck)) //Double checking to prevent errors
             {
                 Console.WriteLine($"Note cutscene check! Handling note '{self.noteToAward}' | Linked item: '{randoStateManager.CurrentLocationToItemMapping[noteCheck]}'");
                 //bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck].Item) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
@@ -314,10 +318,9 @@ namespace MessengerRando
 
         bool CutsceneHasPlayed_IsTrue(On.CutsceneHasPlayed.orig_IsTrue orig, CutsceneHasPlayed self)
         {
-            
-            if(randoStateManager.IsRandomizedFile && RandomizerConstants.GetCutsceneMappings().ContainsKey(self.cutsceneId))
+            LocationRO cutsceneCheck;
+            if (randoStateManager.IsRandomizedFile && RandomizerConstants.GetCutsceneMappings().ContainsKey(self.cutsceneId) && randoStateManager.IsLocationRandomized(RandomizerConstants.GetCutsceneMappings()[self.cutsceneId], out cutsceneCheck))
             {
-                LocationRO cutsceneCheck = new LocationRO(RandomizerConstants.GetCutsceneMappings()[self.cutsceneId].ToString());
 
                 //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
                 Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}");
@@ -400,22 +403,22 @@ namespace MessengerRando
         //Fixing necro cutscene check
         void CatacombLevelInitializer_OnBeforeInitDone(On.CatacombLevelInitializer.orig_OnBeforeInitDone orig, CatacombLevelInitializer self)
         {
-            
-            if(randoStateManager.IsRandomizedFile)
+            LocationRO necroLocation;
+            if(randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(EItems.NECROPHOBIC_WORKER, out necroLocation))
             {
                 //check to see if we already have the item at Necro check
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) <= 0 && !Manager<DemoManager>.Instance.demoMode)
-                if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]) && !Manager<DemoManager>.Instance.demoMode)
+                if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) && !Manager<DemoManager>.Instance.demoMode)
                 {
                     //Run the cutscene if we dont
-                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]}' from Necro check. Playing cutscene.");
+                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Playing cutscene.");
                     self.necrophobicWorkerCutscene.Play();
                 }
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) >= 1 || Manager<DemoManager>.Instance.demoMode)
-                if (randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]) || Manager<DemoManager>.Instance.demoMode)
+                if (randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) || Manager<DemoManager>.Instance.demoMode)
                 {
                     //set necro inactive if we do
-                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())]}' from Necro check. Will not play cutscene.");
+                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Will not play cutscene.");
                     self.necrophobicWorkerCutscene.phobekin.gameObject.SetActive(false);
                 }
                 //Call our overriden fixing function
@@ -564,8 +567,18 @@ namespace MessengerRando
         /// <returns></returns>
         private EItems GetRandoItemByItem(EItems item)
         {
-            Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())]}'");
-            return randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.RUXXTIN_AMULET.ToString())].Item;
+            LocationRO ruxxAmuletLocation;
+            
+            if(randoStateManager.IsLocationRandomized(item, out ruxxAmuletLocation))
+            {
+                Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation]}'");
+                return randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation].Item;
+            }
+            else
+            {
+                return item;
+            }
+            
         }
     }
 }

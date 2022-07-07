@@ -349,29 +349,5 @@ namespace MessengerRando.Utils
                     break;
             }
         }
-
-        private static void RecursiveBlockedItemCheck(HashSet<RandoItemRO> recursiveBlockedItems, ref HashSet<RandoItemRO> blockerItems)
-        {
-            foreach(RandoItemRO recursiveBlockedItem in recursiveBlockedItems)
-            {
-                //There are situations where a few items might block each other. I'm putting something here to protect against an infinite loop for now.
-                if (blockerItems.Contains(recursiveBlockedItem))
-                {
-                    //No need to add and look through again this run
-                    return;
-                }
-
-                //tempRequiredItems[origItem].Add(recursiveBlockedItem);
-                blockerItems.Add(recursiveBlockedItem);
-
-                HashSet<RandoItemRO> evenMoreRecursiveBlockedItems = new HashSet<RandoItemRO>();
-                
-
-                if(requiredItems.TryGetValue(recursiveBlockedItem, out evenMoreRecursiveBlockedItems))
-                {
-                    RecursiveBlockedItemCheck(evenMoreRecursiveBlockedItems, ref blockerItems);
-                }
-            }
-        }
     }
 }

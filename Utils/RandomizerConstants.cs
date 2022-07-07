@@ -64,7 +64,7 @@ namespace MessengerRando.Utils
         {
             List<RandoItemRO> randomizedItems = new List<RandoItemRO>();
 
-            randomizedItems.Add(new RandoItemRO("Money_Wrench", EItems.MONEY_WRENCH));
+            //randomizedItems.Add(new RandoItemRO("Money_Wrench", EItems.MONEY_WRENCH));
 
             randomizedItems.Add(new RandoItemRO("Timeshard_1", EItems.TIME_SHARD));
             randomizedItems.Add(new RandoItemRO("Timeshard_2", EItems.TIME_SHARD));
@@ -110,6 +110,7 @@ namespace MessengerRando.Utils
             randomizedItems.Add(new RandoItemRO("Timeshard_42", EItems.TIME_SHARD));
             randomizedItems.Add(new RandoItemRO("Timeshard_43", EItems.TIME_SHARD));
             randomizedItems.Add(new RandoItemRO("Timeshard_44", EItems.TIME_SHARD));
+            randomizedItems.Add(new RandoItemRO("Timeshard_45", EItems.TIME_SHARD));
 
             return randomizedItems;
         }
