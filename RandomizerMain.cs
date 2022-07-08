@@ -67,6 +67,7 @@ namespace MessengerRando
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
+            On.InventoryManager.GetItemQuantity += InventoryManager_GetItemQuantity;
             On.ProgressionManager.SetChallengeRoomAsCompleted += ProgressionManager_SetChallengeRoomAsCompleted;
             On.HasItem.IsTrue += HasItem_IsTrue;
             On.AwardNoteCutscene.ShouldPlay += AwardNoteCutscene_ShouldPlay;
@@ -149,12 +150,11 @@ namespace MessengerRando
                 Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             }
 
-            /*
-            //Debug log
-            Console.WriteLine($"Checking if item collected should be randomized: Is a random file - {randoStateManager.IsRandomizedFile} | Is there and override on {itemId}: '{!RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId)}' | Mappings check contain this '{randoItemCheck.LocationName}': {randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)}");
-            
-            Console.WriteLine($"Will we handle this randomized item: '{(randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && (randoStateManager.CurrentLocationToItemMapping.ContainsKey(randoItemCheck)))}'");
-            */
+            //Wierd Ruxxtin logic stuff
+            if(EItems.NONE.Equals(itemId))
+            {
+                Console.WriteLine("Looks like Ruxxtin has a timeshard.");
+            }
 
             //Lets make sure that the item they are collecting is supposed to be randomized
             if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && randoStateManager.IsLocationRandomized(itemId, out randoItemCheck))
@@ -290,9 +290,22 @@ namespace MessengerRando
             }
             else //Call orig method
             {
+                Console.WriteLine("HasItem check was not randomized. Doing vanilla checks.");
+                Console.WriteLine($"Is randomized file : '{randoStateManager.IsRandomizedFile}' | Is location '{self.item}' randomized: '{randoStateManager.IsLocationRandomized(self.item, out check)}' | Not in the special triggers list: '{!RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name)}'|");
                 return orig(self);
             }
             
+        }
+        
+        int InventoryManager_GetItemQuantity(On.InventoryManager.orig_GetItemQuantity orig, InventoryManager self, EItems item)
+        {
+            //Just doing some logging here
+            if (EItems.NONE.Equals(item))
+            {
+                Console.WriteLine($"INVENTORYMANAGER_GETITEMQUANTITY CALLED! Let's learn some stuff. Item: '{item}' | Quantity of said item: '{orig(self, item)}'");
+            }
+            
+            return orig(self, item);
         }
 
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
@@ -332,13 +345,13 @@ namespace MessengerRando
                 if(randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]))
                 {
                     //Return true, this cutscene has "been played"
-                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Returning that we have already seen cutscene.");
+                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have already seen cutscene.");
                     return self.mustHavePlayed == true;
                 }
                 else
                 {
                     //Havent seen the cutscene yet. Play it so i can get the item!
-                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Returning that we have not seen cutscene yet.");
+                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have not seen cutscene yet.");
                     return self.mustHavePlayed == false;
                 }
             }
@@ -387,6 +400,7 @@ namespace MessengerRando
                 Console.WriteLine($"This file slot ({fileSlot}) has no seed generated or is not a randomized file. Resetting the mappings and putting game items back to normal.");
                 randoStateManager.ResetRandomizerState();
             }
+
             orig(self, slotIndex);
         }
 
@@ -572,7 +586,18 @@ namespace MessengerRando
             if(randoStateManager.IsLocationRandomized(item, out ruxxAmuletLocation))
             {
                 Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation]}'");
-                return randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation].Item;
+
+                EItems randoItem = randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation].Item;
+                
+                if(EItems.TIME_SHARD.Equals(randoItem))
+                {
+                    /* Having a lot of problems with timeshards and the ruxxtin check due to it having some checks behind the scenes.
+                     * What I am trying is to change the item to the NONE value since that is expected to have no quantity. This will trick the cutscene into playing correctly the first time.
+                     * Checks after the first time rely on the collected items list so it shouldn't have any impact...
+                     */
+                    randoItem = EItems.NONE;
+                }
+                return randoItem;
             }
             else
             {

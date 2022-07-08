@@ -175,8 +175,16 @@ namespace MessengerRando
             }
 
             //If it wasn't a note we'll look through the rest of the items
-            if (!isLocationRandomized)
-            {
+            if (!isLocationRandomized){
+                
+                //Real quick, check Climbing Claws because it is special
+                if(EItems.CLIMBING_CLAWS.Equals(vanillaLocationItem))
+                {
+                    locationFromItem = new LocationRO("Climbing_Claws");
+                    return true;
+                }
+
+
                 foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
                 {
                     if (item.Item.Equals(vanillaLocationItem))

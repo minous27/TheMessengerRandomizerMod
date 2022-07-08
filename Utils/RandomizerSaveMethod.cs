@@ -113,19 +113,28 @@ namespace MessengerRando
                             string collectedItemsRaw = setting.Substring(setting.IndexOf(RANDO_OPTION_SETTING_VALUE_DELIM) + 1);
                             //split further to get each rando item
                             string[] collectedItems = collectedItemsRaw.Split(RANDO_OPTION_ITEM_DELIM);
+                            SaveGameSlot save = Manager<SaveManager>.Instance.GetSaveSlot(i - 1);
                             foreach (string collectedItem in collectedItems)
                             {
                                 try
                                 {
-                                    collectedRandoItemList.Add(RandoItemRO.ParseString(collectedItem));
-                                    Console.WriteLine($"Added item '{collectedItem}' to Collected Item pool for file slot '{i}'.");
+                                    RandoItemRO randoItemFromModSave = RandoItemRO.ParseString(collectedItem);
+
+                                    if(save.Items.ContainsKey(randoItemFromModSave.Item))
+                                    {
+                                        collectedRandoItemList.Add(randoItemFromModSave);
+                                        Console.WriteLine($"Added item '{collectedItem}' to Collected Item pool for file slot '{i}'.");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"Item '{randoItemFromModSave.Item}' was not in the game save so we are ignoring it.");
+                                    }
                                 }
                                 catch (Exception)
                                 {
                                     Console.WriteLine($"ERROR WHILE LOADING FROM MOD SAVE FILE: Found an item that could not be processed. Item in question '{collectedItem}'. Skipping item.");
                                     continue;
                                 }
-
                             }
                         }
                         else if (setting.StartsWith("Mappings="))

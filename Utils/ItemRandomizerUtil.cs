@@ -227,11 +227,6 @@ namespace MessengerRando.Utils
                 officialLocations.Add(location.LocationName, location);
             }
 
-            foreach(LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
-            {
-                officialLocations.Add(location.LocationName, location);
-            }
-
             foreach(RandoItemRO item in RandomizerConstants.GetRandoItemList())
             {
                 officialItems.Add(item.Name, item);
@@ -242,13 +237,28 @@ namespace MessengerRando.Utils
                 officialItems.Add(item.Name, item);
             }
 
+            //loading for advanced seeds
+            if (seed.Settings[SettingType.Difficulty].Equals(SettingValue.Advanced))
+            {
+                //locations
+                foreach (LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
+                {
+                    officialLocations.Add(location.LocationName, location);
+                }
+                //items
+                foreach (RandoItemRO item in RandomizerConstants.GetAdvancedRandoItemList())
+                {
+                    officialItems.Add(item.Name, item);
+                }
+            }
+
             //Split up all the mappings
             string[] mappingsArr = seed.MappingInfo.Split(',');
 
             foreach(string mappingStr in mappingsArr)
             {
                 //Split off the location and item string
-                string[] mappingArr = mappingStr.Split('-');
+                string[] mappingArr = mappingStr.Split('~');
                 LocationRO location = null;
                 RandoItemRO item = new RandoItemRO();
 
