@@ -1,26 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using MessengerRando.RO;
 
 namespace MessengerRando.Utils
 {
     class RandomizerConstants
     {
-        /* OLD
-        public static readonly EItems[] randomizedItems = new EItems[] {EItems.WINDMILL_SHURIKEN, EItems.WINGSUIT, EItems.GRAPLOU,
-            EItems.MAGIC_BOOTS, EItems.CANDLE, EItems.SEASHELL, EItems.POWER_THISTLE, EItems.DEMON_KING_CROWN, EItems.RUXXTIN_AMULET,
-            EItems.FAIRY_BOTTLE, EItems.SUN_CREST, EItems.MOON_CREST, EItems.NECROPHOBIC_WORKER, EItems.PYROPHOBIC_WORKER, EItems.CLAUSTROPHOBIC_WORKER, EItems.ACROPHOBIC_WORKER};
-
-        public static readonly EItems[] randomizedAdvancedItems = new EItems[] { EItems.FEATHER, EItems.FEATHER, EItems.FEATHER, EItems.FEATHER,
-            EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE, EItems.MASK_PIECE,
-            EItems.MONEY_WRENCH, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION, EItems.POTION,
-            EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD,
-            EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD, EItems.TIME_SHARD};
-
-        public static readonly EItems[] notes = new EItems[] { EItems.KEY_OF_HOPE, EItems.KEY_OF_CHAOS, EItems.KEY_OF_COURAGE, EItems.KEY_OF_LOVE, EItems.KEY_OF_STRENGTH, EItems.KEY_OF_SYMBIOSIS };
-        */
+        
         public static List<RandoItemRO> GetNotesList()
         {
             List<RandoItemRO> notes = new List<RandoItemRO>();
@@ -63,8 +48,6 @@ namespace MessengerRando.Utils
         public static List<RandoItemRO> GetAdvancedRandoItemList()
         {
             List<RandoItemRO> randomizedItems = new List<RandoItemRO>();
-
-            //randomizedItems.Add(new RandoItemRO("Money_Wrench", EItems.MONEY_WRENCH));
 
             randomizedItems.Add(new RandoItemRO("Timeshard_1", EItems.TIME_SHARD));
             randomizedItems.Add(new RandoItemRO("Timeshard_2", EItems.TIME_SHARD));

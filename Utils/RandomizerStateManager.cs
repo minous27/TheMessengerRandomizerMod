@@ -52,11 +52,17 @@ namespace MessengerRando
             noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
+        /// <summary>
+        /// Add seed to state's collection of seeds, providing all the necessary info to create the SeedRO object.
+        /// </summary>
         public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, string mappingJson)
         {
             AddSeed(new SeedRO(fileSlot, seedType, seed, settings, collectedItems, mappingJson));
         }
 
+        /// <summary>
+        /// Add seed to state's collection of seeds.
+        /// </summary>
         public void AddSeed(SeedRO seed)
         {
             seeds[seed.FileSlot] = seed;
@@ -71,6 +77,9 @@ namespace MessengerRando
             return seeds[fileSlot];
         }
 
+        /// <summary>
+        /// Reset's the state's seed for the provided file slot. This will replace the seed with an empty seed, telling the mod this fileslot is not randomized.
+        /// </summary>
         public void ResetSeedForFileSlot(int fileSlot)
         {
             //Simply keeping resetting logic here in case I want to change it i'll only do so here
@@ -82,6 +91,10 @@ namespace MessengerRando
             Console.WriteLine("File slot reset complete.");
         }
 
+        /// <summary>
+        /// Checks to see if a seed exists for the given file slot.
+        /// </summary>
+        /// <returns>true if a seed was found and that the seed has a non-zero seed number and that seed does not have a NONE seed type. False otherwise.</returns>
         public bool HasSeedForFileSlot(int fileSlot)
         {
             bool seedFound = false;

@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using MessengerRando.RO;
 using MessengerRando.Utils;
-using Mod.Courier.Save;
 
 namespace MessengerRando
 {
-    
-    //Format for the mod save value: |seed1+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value|seed2+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value|seed3+seedType&seedOption1=seedOption1Value&seedOption2=seedOption2Value
+
+    //Format for the mod save value: |{seed#}+{isLogicalSeed}&{Settings}&CollectedItems={collectedItems}&Mappings={mappingString}
     public class RandomizerSaveMethod 
     {
         private const char RANDO_OPTION_VALUE_DELIM = '|';

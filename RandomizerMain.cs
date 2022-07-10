@@ -8,7 +8,6 @@ using Mod.Courier.Module;
 using Mod.Courier.UI;
 using MonoMod.Cil;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 using MessengerRando.Exceptions;
@@ -52,8 +51,8 @@ namespace MessengerRando
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
 
-            //Add generate random seed mod option button
-            loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry), 1, () => "Which save slot would you like to start a rando seed?", () => "1", CharsetFlags.Number);
+            //Add load seed file button
+            loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry), 1, () => "Which save slot would you like to start a rando seed?(1/2/3)", () => "1", CharsetFlags.Number);
 
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);

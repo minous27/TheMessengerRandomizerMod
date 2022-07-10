@@ -1,5 +1,4 @@
 ﻿
-
 namespace MessengerRando.RO
 {
     public class LocationRO

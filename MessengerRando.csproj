@@ -77,14 +77,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Exceptions\RandomizerNoMoreLocationsException.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />
-    <Compile Include="UI\RandoTextAlert.cs" />
     <Compile Include="Utils\RandoSave.cs" />
     <Compile Include="Utils\SettingValue.cs" />
     <Compile Include="Utils\SettingType.cs" />

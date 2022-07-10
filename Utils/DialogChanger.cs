@@ -1,10 +1,7 @@
-﻿using JetBrains.Annotations;
-using MessengerRando.RO;
+﻿using MessengerRando.RO;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace MessengerRando.Utils
 {
@@ -51,7 +48,6 @@ namespace MessengerRando.Utils
             itemDialogID.Add(EItems.CLAUSTROPHOBIC_WORKER, "FIND_CLAUSTRO");
 
             return itemDialogID;
-
         }
 
 
@@ -76,13 +72,9 @@ namespace MessengerRando.Utils
         /// 
         public static Dictionary<string, string> GenerateDialogMappingforItems()
         {
-
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
-
             Dictionary<EItems, string> ItemtoDialogIDMap = GetDialogIDtoItems();
-
             Dictionary<LocationRO, RandoItemRO> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-
 
             foreach (KeyValuePair<LocationRO, RandoItemRO> KVP in current)
             {
@@ -95,13 +87,9 @@ namespace MessengerRando.Utils
                     dialogmap.Add(ItemtoDialogIDMap[LocationChecked], ItemtoDialogIDMap[ItemActuallyFound.Item]);
                     Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound.Item]} to the location {ItemtoDialogIDMap[LocationChecked]}");
                 }
-
             }
             return dialogmap;
         }
-
-
-
 
         /// <summary>
         /// Runs whenever the locale is loaded\changed. This should allow it to work in any language.
@@ -153,8 +141,6 @@ namespace MessengerRando.Utils
                         //Replaces the entire dialog
                         LocCopy[tobereplacedKey] = Loc[replacewithKey];
 
-
-
                         //Sets them to be all center and no portrait (This really only applies to phobekins but was 
                         LocCopy[tobereplacedKey][0].autoClose = false;
                         LocCopy[tobereplacedKey][0].autoCloseDelay = 0;
@@ -162,7 +148,6 @@ namespace MessengerRando.Utils
                         LocCopy[tobereplacedKey][0].forcedPortraitOrientation = 0;
                         LocCopy[tobereplacedKey][0].position = EDialogPosition.CENTER;
                         LocCopy[tobereplacedKey][0].skippable = true;
-
 
                         //This will replace the dialog for a phobekin to be its name in an award text
                         switch (replacewithKey)
@@ -198,7 +183,6 @@ namespace MessengerRando.Utils
                         {
                             LocCopy[tobereplacedKey].RemoveAt(i);
                         }
-
                     }
                 }
                 //Sets the replacements
@@ -219,14 +203,8 @@ namespace MessengerRando.Utils
                             eventHandler.Method.Invoke(eventHandler.Target, null);
                         }
                     }
-
                 }
-
             }
-
-
-
-
         }
     }
 }

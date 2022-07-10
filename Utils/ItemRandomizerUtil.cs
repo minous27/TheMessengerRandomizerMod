@@ -3,7 +3,6 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using System.Threading;
 using Mod.Courier;
 using Mod.Courier.Module;
 using MessengerRando.RO;
@@ -18,22 +17,10 @@ namespace MessengerRando.Utils
         //Used to represent all the required items to complete this seed, along with what they currently block. This is to prevent self locks. 
         private static Dictionary<RandoItemRO, HashSet<RandoItemRO>> requiredItems = new Dictionary<RandoItemRO, HashSet<RandoItemRO>>();
 
-        //Checks to see if all expected notes have already been collected
-        public static bool HasAllNotes()
-        {
-            if (Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_CHAOS) > 0
-                && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_COURAGE) > 0
-                && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_HOPE) > 0
-                && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_LOVE) > 0
-                && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_STRENGTH) > 0
-                && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.KEY_OF_SYMBIOSIS) > 0)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        //Get the version number, returns "Unknown" if it has trouble getting the version number.
+        /// <summary>
+        /// Gets the current version number for the mod.
+        /// </summary>
+        /// <returns>the version number or "Unknown" if it has trouble getting the version number.</returns>
         public static string GetModVersion()
         {
             string version = "Unknown";
@@ -45,18 +32,26 @@ namespace MessengerRando.Utils
                     version = modMetadata.VersionString;
                 }
             }
-
             return version;
         }
         
+        /// <summary>
+        /// Loads mappings file from disk.
+        /// </summary>
+        /// <param name="fileSlot">file slot number(1/2/3)</param>
+        /// <returns>String containing encrypted mappings contents from file</returns>
         public static string LoadMappingsFromFile(int fileSlot)
         {
             //Get a handle on the necessary mappings file
             Console.WriteLine($"Attempting to load mappings from file for file slot '{fileSlot}'");
-            return File.ReadAllText($@"Mods\TheMessengerRandomizer\Mappings\MessengerRandomizerMapping_{fileSlot}.txt");
+            return File.ReadAllText($@"Mods\TheMessengerRandomizerMappings\MessengerRandomizerMapping_{fileSlot}.txt");
         }
 
-        //I want to simulate running through a seed and checking all I can with what Items I have.
+        /// <summary>
+        /// Helped method from testing that a collection of mappings is indeed completeable.
+        /// </summary>
+        /// <param name="mappings">Mappings collection to test</param>
+        /// <returns>true if seed was beatable, false otherwise.</returns>
         public static bool IsSeedBeatable(Dictionary<LocationRO, RandoItemRO> mappings)
         {
             //Create an player that will be used to track progress.
@@ -159,6 +154,11 @@ namespace MessengerRando.Utils
             return true;
         }
 
+        /// <summary>
+        /// Performs decryption of seed info that would have been previously recieved from mappings file.
+        /// </summary>
+        /// <param name="b64SeedInfo">Encypted mappings string to decrypt</param>
+        /// <returns>Decrypted string of mappings.</returns>
         public static string DecryptSeedInfo(string b64SeedInfo)
         {
             //We'll need to take the b64 string and decrypt it so we can get the seed info.
@@ -172,10 +172,14 @@ namespace MessengerRando.Utils
             return seedInfo;
         }
 
+        /// <summary>
+        /// Parses a seed info string into a SeedRO object.
+        /// </summary>
+        /// <param name="fileSlot">Fileslot number to add to seed object(1/2/3)</param>
+        /// <param name="seedInfo">Unparsed, decypted seed info string</param>
+        /// <returns>SeedRO object representing this seed.</returns>
         public static SeedRO ParseSeed(int fileSlot, string seedInfo)
         {
-
-
             //Break up mapping string
             string[] fullSeedInfoArr = seedInfo.Split('|');
 
@@ -214,6 +218,11 @@ namespace MessengerRando.Utils
             return new SeedRO(fileSlot,seedType,seedNum, settings, null, mappingText);
         }
 
+        /// <summary>
+        /// Parses the mappings string from the seed to create the mappings collection for this seed.
+        /// </summary>
+        /// <param name="seed">Seed whos mappings we wish to parse.</param>
+        /// <returns>Collection of mappings.</returns>
         public static Dictionary<LocationRO, RandoItemRO> ParseLocationToItemMappings(SeedRO seed)
         {
             //Prep

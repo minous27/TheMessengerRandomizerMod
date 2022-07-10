@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using MessengerRando.Utils;
 
@@ -9,7 +8,6 @@ namespace MessengerRando.RO
     [Serializable]
     public struct SeedRO
     {
-
         public int FileSlot { get; set; }
         // Type of seed so we know what logic to run against it.
         public SeedType SeedType { get; set; }
