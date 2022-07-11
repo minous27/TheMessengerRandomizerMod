@@ -9,13 +9,17 @@ namespace MessengerRando
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
-        public Dictionary<LocationRO, EItems> CurrentLocationToItemMapping { set; get; }
+        public Dictionary<LocationRO, RandoItemRO> CurrentLocationToItemMapping { set; get; }
+
         public bool IsRandomizedFile { set; get; }
-        
+        public int CurrentFileSlot { set; get; }
+
         private Dictionary<int, SeedRO> seeds;
 
         private Dictionary<EItems, bool> noteCutsceneTriggerStates;
         public Dictionary<string, string> CurrentLocationDialogtoRandomDialogMapping { set; get; }
+        //This overrides list will be used to track items that, during the giving of items in any particular moment, need to ignore rando logic and just hand the item over.
+        private List<EItems> temporaryRandoOverrides;
 
         public static void Initialize()
         {
@@ -29,8 +33,12 @@ namespace MessengerRando
         {
             //Create initial values for the state machine
             this.seeds = new Dictionary<int, SeedRO>();
-            this.ResetCurrentLocationToItemMappings();
+
+            
+
+            this.ResetRandomizerState();
             this.initializeCutsceneTriggerStates();
+            this.temporaryRandoOverrides = new List<EItems>();
         }
 
         private void initializeCutsceneTriggerStates()
@@ -44,33 +52,49 @@ namespace MessengerRando
             noteCutsceneTriggerStates.Add(EItems.KEY_OF_SYMBIOSIS, false);
         }
 
-        public void AddSeed(int fileSlot, SeedType seedType, int seed)
+        /// <summary>
+        /// Add seed to state's collection of seeds, providing all the necessary info to create the SeedRO object.
+        /// </summary>
+        public void AddSeed(int fileSlot, SeedType seedType, int seed, Dictionary<SettingType, SettingValue> settings, List<RandoItemRO> collectedItems, string mappingJson)
         {
-            seeds[fileSlot] = new SeedRO(seedType, seed);
+            AddSeed(new SeedRO(fileSlot, seedType, seed, settings, collectedItems, mappingJson));
+        }
+
+        /// <summary>
+        /// Add seed to state's collection of seeds.
+        /// </summary>
+        public void AddSeed(SeedRO seed)
+        {
+            seeds[seed.FileSlot] = seed;
         }
 
         public SeedRO GetSeedForFileSlot(int fileSlot)
         {
-            SeedRO seed = new SeedRO();
-
-            if (seeds.ContainsKey(fileSlot))
+            if (!seeds.ContainsKey(fileSlot))
             {
-                seed = seeds[fileSlot];
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
             }
-            return seed;
+            return seeds[fileSlot];
         }
 
+        /// <summary>
+        /// Reset's the state's seed for the provided file slot. This will replace the seed with an empty seed, telling the mod this fileslot is not randomized.
+        /// </summary>
         public void ResetSeedForFileSlot(int fileSlot)
         {
             //Simply keeping resetting logic here in case I want to change it i'll only do so here
             Console.WriteLine($"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
-                seeds[fileSlot] = new SeedRO(SeedType.None, 0);
+                seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
             }
             Console.WriteLine("File slot reset complete.");
         }
 
+        /// <summary>
+        /// Checks to see if a seed exists for the given file slot.
+        /// </summary>
+        /// <returns>true if a seed was found and that the seed has a non-zero seed number and that seed does not have a NONE seed type. False otherwise.</returns>
         public bool HasSeedForFileSlot(int fileSlot)
         {
             bool seedFound = false;
@@ -83,9 +107,9 @@ namespace MessengerRando
             return seedFound;
         }
 
-        public void ResetCurrentLocationToItemMappings()
+        public void ResetRandomizerState()
         {
-            CurrentLocationToItemMapping = new Dictionary<LocationRO, EItems>();
+            CurrentLocationToItemMapping = new Dictionary<LocationRO, RandoItemRO>();
             this.IsRandomizedFile = false;
         }
 
@@ -97,6 +121,21 @@ namespace MessengerRando
         public void SetNoteCutsceneTriggered(EItems note)
         {
             this.noteCutsceneTriggerStates[note] = true;
+        }
+
+        public void AddTempRandoItemOverride(EItems randoItem)
+        {
+            temporaryRandoOverrides.Add(randoItem);
+        }
+
+        public void RemoveTempRandoItemOverride(EItems randoItem)
+        {
+            temporaryRandoOverrides.Remove(randoItem);
+        }
+
+        public bool HasTempOverrideOnRandoItem(EItems randoItem)
+        {
+            return temporaryRandoOverrides.Contains(randoItem);
         }
 
         public bool IsSafeTeleportState()
@@ -117,24 +156,107 @@ namespace MessengerRando
         }
 
         /// <summary>
+        /// Check through the mappings for any location that is represented by vanilla location item(since that is the key used to uniquely identify locations).
+        /// </summary>
+        /// <param name="vanillaLocationItem">EItem being used to look up location.</param>
+        /// <param name="locationFromItem">Out parameter used to return the location found.</param>
+        /// <returns>true if location was found, otherwise false(location item will be null in this case)</returns>
+        public bool IsLocationRandomized(EItems vanillaLocationItem, out LocationRO locationFromItem)
+        {
+            bool isLocationRandomized = false;
+            locationFromItem = null;
+
+            //We'll check through notes first
+            foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
+            {
+                if (note.Item.Equals(vanillaLocationItem))
+                {
+                    
+                    locationFromItem = new LocationRO(note.Name);
+
+                    if (CurrentLocationToItemMapping.ContainsKey(locationFromItem))
+                    {
+                        isLocationRandomized = true;
+                    }
+                    else
+                    {
+                        //Then we know for certain it was not randomized. No reason to continue.
+                        locationFromItem = null;
+                        return false;
+                    }
+                }
+            }
+
+            //If it wasn't a note we'll look through the rest of the items
+            if (!isLocationRandomized){
+                
+                //Real quick, check Climbing Claws because it is special
+                if(EItems.CLIMBING_CLAWS.Equals(vanillaLocationItem))
+                {
+                    locationFromItem = new LocationRO("Climbing_Claws");
+                    return true;
+                }
+
+
+                foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
+                {
+                    if (item.Item.Equals(vanillaLocationItem))
+                    { 
+
+                        locationFromItem = new LocationRO(item.Name);
+
+                        if (CurrentLocationToItemMapping.ContainsKey(locationFromItem))
+                        {
+                            isLocationRandomized = true;
+                        }
+                        else
+                        {
+                            //Then we know for certain it was not randomized.
+                            locationFromItem = null;
+                            return false;
+                        }
+
+                    }
+                }
+            }
+
+            //Return whether we found it or not.
+            return isLocationRandomized;
+        }
+
+        /// <summary>
         /// Helper method to log out the current mappings all nicely for review
         /// </summary>
         public void LogCurrentMappings()
         {
-            Console.WriteLine("----------------BEGIN Current Mappings----------------");
-            foreach(LocationRO check in this.CurrentLocationToItemMapping.Keys)
+            if(this.CurrentLocationToItemMapping != null)
             {
-                Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.LocationName}'");
+                Console.WriteLine("----------------BEGIN Current Mappings----------------");
+                foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
+                {
+                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                    //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
+                }
+                Console.WriteLine("----------------END Current Mappings----------------");
             }
-            Console.WriteLine("----------------END Current Mappings----------------");
-
-            Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
-            foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+            else
             {
-                Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                Console.WriteLine("Location mappings were not set for this seed.");
             }
-            Console.WriteLine("----------------END Current Dialog Mappings----------------");
 
+            if (CurrentLocationDialogtoRandomDialogMapping != null)
+            {
+                Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+                foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
+                {
+                    Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                }
+                Console.WriteLine("----------------END Current Dialog Mappings----------------");
+            }
+            else
+            {
+                Console.WriteLine("Dialog mappings were not set for this seed.");
+            }
         }
 
     }

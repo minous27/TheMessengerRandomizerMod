@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace MessengerRando.Exceptions
 {
@@ -9,17 +10,18 @@ namespace MessengerRando.Exceptions
     {
         public RandomizerException()
         {
-
         }
 
         public RandomizerException(string message) : base(message)
         {
-
         }
 
-        public RandomizerException(string message, Exception inner) : base(message, inner)
+        public RandomizerException(string message, Exception innerException) : base(message, innerException)
         {
+        }
 
+        protected RandomizerException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
         }
     }
 }
