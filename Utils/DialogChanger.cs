@@ -47,6 +47,9 @@ namespace MessengerRando.Utils
             itemDialogID.Add(EItems.NECROPHOBIC_WORKER, "NECRO_PHOBEKIN_DIALOG");
             itemDialogID.Add(EItems.CLAUSTROPHOBIC_WORKER, "FIND_CLAUSTRO");
 
+            //Trying out timeshard
+            itemDialogID.Add(EItems.TIME_SHARD, "AWARD_TIMESHARD");
+
             return itemDialogID;
         }
 
@@ -73,9 +76,9 @@ namespace MessengerRando.Utils
         public static Dictionary<string, string> GenerateDialogMappingforItems()
         {
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
-            Dictionary<EItems, string> ItemtoDialogIDMap = GetDialogIDtoItems();
+            Dictionary<EItems, string> itemToDialogIDMap = GetDialogIDtoItems();
             Dictionary<LocationRO, RandoItemRO> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-
+            /* OLD
             foreach (KeyValuePair<LocationRO, RandoItemRO> KVP in current)
             {
                 Console.WriteLine($"Dialog mapping -- {KVP.Key.PrettyLocationName}");
@@ -88,6 +91,22 @@ namespace MessengerRando.Utils
                     Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound.Item]} to the location {ItemtoDialogIDMap[LocationChecked]}");
                 }
             }
+            */
+            
+            //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
+            foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
+            {
+                Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
+                EItems locationChecked = (EItems)Enum.Parse(typeof(EItems),location.PrettyLocationName);
+                RandoItemRO itemActuallyFound = current[location];
+                
+                if(itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
+                {
+                    dialogmap.Add(itemToDialogIDMap[locationChecked], itemToDialogIDMap[itemActuallyFound.Item]);
+                    Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
+                }
+            }
+
             return dialogmap;
         }
 
@@ -139,7 +158,18 @@ namespace MessengerRando.Utils
                     if (dialogMap.ContainsKey(tobereplacedKey))
                     {
                         //Replaces the entire dialog
-                        LocCopy[tobereplacedKey] = Loc[replacewithKey];
+                        if("AWARD_TIMESHARD".Equals(replacewithKey))
+                        {
+                            //Timeshards don't have their own dialog. Gonna try to fake it.
+                            DialogInfo timeShardDialog = new DialogInfo();
+                            timeShardDialog.text = "Got a timeshard for your troubles.";
+                            LocCopy[tobereplacedKey] = new List<DialogInfo>();
+                            LocCopy[tobereplacedKey].Add(timeShardDialog);
+                        }
+                        else
+                        {
+                            LocCopy[tobereplacedKey] = Loc[replacewithKey];
+                        }
 
                         //Sets them to be all center and no portrait (This really only applies to phobekins but was 
                         LocCopy[tobereplacedKey][0].autoClose = false;
