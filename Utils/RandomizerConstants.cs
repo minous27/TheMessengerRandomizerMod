@@ -158,8 +158,8 @@ namespace MessengerRando.Utils
             advancedRandomizedLocations.Add(new LocationRO("172236-44-28", "Bamboo Creek Seal - Spike ball pits", new EItems[] { EItems.NONE }, true, false, false)); //Spike ball pits
             advancedRandomizedLocations.Add(new LocationRO("300332-1236", "Bamboo Creek Seal - Spike crushers and Doors v2", new EItems[] { EItems.NONE }, true, false, false)); //Spike crushers and doors v2
             //Howling Grotto
-            advancedRandomizedLocations.Add(new LocationRO("108140-28-12", "Howling Grotto Seal - Windy Saws and Balls", new EItems[] { EItems.NONE }, false, false, false)); //Windy Saws and Balls
-            advancedRandomizedLocations.Add(new LocationRO("300332-92-76", "Howling Grotto Seal - Crushing Pits", new EItems[] { EItems.NONE }, false, false, false)); //Crushing Pits
+            advancedRandomizedLocations.Add(new LocationRO("108140-28-12", "Howling Grotto Seal - Windy Saws and Balls", new EItems[] { EItems.NONE }, true, false, false)); //Windy Saws and Balls *Use to be free, might still be in a Hard mode?*
+            advancedRandomizedLocations.Add(new LocationRO("300332-92-76", "Howling Grotto Seal - Crushing Pits", new EItems[] { EItems.NONE }, true, true, false)); //Crushing Pits *Use to be free, might still be in a Hard mode?*
             advancedRandomizedLocations.Add(new LocationRO("460492-172-156", "Howling Grotto Seal - Breezy Crushers", new EItems[] { EItems.NONE }, false, false, false)); //Breezy Crushers
             //Quillshroom Marsh
             advancedRandomizedLocations.Add(new LocationRO("204236-28-12", "Quillshroom Marsh Seal - Spikey Window", new EItems[] { EItems.NONE }, false, false, false)); //Spikey Window
