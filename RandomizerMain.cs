@@ -81,6 +81,7 @@ namespace MessengerRando
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
+            On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
@@ -458,6 +459,27 @@ namespace MessengerRando
                 cursor.EmitDelegate<Func<EItems, EItems>>(GetRandoItemByItem);
             }
             
+        }
+
+        bool UpgradeButtonData_IsStoryUnlocked(On.UpgradeButtonData.orig_IsStoryUnlocked orig, UpgradeButtonData self)
+        {
+            bool isUnlocked;
+
+            //Checking if this particular upgrade is the glide attack
+            if(EShopUpgradeID.GLIDE_ATTACK.Equals(self.upgradeID))
+            {
+                //Unlock the glide attack (no need to keep it hidden, player can just buy it whenever they want.
+                isUnlocked = true;
+            }
+            else
+            {
+                isUnlocked = orig(self);
+            }
+
+            //I think there is where I can catch things like checks for the wingsuit attack upgrade.
+            Console.WriteLine($"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
+
+            return isUnlocked;
         }
 
         /*TODO Maybe use later, for now will not take a file name
