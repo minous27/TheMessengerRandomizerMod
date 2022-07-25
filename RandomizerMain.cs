@@ -28,6 +28,7 @@ namespace MessengerRando
         TextEntryButtonInfo loadRandomizerFileForFileSlotButton;
   
         SubMenuButtonInfo versionButton;
+        SubMenuButtonInfo seedNumButton;
 
         SubMenuButtonInfo windmillShurikenToggleButton;
         SubMenuButtonInfo teleportToHqButton;
@@ -50,6 +51,9 @@ namespace MessengerRando
 
             //Add Randomizer Version button
             versionButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Messenger Randomizer: v" + ItemRandomizerUtil.GetModVersion(), null);
+
+            //Add current seed number button
+            seedNumButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Current seed number: " + GetCurrentSeedNum(), null);
 
             //Add load seed file button
             loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry), 1, () => "Which save slot would you like to start a rando seed?(1/2/3)", () => "1", CharsetFlags.Number);
@@ -77,6 +81,7 @@ namespace MessengerRando
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
+            On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
@@ -92,7 +97,8 @@ namespace MessengerRando
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
-            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState()); 
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
+            seedNumButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE);
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -374,17 +380,8 @@ namespace MessengerRando
                
                 //Load mappings
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
 
-                //for now, only turn on dialog mappings for basic seeds
-                SettingValue currentDifficultySetting = SettingValue.Advanced;
-                randoStateManager.GetSeedForFileSlot(fileSlot).Settings.TryGetValue(SettingType.Difficulty, out currentDifficultySetting);
-                
-                //Currently only doing dialog mapping for basic seeds.
-                if (currentDifficultySetting.Equals(SettingValue.Basic))
-                {
-                    randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
-                }
- 
                 randoStateManager.IsRandomizedFile = true;
                 randoStateManager.CurrentFileSlot = fileSlot;
                 //Log spoiler log
@@ -462,6 +459,27 @@ namespace MessengerRando
                 cursor.EmitDelegate<Func<EItems, EItems>>(GetRandoItemByItem);
             }
             
+        }
+
+        bool UpgradeButtonData_IsStoryUnlocked(On.UpgradeButtonData.orig_IsStoryUnlocked orig, UpgradeButtonData self)
+        {
+            bool isUnlocked;
+
+            //Checking if this particular upgrade is the glide attack
+            if(EShopUpgradeID.GLIDE_ATTACK.Equals(self.upgradeID))
+            {
+                //Unlock the glide attack (no need to keep it hidden, player can just buy it whenever they want.
+                isUnlocked = true;
+            }
+            else
+            {
+                isUnlocked = orig(self);
+            }
+
+            //I think there is where I can catch things like checks for the wingsuit attack upgrade.
+            Console.WriteLine($"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
+
+            return isUnlocked;
         }
 
         /*TODO Maybe use later, for now will not take a file name
@@ -603,6 +621,18 @@ namespace MessengerRando
                 return item;
             }
             
+        }
+
+        private string GetCurrentSeedNum()
+        {
+            string seedNum = "Unknown";
+
+            if(randoStateManager != null && randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).Seed > 0)
+            {
+                seedNum = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).Seed.ToString();
+            }
+
+            return seedNum;
         }
     }
 }
