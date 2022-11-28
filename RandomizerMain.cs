@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Diagnostics;
 using MessengerRando.Overrides;
 using MessengerRando.Utils;
 using MessengerRando.RO;
@@ -26,6 +28,7 @@ namespace MessengerRando
         private RandomizerSaveMethod randomizerSaveMethod;
 
         TextEntryButtonInfo loadRandomizerFileForFileSlotButton;
+        TextEntryButtonInfo resetRandoSaveFileButton;
   
         SubMenuButtonInfo versionButton;
         SubMenuButtonInfo seedNumButton;
@@ -58,6 +61,9 @@ namespace MessengerRando
             //Add load seed file button
             loadRandomizerFileForFileSlotButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Load Randomizer File For File Slot", (entry) => OnEnterFileSlot(entry), 1, () => "Which save slot would you like to start a rando seed?(1/2/3)", () => "1", CharsetFlags.Number);
 
+            //Add Reset rando mod button
+            resetRandoSaveFileButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Reset Randomizer File Slot", (entry) => OnRandoFileResetConfirmation(entry), 1, () => "Are you sure you wish to reset your save file for randomizer play?(y/n)", () => "n", CharsetFlags.Letter);
+
             //Add windmill shuriken toggle button
             windmillShurikenToggleButton = Courier.UI.RegisterSubMenuModOptionButton(() => Manager<ProgressionManager>.Instance.useWindmillShuriken ? "Active Regular Shurikens" : "Active Windmill Shurikens", OnToggleWindmillShuriken);
 
@@ -85,6 +91,7 @@ namespace MessengerRando
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
+            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
 
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -93,12 +100,15 @@ namespace MessengerRando
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             loadRandomizerFileForFileSlotButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            resetRandoSaveFileButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
             teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
             seedNumButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE);
+
+            SceneManager.sceneLoaded += OnSceneLoadedRando;
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -309,9 +319,17 @@ namespace MessengerRando
             {
                 Console.WriteLine($"INVENTORYMANAGER_GETITEMQUANTITY CALLED! Let's learn some stuff. Item: '{item}' | Quantity of said item: '{orig(self, item)}'");
             }
-            
+            //Manager<LevelManager>.Instance.onLevelLoaded
             return orig(self, item);
         }
+
+        System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
+        {
+            Console.WriteLine($"Scene '{scene.name}' loaded.");
+
+            return orig(self, scene);
+        }
+
 
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
@@ -482,36 +500,6 @@ namespace MessengerRando
             return isUnlocked;
         }
 
-        /*TODO Maybe use later, for now will not take a file name
-        //On submit of rando file name
-        bool OnEnterRandoFileName(string fileName)
-        {
-            Console.WriteLine($"File name received: {fileName}");
-            randoFileName = fileName;
-
-            //Pop up next input for which file slot to create this file in
-            TextEntryPopup fileSlotPopup = InitTextEntryPopup(generateSeedButton.addedTo, "Which save slot would you like to start a rando seed?", (entry) => OnEnterRandoFileSlot(entry), 1, null, CharsetFlags.Number);
-            fileSlotPopup.onBack += () =>
-            {
-                fileSlotPopup.gameObject.SetActive(false);
-                generateSeedButton.textEntryPopup.gameObject.SetActive(true);
-                generateSeedButton.textEntryPopup.StartCoroutine(generateSeedButton.textEntryPopup.BackWhenBackButtonReleased());
-            };
-            generateSeedButton.textEntryPopup.gameObject.SetActive(false);
-            
-            //Initialize the file slot popup
-            fileSlotPopup.Init(string.Empty);
-            fileSlotPopup.gameObject.SetActive(true);
-            fileSlotPopup.transform.SetParent(generateSeedButton.addedTo.transform.parent);
-            generateSeedButton.addedTo.gameObject.SetActive(false);
-            Canvas.ForceUpdateCanvases();
-            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = false;
-            EventSystem.current.SetSelectedGameObject(fileSlotPopup.initialSelection);
-            fileSlotPopup.initialSelection.GetComponent<UIObjectAudioHandler>().playAudio = true;
-            return false;
-        }
-        */
-
         ///On submit of rando file location
         bool OnEnterFileSlot(string fileSlot)
         {
@@ -538,6 +526,32 @@ namespace MessengerRando
 
             //Save
             Save.seedData = randomizerSaveMethod.GenerateSaveData();
+
+            return true;
+        }
+
+        bool OnRandoFileResetConfirmation(string answer)
+        {
+            Console.WriteLine($"In Method: OnResetRandoFileSlot. Provided value: '{answer}'");
+            
+            if(!"y".Equals(answer.ToLowerInvariant()))
+            {
+                return true;
+            }
+
+            string path = Application.persistentDataPath + "/SaveGame.txt";
+            using (StreamWriter sw = File.CreateText(path))
+            {
+                sw.WriteLine(RandomizerConstants.SAVE_FILE_STRING);
+            }
+            
+            Console.WriteLine("Save file written. Now loading file.");
+            Manager<SaveManager>.Instance.LoadSaveGame();
+            //Delete the existing save file selection ui since it really wants to hold on to the previous saves data.
+            GameObject.Destroy(Manager<UIManager>.Instance.GetView<SaveGameSelectionScreen>().gameObject);
+            //Reinit the save file selection ui.
+            SaveGameSelectionScreen selectionScreen = Manager<UIManager>.Instance.ShowView<SaveGameSelectionScreen>(EScreenLayers.MAIN, null, false, AnimatorUpdateMode.Normal);
+            selectionScreen.GoOffscreenInstant();
 
             return true;
         }
@@ -633,6 +647,11 @@ namespace MessengerRando
             }
 
             return seedNum;
+        }
+
+        private void OnSceneLoadedRando(Scene scene, LoadSceneMode mode)
+        {
+            Console.WriteLine($"Scene loaded: '{scene.name}'");
         }
     }
 }
