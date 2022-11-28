@@ -91,6 +91,7 @@ namespace MessengerRando
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
+            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
 
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -99,12 +100,15 @@ namespace MessengerRando
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
             loadRandomizerFileForFileSlotButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            resetRandoSaveFileButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
             teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
             seedNumButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE);
+
+            SceneManager.sceneLoaded += OnSceneLoadedRando;
 
             //Options always available
             versionButton.IsEnabled = () => true;
@@ -315,9 +319,17 @@ namespace MessengerRando
             {
                 Console.WriteLine($"INVENTORYMANAGER_GETITEMQUANTITY CALLED! Let's learn some stuff. Item: '{item}' | Quantity of said item: '{orig(self, item)}'");
             }
-            
+            //Manager<LevelManager>.Instance.onLevelLoaded
             return orig(self, item);
         }
+
+        System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
+        {
+            Console.WriteLine($"Scene '{scene.name}' loaded.");
+
+            return orig(self, scene);
+        }
+
 
         bool AwardNoteCutscene_ShouldPlay(On.AwardNoteCutscene.orig_ShouldPlay orig, AwardNoteCutscene self)
         {
@@ -635,6 +647,11 @@ namespace MessengerRando
             }
 
             return seedNum;
+        }
+
+        private void OnSceneLoadedRando(Scene scene, LoadSceneMode mode)
+        {
+            Console.WriteLine($"Scene loaded: '{scene.name}'");
         }
     }
 }
