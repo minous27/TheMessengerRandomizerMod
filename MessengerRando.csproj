@@ -35,6 +35,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Archipelago.MultiClient.Net, Version=4.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\Archipelago.MultiClient.Net.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
@@ -54,6 +57,9 @@
     <Reference Include="MonoMod.Utils">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\MonoMod.Utils.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.dll</HintPath>
@@ -75,8 +81,14 @@
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.UIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="websocket-sharp, Version=1.0.2.34775, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\websocket-sharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Archipelago\ArchipelagoClient.cs" />
+    <Compile Include="Archipelago\ArchipelagoData.cs" />
+    <Compile Include="Archipelago\ItemsAndLocationsHandler.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
