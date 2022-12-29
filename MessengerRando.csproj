@@ -36,7 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Archipelago.MultiClient.Net, Version=4.2.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\Archipelago.MultiClient.Net.dll</HintPath>
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net35\Archipelago.MultiClient.Net.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -59,7 +59,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.dll</HintPath>
@@ -82,7 +82,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="websocket-sharp, Version=1.0.2.34775, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
-      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net40\websocket-sharp.dll</HintPath>
+      <HintPath>packages\Archipelago.MultiClient.Net.4.2.1\lib\net35\websocket-sharp.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
