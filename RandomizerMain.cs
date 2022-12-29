@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
+using MessengerRando.Archipelago;
 using MessengerRando.Overrides;
 using MessengerRando.Utils;
 using MessengerRando.RO;
@@ -23,6 +24,8 @@ namespace MessengerRando
     {
         private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
         private const int MAX_BEATABLE_SEED_ATTEMPTS = 1;
+
+        private float updateTimer;
 
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
@@ -88,6 +91,8 @@ namespace MessengerRando
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
+            Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
+            On.InGameHud.OnGUI += Archipelago_OnGUI;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
@@ -95,7 +100,7 @@ namespace MessengerRando
 
             Console.WriteLine("Randomizer finished loading!");
         }
-
+        
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
@@ -118,6 +123,7 @@ namespace MessengerRando
             randomizerSaveMethod.Load(Save.seedData);
             Debug.Log($"Save data after change: '{Save.seedData}'");
             Debug.Log("Finished loading seeds from save");
+            ArchipelagoClient.ConnectAsync("localhost", 38281, "Wags", null);
         }
 
         //temp function for seal research
@@ -130,6 +136,7 @@ namespace MessengerRando
 
         List<DialogInfo> DialogSequence_GetDialogList(On.DialogSequence.orig_GetDialogList orig, DialogSequence self)
         {
+            Console.WriteLine($"Starting dialogue{self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
             if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM"))
             {
@@ -172,10 +179,17 @@ namespace MessengerRando
             }
 
             //Lets make sure that the item they are collecting is supposed to be randomized
-            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && randoStateManager.IsLocationRandomized(itemId, out randoItemCheck))
+            if (randoStateManager.IsRandomizedFile && !RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId) && (randoStateManager.IsLocationRandomized(itemId, out randoItemCheck) || ArchipelagoClient.ServerData != null))
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 RandoItemRO randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
+                
+                //Archipelago pickup logic
+                if (ArchipelagoClient.HasConnected)
+                {
+                    ItemsAndLocationsHandler.SendLocationCheck(randoItemCheck);
+                    if (EItems.NONE.Equals(randoItemId.Item)) return; //This is an item for someone else so we bail
+                }
                 Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
                 
                 //If that item is the windmill shuriken, immediately activate it and the mod option
@@ -203,7 +217,7 @@ namespace MessengerRando
             orig(self, itemId, quantity);
             
         }
-
+        
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
         {
             //if this is a rando file, go ahead and give the item we expect to get
@@ -275,7 +289,13 @@ namespace MessengerRando
                 //OLD WAY
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
                 //int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
-
+                
+                //Check if this is an Archipelago seed and whether it was checked in that state
+                if (ArchipelagoClient.HasConnected)
+                {
+                    if (ArchipelagoClient.ServerData.CheckedLocations.Contains(check)) return true;
+                }
+                
                 //NEW WAY
                 //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
                 int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
@@ -556,7 +576,7 @@ namespace MessengerRando
             return true;
         }
 
-        void OnToggleWindmillShuriken()
+        public static void OnToggleWindmillShuriken()
         {
             //Toggle Shuriken
             Manager<ProgressionManager>.Instance.useWindmillShuriken = !Manager<ProgressionManager>.Instance.useWindmillShuriken;
@@ -652,6 +672,23 @@ namespace MessengerRando
         private void OnSceneLoadedRando(Scene scene, LoadSceneMode mode)
         {
             Console.WriteLine($"Scene loaded: '{scene.name}'");
+        }
+
+        private void PlayerController_OnUpdate(PlayerController controller)
+        {
+            if (!ArchipelagoClient.HasConnected) return;
+            float updateTime = 1.0f;
+            updateTimer += Time.deltaTime;
+            if (updateTimer >= updateTime)
+            {
+                updateTimer = 0;
+                ArchipelagoClient.UpdateArchipelagoState();
+            }
+        }
+
+        private void Archipelago_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
+        {
+            ArchipelagoClient.ConnectAsync("localhost", 38281, "Wags", null);
         }
     }
 }
