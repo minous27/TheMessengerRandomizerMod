@@ -111,7 +111,6 @@ namespace MessengerRando.Archipelago
             //if we aren't able to create a save file fail here
             if (!UpdateSave()) return new SeedRO(slot, SeedType.None, 0, null, null, null);
 
-            UpdateSave();
             return MessengerSeed;
         }
 
@@ -183,7 +182,6 @@ namespace MessengerRando.Archipelago
                     Index = TempServerData.Index;
                     CheckedLocations.AddRange(TempServerData.CheckedLocations);
 
-                    UpdateSave();
                     return true;
                 }
                 //There was archipelago save data and it doesn't match our current connection so abort.
@@ -204,7 +202,6 @@ namespace MessengerRando.Archipelago
                 CheckedLocations.AddRange(TempServerData.CheckedLocations);
                 //Attempt to connect to the server and save the new data
                 ArchipelagoClient.ConnectAsync();
-                ArchipelagoClient.HasConnected = true;
                 UpdateSave();
                 return true;
             }

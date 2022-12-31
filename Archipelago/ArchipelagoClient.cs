@@ -80,7 +80,7 @@ namespace MessengerRando.Archipelago
                     }
                     return;
                 }
-
+                ServerData.UpdateSave();
                 HasConnected = true;
             }
             else
@@ -148,7 +148,47 @@ namespace MessengerRando.Archipelago
         {
             Console.WriteLine($"Updating client status to {newState}");
             var statusUpdatePacket = new StatusUpdatePacket() { Status = newState };
+            if (ArchipelagoClientState.ClientGoal.Equals(newState))
+                Session.DataStorage[Scope.Slot, "HasFinished"] = true;
             Session.Socket.SendPacket(statusUpdatePacket);
+        }
+
+        private static bool ClientFinished()
+        {
+            if (!Authenticated) return false;
+            return Session.DataStorage[Scope.Slot, "HasFinished"].To<bool?>() == true;
+        }
+
+        public static bool CanRelease()
+        {
+            if (Authenticated)
+            {
+                Permissions releasePermission = Session.RoomState.ReleasePermissions;
+                switch (releasePermission)
+                {
+                    case Permissions.Goal:
+                        return ClientFinished();
+                    case Permissions.Enabled:
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool CanCollect()
+        {
+            if (Authenticated)
+            {
+                Permissions collectPermission = Session.RoomState.CollectPermissions;
+                switch (collectPermission)
+                {
+                    case Permissions.Goal:
+                        return ClientFinished();
+                    case Permissions.Enabled:
+                        return true;
+                }
+            }
+            return false;
         }
 
         public static string UpdateMenuText()
@@ -156,7 +196,7 @@ namespace MessengerRando.Archipelago
             string text = string.Empty;
             if (Authenticated)
             {
-                text = $"Connected to Archipelago server v{Session.RoomState.Version}\nSeed: {ServerData.SeedName}";
+                text = $"Connected to Archipelago server v{Session.RoomState.Version}\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {Session.RoomState.HintCost}";
             }
             else if (HasConnected)
             {

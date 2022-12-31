@@ -17,6 +17,9 @@ using MessengerRando.Exceptions;
 using TMPro;
 using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Packets;
 
 namespace MessengerRando 
 {
@@ -49,6 +52,8 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoNameButton;
         SubMenuButtonInfo archipelagoPassButton;
         SubMenuButtonInfo archipelagoConnectButton;
+        SubMenuButtonInfo archipelagoReleaseButton;
+        SubMenuButtonInfo archipelagoCollectButton;
 
         public TextMeshProUGUI apMenu8;
         public TextMeshProUGUI apMenu16;
@@ -104,6 +109,11 @@ namespace MessengerRando
             //Add Archipelago connection button
             archipelagoConnectButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Connect to Archipelago", OnSelectArchipelagoConnect);
 
+            //Add Archipelago release button
+            archipelagoReleaseButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Release remaining items", OnSelectArchipelagoRelease);
+
+            //Add Archipelago collect button
+            archipelagoCollectButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Collect remaining items", OnSelectArchipelagoCollect);
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
@@ -141,6 +151,8 @@ namespace MessengerRando
             archipelagoNameButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             archipelagoPassButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             archipelagoConnectButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            archipelagoReleaseButton.IsEnabled = () => ArchipelagoClient.CanRelease();
+            archipelagoCollectButton.IsEnabled = () => ArchipelagoClient.CanCollect();
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -780,6 +792,16 @@ namespace MessengerRando
             ArchipelagoClient.ConnectAsync();
         }
 
+        void OnSelectArchipelagoRelease()
+        {
+            ArchipelagoClient.Session.Socket.SendPacket(new SayPacket { Text = "!release" });
+        }
+
+        void OnSelectArchipelagoCollect()
+        {
+            ArchipelagoClient.Session.Socket.SendPacket(new SayPacket { Text = "!collect" });
+        }
+
         /// <summary>
         /// Delegate function for getting rando item. This can be used by IL hooks that need to make this call later.
         /// </summary>
@@ -809,7 +831,6 @@ namespace MessengerRando
             {
                 return item;
             }
-            
         }
 
         private string GetCurrentSeedNum()
