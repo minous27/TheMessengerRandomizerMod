@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-
+using System.Linq;
 
 namespace MessengerRando
 {
@@ -144,8 +144,8 @@ namespace MessengerRando
             //Unsafe teleport states are shops/hq/boss fights
             bool isTeleportSafe = true;
 
-            Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
-            Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
+            //Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
+            //Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
 
             //ToT HQ or Shop
             if (Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy || Manager<Shop>.Instance.gameObject.activeInHierarchy)
@@ -235,7 +235,7 @@ namespace MessengerRando
                 Console.WriteLine("----------------BEGIN Current Mappings----------------");
                 foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
                 {
-                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}' for {CurrentLocationToItemMapping[check].RecipientName}");
                     //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
                 }
                 Console.WriteLine("----------------END Current Mappings----------------");

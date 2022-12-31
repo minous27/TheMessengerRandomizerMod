@@ -6,8 +6,6 @@ using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
-using MessengerRando.RO;
-using Newtonsoft.Json;
 
 namespace MessengerRando.Archipelago
 {
@@ -26,18 +24,14 @@ namespace MessengerRando.Archipelago
         public static ArchipelagoSession Session;
         public static DeathLinkService DeathLinkService;
 
-        public static void ConnectAsync(string uri, int port, string slotName, string password)
+        public static void ConnectAsync()
         {
-            if (ServerData == null || !HasConnected)
+            if (ServerData == null)
             {
-                ServerData = new ArchipelagoData
-                {
-                    Uri = uri,
-                    Port = port,
-                    SlotName = slotName,
-                    Password = password
-                };
+                ServerData = new ArchipelagoData();
+                return;
             }
+            ItemsAndLocationsHandler.Initialize();
             ThreadPool.QueueUserWorkItem(_ => Connect());
         }
 
@@ -74,33 +68,16 @@ namespace MessengerRando.Archipelago
             if (result.Successful)
             {
                 var success = (LoginSuccessful)result;
-                if (ServerData.SlotData == null) ServerData.SlotData = success.SlotData;
+                ServerData.SlotData = success.SlotData;
+                ServerData.SeedName = Session.RoomState.Seed;
                 Authenticated = true;
                 if (HasConnected)
                 {
                     for (int i = Session.Locations.AllLocationsChecked.Count; i < ServerData.CheckedLocations.Count; i++)
                     {
-                        Session.Locations.CompleteLocationChecksAsync(
-                            ItemsAndLocationsHandler.LocationsLookup[ServerData.CheckedLocations[i]]
-                            );
+                        Session.Locations.CompleteLocationChecks(ServerData.CheckedLocations[i]);
                     }
                     return;
-                }
-                ItemsAndLocationsHandler.Initialize();
-
-                //Locally placed items from AP get added to the slot data so add those to the mapping here so we can
-                //reward our own items. Locations with items for other players will just be empty
-                if (ServerData.SlotData.TryGetValue("locations", out var locations))
-                {
-                    var localItems = JsonConvert.DeserializeObject<Dictionary<string, long>>((string)locations);
-                    foreach (LocationRO location in ItemsAndLocationsHandler.LocationsLookup.Keys)
-                    {
-                        RandoItemRO item;
-                        item = localItems.TryGetValue(location.LocationName, out var itemID)
-                            ? ItemsAndLocationsHandler.ItemsLookup[itemID]
-                            : new RandoItemRO();
-                        RandomizerStateManager.Instance.CurrentLocationToItemMapping.Add(location, item);
-                    }
                 }
 
                 HasConnected = true;
@@ -138,7 +115,7 @@ namespace MessengerRando.Archipelago
             Disconnect();
         }
 
-        private static void Disconnect()
+        public static void Disconnect()
         {
             Session?.Socket.DisconnectAsync();
             Session = null;
@@ -155,7 +132,7 @@ namespace MessengerRando.Archipelago
                 disconnectTimeout -= dT;
                 if (!(disconnectTimeout <= 0.0f)) return;
                 
-                ConnectAsync(ServerData.Uri, ServerData.Port, ServerData.SlotName, ServerData.Password);
+                ConnectAsync();
                 disconnectTimeout = 5;
                 return;
             }
@@ -163,6 +140,21 @@ namespace MessengerRando.Archipelago
             var currentItemId = Session.Items.AllItemsReceived[Convert.ToInt32(ServerData.Index)].Item;
             ++ServerData.Index;
             ItemsAndLocationsHandler.Unlock(currentItemId);
+            ServerData.UpdateSave();
+        }
+
+        public static string UpdateMenuText()
+        {
+            string text = string.Empty;
+            if (Authenticated)
+            {
+                text = $"Connected to Archipelago server v{Session.RoomState.Version}\nSeed: {ServerData.SeedName}";
+            }
+            else if (HasConnected)
+            {
+                text = "Disconnected from Archipelago server.";
+            }
+            return text;
         }
     }
 }

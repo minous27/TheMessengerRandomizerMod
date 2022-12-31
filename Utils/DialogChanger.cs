@@ -1,4 +1,5 @@
-﻿using MessengerRando.RO;
+﻿using MessengerRando.Archipelago;
+using MessengerRando.RO;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -50,6 +51,9 @@ namespace MessengerRando.Utils
             //Trying out timeshard
             itemDialogID.Add(EItems.TIME_SHARD, "AWARD_TIMESHARD");
 
+            //add a default for foreign items
+            itemDialogID.Add(EItems.NONE, "ARCHIPELAGO_ITEM");
+
             return itemDialogID;
         }
 
@@ -98,13 +102,38 @@ namespace MessengerRando.Utils
             {
                 Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
                 EItems locationChecked = (EItems)Enum.Parse(typeof(EItems),location.PrettyLocationName);
-                RandoItemRO itemActuallyFound = current[location];
-                
-                if(itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
+                if (!current.TryGetValue(location, out RandoItemRO itemActuallyFound))
                 {
-                    dialogmap.Add(itemToDialogIDMap[locationChecked], itemToDialogIDMap[itemActuallyFound.Item]);
-                    Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
+                    Console.WriteLine($"Couldn't get dialogue mapping for {location.PrettyLocationName}. Trying again...");
+                    if (ArchipelagoClient.HasConnected)
+                    {
+                        current = RandomizerStateManager.Instance.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
+                        current.TryGetValue(location, out itemActuallyFound);
+                    }
+                    continue;
                 }
+                try
+                {
+                    if (itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
+                    {
+                        string outputText;
+                        if (ArchipelagoClient.HasConnected && EItems.NONE.Equals(itemActuallyFound.Item))
+                        {
+                            outputText = $"ARCHIPELAGO_ITEM-{itemActuallyFound.Name}-{itemActuallyFound.RecipientName}";
+                        }
+                        else
+                        {
+                            outputText = itemToDialogIDMap[itemActuallyFound.Item];
+                        }
+                        dialogmap.Add(itemToDialogIDMap[locationChecked], outputText);
+                        Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Couldn't find {itemActuallyFound.Item} in itemToDialogIDMap");
+                    }
+                }
+                catch (Exception e) { Console.WriteLine(e.ToString()); }
             }
 
             return dialogmap;
@@ -158,7 +187,7 @@ namespace MessengerRando.Utils
                     if (dialogMap.ContainsKey(tobereplacedKey))
                     {
                         //Replaces the entire dialog
-                        if("AWARD_TIMESHARD".Equals(replacewithKey))
+                        if ("AWARD_TIMESHARD".Equals(replacewithKey))
                         {
                             //Timeshards don't have their own dialog. Gonna try to fake it.
                             DialogInfo timeShardDialog = new DialogInfo();
@@ -166,10 +195,22 @@ namespace MessengerRando.Utils
                             LocCopy[tobereplacedKey] = new List<DialogInfo>();
                             LocCopy[tobereplacedKey].Add(timeShardDialog);
                         }
+                        //Show what item we got for who in an Archipelago seed
+                        else if (replacewithKey.StartsWith("ARCHIPELAGO_ITEM"))
+                        {
+                            var text = replacewithKey.Split('-');
+                            DialogInfo archipelagoDialog = new DialogInfo();
+                            archipelagoDialog.text = $"Found {text[1]} for {text[2]}.";
+                            LocCopy[tobereplacedKey] = new List<DialogInfo>
+                            {
+                                archipelagoDialog
+                            };
+                        }
                         else
                         {
                             LocCopy[tobereplacedKey] = Loc[replacewithKey];
                         }
+
 
                         //Sets them to be all center and no portrait (This really only applies to phobekins but was 
                         LocCopy[tobereplacedKey][0].autoClose = false;
