@@ -16,6 +16,7 @@ using static Mod.Courier.UI.TextEntryButtonInfo;
 using MessengerRando.Exceptions;
 using TMPro;
 using System.Linq;
+using Archipelago.MultiClient.Net.Enums;
 
 namespace MessengerRando 
 {
@@ -402,6 +403,23 @@ namespace MessengerRando
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
         {
             Console.WriteLine($"Scene '{scene.name}' loaded.");
+            ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
+            switch (self.GetCurrentLevelEnum())
+            {
+                case ELevel.NONE:
+                    newClientState = ArchipelagoClientState.ClientReady;
+                    break;
+                case ELevel.Level_Ending:
+                    Console.WriteLine("Goooooooaaaaaallll!!!!");
+                    newClientState = ArchipelagoClientState.ClientGoal;
+                    break;
+                default:
+                    if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
+                        newClientState = ArchipelagoClientState.ClientPlaying;
+                    break;
+            }
+            if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
+                ArchipelagoClient.UpdateClientStatus(newClientState);
 
             return orig(self, scene);
         }
@@ -475,7 +493,7 @@ namespace MessengerRando
                     //The player is connected to an Archipelago server and trying to load a save file so check it's valid
                     Console.WriteLine($"Successfully loaded Archipelago seed {fileSlot}");
                 }
-                else if (ArchipelagoClient.Authenticated && Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SecondsPlayed <= 100)
+                else if (ArchipelagoClient.Authenticated && Manager<SaveManager>.Instance.GetSaveSlot(slotIndex).SecondsPlayed <= 100)
                 {
                     //Hopefully this ensures this is a clean rando slot so the player doesn't just connect with an invalid slot
                     randoStateManager.AddSeed(ArchipelagoClient.ServerData.StartNewSeed(fileSlot));

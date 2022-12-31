@@ -6,6 +6,7 @@ using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Packets;
 
 namespace MessengerRando.Archipelago
 {
@@ -141,6 +142,13 @@ namespace MessengerRando.Archipelago
             ++ServerData.Index;
             ItemsAndLocationsHandler.Unlock(currentItemId);
             ServerData.UpdateSave();
+        }
+
+        public static void UpdateClientStatus(ArchipelagoClientState newState)
+        {
+            Console.WriteLine($"Updating client status to {newState}");
+            var statusUpdatePacket = new StatusUpdatePacket() { Status = newState };
+            Session.Socket.SendPacket(statusUpdatePacket);
         }
 
         public static string UpdateMenuText()
