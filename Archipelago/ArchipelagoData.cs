@@ -20,6 +20,7 @@ namespace MessengerRando.Archipelago
         public int Index = 0;
         public string SeedName;
         public Dictionary<string, object> SlotData;
+        public bool DeathLink;
         public List<long> CheckedLocations = new List<long>();
         public List<RandoItemRO> ReceivedItems = new List<RandoItemRO>();
         public SeedRO MessengerSeed

@@ -53,9 +53,13 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoReleaseButton;
         SubMenuButtonInfo archipelagoCollectButton;
         SubMenuButtonInfo archipelagoHintButton;
+        SubMenuButtonInfo archipelagoToggleMessagesButton;
+        SubMenuButtonInfo archipelagoStatusButton;
 
-        public TextMeshProUGUI apTextDisplay8;
-        public TextMeshProUGUI apTextDisplay16;
+        private TextMeshProUGUI apTextDisplay8;
+        private TextMeshProUGUI apTextDisplay16;
+        private TextMeshProUGUI apMessagesDisplay8;
+        private TextMeshProUGUI apMessagesDisplay16;
 
         //Set up save data
         public override Type ModuleSaveType => typeof(RandoSave);
@@ -117,6 +121,11 @@ namespace MessengerRando
             //Add Archipelago hint button
             archipelagoHintButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Hint for an item", (entry) => OnSelectArchipelagoHint(entry), 30, () => "Enter item name:");
 
+            //Add Archipelago status button
+            archipelagoStatusButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayStatus ? "Hide status information" : "Display status information", OnToggleAPStatus);
+            //Add Archipelago message button
+            archipelagoToggleMessagesButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayAPMessages ? "Hide server messages" : "Display server messages", OnToggleAPMessages);
+
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.InventoryManager.GetItemQuantity += InventoryManager_GetItemQuantity;
@@ -134,6 +143,7 @@ namespace MessengerRando
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
+            On.PlayerController.Die += DeathLinkInterface.SendDeathLink;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
@@ -156,6 +166,8 @@ namespace MessengerRando
             archipelagoReleaseButton.IsEnabled = () => ArchipelagoClient.CanRelease();
             archipelagoCollectButton.IsEnabled = () => ArchipelagoClient.CanCollect();
             archipelagoHintButton.IsEnabled = () => ArchipelagoClient.CanHint();
+            archipelagoToggleMessagesButton.IsEnabled = () => ArchipelagoClient.Authenticated;
+            archipelagoStatusButton.IsEnabled = () => ArchipelagoClient.Authenticated;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -858,6 +870,16 @@ namespace MessengerRando
             return true;
         }
 
+        static void OnToggleAPStatus()
+        {
+            ArchipelagoClient.DisplayStatus = !ArchipelagoClient.DisplayStatus;
+        }
+
+        static void OnToggleAPMessages()
+        {
+            ArchipelagoClient.DisplayAPMessages = !ArchipelagoClient.DisplayAPMessages;
+        }
+
         /// <summary>
         /// Delegate function for getting rando item. This can be used by IL hooks that need to make this call later.
         /// </summary>
@@ -914,11 +936,15 @@ namespace MessengerRando
         {
             if (!ArchipelagoClient.HasConnected) return;
             if (!randoStateManager.IsSafeTeleportState()) return;
-            float updateTime = 1.0f;
+            //This updates every frame
+            apTextDisplay16.text = apTextDisplay8.text = ArchipelagoClient.UpdateStatusText();
+            //This updates every {updateTime} seconds
+            float updateTime = 5.0f;
             updateTimer += Time.deltaTime;
             if (updateTimer >= updateTime)
             {
                 updateTimer = 0;
+                apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
                 Console.WriteLine("Checking for items");
                 ArchipelagoClient.UpdateArchipelagoState();
             }
@@ -933,12 +959,21 @@ namespace MessengerRando
                 apTextDisplay16 = UnityEngine.Object.Instantiate(self.hud_16.coinCount, self.hud_16.gameObject.transform);
                 apTextDisplay8.transform.Translate(0f, -110f, 0f);
                 apTextDisplay16.transform.Translate(0f, -110f, 0f);
-                apTextDisplay16.fontSize = apTextDisplay8.fontSize = 3.8f;
+                apTextDisplay16.fontSize = apTextDisplay8.fontSize = 4f;
                 apTextDisplay16.alignment = apTextDisplay8.alignment = TextAlignmentOptions.TopRight;
-                apTextDisplay16.enableWordWrapping = apTextDisplay8.enableWordWrapping = false;
+                apTextDisplay16.enableWordWrapping = apTextDisplay8.enableWordWrapping = true;
                 apTextDisplay16.color = apTextDisplay8.color = Color.white;
+
+                apMessagesDisplay8 = UnityEngine.Object.Instantiate(self.hud_8.coinCount, self.hud_8.gameObject.transform);
+                apMessagesDisplay16 = UnityEngine.Object.Instantiate(self.hud_16.coinCount, self.hud_16.gameObject.transform);
+                apMessagesDisplay8.transform.Translate(0f, -200f, 0f);
+                apMessagesDisplay16.transform.Translate(0f, -200f, 0f);
+                apMessagesDisplay16.fontSize = apMessagesDisplay8.fontSize = 4.2f;
+                apMessagesDisplay16.alignment = apMessagesDisplay8.alignment = TextAlignmentOptions.BottomRight;
+                apMessagesDisplay16.enableWordWrapping = apMessagesDisplay16.enableWordWrapping = true;
+                apMessagesDisplay16.color = apMessagesDisplay8.color = Color.green;
+                apMessagesDisplay16.text = apMessagesDisplay8.text = string.Empty;
             }
-            apTextDisplay16.text = apTextDisplay8.text = ArchipelagoClient.UpdateMenuText();
         }
     }
 }

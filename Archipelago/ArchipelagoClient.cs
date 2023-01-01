@@ -9,6 +9,8 @@ using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.Utils;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.UI;
 
 namespace MessengerRando.Archipelago
 {
@@ -24,8 +26,12 @@ namespace MessengerRando.Archipelago
         public static bool Authenticated;
         public static bool HasConnected;
 
+        public static bool DisplayAPMessages = true;
+        public static bool DisplayStatus = true;
+
         public static ArchipelagoSession Session;
-        public static DeathLinkService DeathLinkService;
+
+        private static List<string> messageQueue = new List<string>();
 
         public static void ConnectAsync()
         {
@@ -75,6 +81,13 @@ namespace MessengerRando.Archipelago
                 ServerData.SlotData = success.SlotData;
                 ServerData.SeedName = Session.RoomState.Seed;
                 Authenticated = true;
+                if (success.SlotData.TryGetValue("deathlink", out var deathLink))
+                {
+                    ServerData.DeathLink = (bool)deathLink;
+                    Console.WriteLine($"Death Link status from server: {ServerData.DeathLink}");
+                }
+
+                DeathLinkInterface.Initialize();
                 if (HasConnected)
                 {
                     for (int i = Session.Locations.AllLocationsChecked.Count; i < ServerData.CheckedLocations.Count; i++)
@@ -105,6 +118,7 @@ namespace MessengerRando.Archipelago
         private static void OnMessageReceived(LogMessage message)
         {
             Console.WriteLine(message.ToString());
+            messageQueue.Add(message.ToString());
         }
 
         private static void SessionErrorReceived(Exception e, string message)
@@ -234,21 +248,40 @@ namespace MessengerRando.Archipelago
             return canHint;
         }
 
-        public static string UpdateMenuText()
+        public static string UpdateStatusText()
         {
             string text = string.Empty;
-            if (Authenticated)
+            if (DisplayStatus)
             {
-                text = $"Connected to Archipelago server v{Session.RoomState.Version}";
-                var hintCost = GetHintCost();
-                if (hintCost > 0)
+                if (Authenticated)
                 {
-                    text += $"\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {hintCost}";
+                    text = $"Connected to Archipelago server v{Session.RoomState.Version}";
+                    var hintCost = GetHintCost();
+                    if (hintCost > 0)
+                    {
+                        text += $"\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {hintCost}";
+                    }
+                    
+                    var playTime = (int)(Time.time - Manager<ProgressionManager>.Instance.lastSaveTime + Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SecondsPlayed);
+                    var t = TimeSpan.FromSeconds(playTime);
+                    text += $"\nPlayTime: " + string.Format("{0:D2}:{1:D2}:{2:D2}", t.Hours, t.Minutes, t.Seconds);
                 }
-            }
-            else if (HasConnected)
+                else if (HasConnected)
+                {
+                    text = "Disconnected from Archipelago server.";
+                }
+            }            
+            return text;
+        }
+
+        public static string UpdateMessagesText()
+        {
+            var text = string.Empty;
+            if (messageQueue.Count > 0)
             {
-                text = "Disconnected from Archipelago server.";
+                if (DisplayAPMessages)
+                    text = messageQueue.First();
+                messageQueue.RemoveAt(0);
             }
             return text;
         }
