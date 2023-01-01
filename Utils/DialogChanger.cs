@@ -100,11 +100,11 @@ namespace MessengerRando.Utils
             //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
             foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
             {
-                Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
+                //Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
                 EItems locationChecked = (EItems)Enum.Parse(typeof(EItems),location.PrettyLocationName);
                 if (!current.TryGetValue(location, out RandoItemRO itemActuallyFound))
                 {
-                    Console.WriteLine($"Couldn't get dialogue mapping for {location.PrettyLocationName}. Trying again...");
+                    //Console.WriteLine($"Couldn't get dialogue mapping for {location.PrettyLocationName}. Trying again...");
                     if (ArchipelagoClient.HasConnected)
                     {
                         current = RandomizerStateManager.Instance.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
@@ -119,14 +119,14 @@ namespace MessengerRando.Utils
                         string outputText;
                         if (ArchipelagoClient.HasConnected && EItems.NONE.Equals(itemActuallyFound.Item))
                         {
-                            outputText = $"ARCHIPELAGO_ITEM-{itemActuallyFound.Name}-{itemActuallyFound.RecipientName}";
+                            outputText = $"ARCHIPELAGO_ITEM~{itemActuallyFound.Name}~{itemActuallyFound.RecipientName}";
                         }
                         else
                         {
                             outputText = itemToDialogIDMap[itemActuallyFound.Item];
                         }
                         dialogmap.Add(itemToDialogIDMap[locationChecked], outputText);
-                        Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
+                        //Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
                     }
                     else
                     {
@@ -198,9 +198,16 @@ namespace MessengerRando.Utils
                         //Show what item we got for who in an Archipelago seed
                         else if (replacewithKey.StartsWith("ARCHIPELAGO_ITEM"))
                         {
-                            var text = replacewithKey.Split('-');
+                            var text = replacewithKey.Split('~');
                             DialogInfo archipelagoDialog = new DialogInfo();
-                            archipelagoDialog.text = $"Found {text[1]} for {text[2]}.";
+                            if (ArchipelagoClient.ServerData.SlotName.Equals(text[2]))
+                            {
+                                archipelagoDialog.text = $"Found {text[1]}.";
+                            }
+                            else
+                            {
+                                archipelagoDialog.text = $"Found {text[1]} for {text[2]}.";
+                            }                            
                             LocCopy[tobereplacedKey] = new List<DialogInfo>
                             {
                                 archipelagoDialog

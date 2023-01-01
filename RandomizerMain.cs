@@ -17,8 +17,6 @@ using MessengerRando.Exceptions;
 using TMPro;
 using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
-using Archipelago.MultiClient.Net.Helpers;
-using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Packets;
 
 namespace MessengerRando 
@@ -54,9 +52,10 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoConnectButton;
         SubMenuButtonInfo archipelagoReleaseButton;
         SubMenuButtonInfo archipelagoCollectButton;
+        SubMenuButtonInfo archipelagoHintButton;
 
-        public TextMeshProUGUI apMenu8;
-        public TextMeshProUGUI apMenu16;
+        public TextMeshProUGUI apTextDisplay8;
+        public TextMeshProUGUI apTextDisplay16;
 
         //Set up save data
         public override Type ModuleSaveType => typeof(RandoSave);
@@ -115,6 +114,9 @@ namespace MessengerRando
             //Add Archipelago collect button
             archipelagoCollectButton = Courier.UI.RegisterSubMenuModOptionButton(() => "Collect remaining items", OnSelectArchipelagoCollect);
 
+            //Add Archipelago hint button
+            archipelagoHintButton = Courier.UI.RegisterTextEntryModOptionButton(() => "Hint for an item", (entry) => OnSelectArchipelagoHint(entry), 30, () => "Enter item name:");
+
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
             On.InventoryManager.GetItemQuantity += InventoryManager_GetItemQuantity;
@@ -143,16 +145,17 @@ namespace MessengerRando
         public override void Initialize()
         {
             //I only want the generate seed/enter seed mod options available when not in the game.
-            loadRandomizerFileForFileSlotButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            loadRandomizerFileForFileSlotButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
             resetRandoSaveFileButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
             //Also the AP buttons
-            archipelagoHostButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            archipelagoPortButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            archipelagoNameButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            archipelagoPassButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
-            archipelagoConnectButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE;
+            archipelagoHostButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
+            archipelagoPortButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
+            archipelagoNameButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
+            archipelagoPassButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
+            archipelagoConnectButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
             archipelagoReleaseButton.IsEnabled = () => ArchipelagoClient.CanRelease();
             archipelagoCollectButton.IsEnabled = () => ArchipelagoClient.CanCollect();
+            archipelagoHintButton.IsEnabled = () => ArchipelagoClient.CanHint();
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -184,7 +187,7 @@ namespace MessengerRando
         {
             Console.WriteLine($"Starting dialogue{self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
-            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM"))
+            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM"))
             {
                 Console.WriteLine("Trying some rando dialog stuff.");
                 List<DialogInfo> dialogInfoList = new List<DialogInfo>();
@@ -192,10 +195,15 @@ namespace MessengerRando
                 switch (self.dialogID)
                 {
                     case "RANDO_ITEM":
+                        Console.WriteLine($"Item is {self.name}");
                         dialog.text = $"You have received item: '{self.name}'";
                         break;
+                    case "ARCHIPELAGO_ITEM":
+                        Console.WriteLine($"Item is {self.name}");
+                        dialog.text = $"You have found {self.name}";
+                        break;
                     default:
-                        dialog.text = "???";
+                        //dialog.text = "???";
                         break;
                 }
                     
@@ -225,12 +233,16 @@ namespace MessengerRando
                 if (ArchipelagoClient.HasConnected && randoStateManager.IsLocationRandomized(itemId, out randoItemCheck))
                 {
                     ItemsAndLocationsHandler.SendLocationCheck(randoItemCheck);
-                    if (randoStateManager.CurrentLocationToItemMapping[randoItemCheck].RecipientName == String.Empty)
+                    Console.WriteLine(randoStateManager.CurrentLocationToItemMapping[randoItemCheck].RecipientName);
+                    if (string.IsNullOrEmpty(randoStateManager.CurrentLocationToItemMapping[randoItemCheck].RecipientName))
                     {
-                        //This isn't our item so we save and exit, otherwise the existing rando code can resolve it fine
-                        Save.seedData = randomizerSaveMethod.GenerateSaveData();
+
+                        //This isn't our item so we add it to rando state and exit, otherwise the existing rando code can resolve it fine
+                        randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(ArchipelagoClient.ServerData.LocationToItemMapping[randoItemCheck]);
                         return;
                     }
+                    Console.WriteLine("Need to grant item");
+                    Console.WriteLine($"{randoStateManager.IsRandomizedFile} | {!RandomizerStateManager.Instance.HasTempOverrideOnRandoItem(itemId)} | {randoStateManager.IsLocationRandomized(itemId, out randoItemCheck)}");
                 }
             }
 
@@ -296,8 +308,20 @@ namespace MessengerRando
                 RandoItemRO challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation];
 
                 Console.WriteLine($"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
+                if (ArchipelagoClient.HasConnected)
+                {
+                    ItemsAndLocationsHandler.SendLocationCheck(powerSealLocation);
+                    if (!EItems.NONE.Equals(RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation].Item))
+                    {
+                        //Before adding the item to the inventory, add this item to the override
+                        RandomizerStateManager.Instance.AddTempRandoItemOverride(challengeRoomRandoItem.Item);
+                        Manager<InventoryManager>.Instance.AddItem(challengeRoomRandoItem.Item, 1);
+                        //Now remove the override
+                        RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem.Item);
+                    }
+                }
                 //Handle timeshards
-                if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem.Item))
+                else if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem.Item))
                 {
                     Manager<InventoryManager>.Instance.CollectTimeShard(1);
                     //Set this item to have been collected in the state manager
@@ -311,15 +335,23 @@ namespace MessengerRando
                     //Now remove the override
                     RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem.Item);
                 }
-
+                
                 //I want to try to have a dialog popup say what the player got.
                 DialogSequence challengeSequence = ScriptableObject.CreateInstance<DialogSequence>();
-                challengeSequence.dialogID = "RANDO_ITEM";
-                challengeSequence.name = challengeRoomRandoItem.Item.ToString();
+                if (EItems.NONE.Equals(challengeRoomRandoItem.Item))
+                {
+                    challengeSequence.dialogID = "ARCHIPELAGO_ITEM";
+                    challengeSequence.name = $"{challengeRoomRandoItem.Name} for {challengeRoomRandoItem.RecipientName}";
+                }
+                else
+                {
+                    challengeSequence.dialogID = "RANDO_ITEM";
+                    challengeSequence.name = challengeRoomRandoItem.Item.ToString();
+                }
                 challengeSequence.choices = new List<DialogSequenceChoice>();
+                Console.WriteLine($"Adding params: {challengeSequence.name}");
                 AwardItemPopupParams challengeAwardItemParams = new AwardItemPopupParams(challengeSequence, true);
                 Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, challengeAwardItemParams, true);
-
 
             }
 
@@ -330,29 +362,9 @@ namespace MessengerRando
 
         bool HasItem_IsTrue(On.HasItem.orig_IsTrue orig, HasItem self)
         {
-            LocationRO check;
-            //Check if this is an Archipelago seed and whether it was checked in that state
-            if (ArchipelagoClient.HasConnected)
-            {
-                try
-                {
-                    if (randoStateManager.IsLocationRandomized(self.item, out check))
-                    {
-                        Console.WriteLine($"Checking if {check.PrettyLocationName} has been checked.");
-                        if (ArchipelagoClient.ServerData.CheckedLocations.Contains(ItemsAndLocationsHandler.LocationsLookup[check]))
-                        {
-                            Console.WriteLine("Returning true");
-                            return true;
-                        }
-                    }
-                    return orig(self);
-                }
-                catch (Exception e) { Console.WriteLine(e.ToString()); return false; }
-            }
-
             bool hasItem = false;
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
-            if (randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(self.item, out check) && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
+            if (randoStateManager.IsLocationRandomized(self.item, out var check) && randoStateManager.IsRandomizedFile && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
             {
                 if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && RandomizerConstants.GetSpecialTriggerNames().Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
@@ -364,7 +376,45 @@ namespace MessengerRando
                 //OLD WAY
                 //Don't actually check for the item i have, check to see if I have the item that was at it's location.
                 //int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
-                                
+
+
+                //Check if this is an Archipelago seed and whether it was checked in that state
+                /*
+                if (ArchipelagoClient.HasConnected)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Checking if {check.PrettyLocationName} has been checked.");
+                        if (ArchipelagoClient.ServerData.CheckedLocations.Contains(ItemsAndLocationsHandler.LocationsLookup[check]))
+                        {
+                            int quantity = 1;
+                            switch (self.conditionOperator)
+                            {
+                                case EConditionOperator.LESS_THAN:
+                                    hasItem = quantity < self.quantityToHave;
+                                    break;
+                                case EConditionOperator.LESS_OR_EQUAL:
+                                    hasItem = quantity <= self.quantityToHave;
+                                    break;
+                                case EConditionOperator.EQUAL:
+                                    hasItem = quantity == self.quantityToHave;
+                                    break;
+                                case EConditionOperator.GREATER_OR_EQUAL:
+                                    hasItem = quantity >= self.quantityToHave;
+                                    break;
+                                case EConditionOperator.GREATER_THAN:
+                                    hasItem = quantity > self.quantityToHave;
+                                    break;
+                            }
+                            return hasItem;
+                        }
+                        else hasItem = false;
+                        Console.WriteLine($"Game says {orig(self)}, but returning {hasItem}");
+                        return hasItem;
+                    }
+                    catch (Exception e) { Console.WriteLine(e.ToString()); return false; }
+                }*/
+
                 //NEW WAY
                 //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
                 int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
@@ -414,13 +464,10 @@ namespace MessengerRando
 
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
         {
-            Console.WriteLine($"Scene '{scene.name}' loaded.");
+            Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
             ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
             switch (self.GetCurrentLevelEnum())
             {
-                case ELevel.NONE:
-                    newClientState = ArchipelagoClientState.ClientReady;
-                    break;
                 case ELevel.Level_Ending:
                     Console.WriteLine("Goooooooaaaaaallll!!!!");
                     newClientState = ArchipelagoClientState.ClientGoal;
@@ -740,15 +787,15 @@ namespace MessengerRando
 
         bool OnSelectArchipelagoHost(string answer)
         {
-            Console.WriteLine($"Adding Archipelago host information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
             var uri = answer;
-            if (answer.Contains(' '))
+            if (answer.Contains(" "))
             {
                 var splits = answer.Split(' ');
-                uri = String.Join(" ", splits.ToArray());
+                uri = String.Join(".", splits.ToArray());
             }
+            Console.WriteLine($"Adding Archipelago host information: {uri}");
             ArchipelagoClient.ServerData.Uri = uri;
             return true;
         }
@@ -800,6 +847,15 @@ namespace MessengerRando
         void OnSelectArchipelagoCollect()
         {
             ArchipelagoClient.Session.Socket.SendPacket(new SayPacket { Text = "!collect" });
+        }
+
+        bool OnSelectArchipelagoHint(string answer)
+        {
+            if (!string.IsNullOrEmpty(answer))
+            {
+                ArchipelagoClient.Session.Socket.SendPacket(new SayPacket { Text = $"!hint {answer}" });
+            }
+            return true;
         }
 
         /// <summary>
@@ -857,15 +913,13 @@ namespace MessengerRando
         private void PlayerController_OnUpdate(PlayerController controller)
         {
             if (!ArchipelagoClient.HasConnected) return;
-            if (Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE || !randoStateManager.IsSafeTeleportState())
-            {
-                return;
-            }
+            if (!randoStateManager.IsSafeTeleportState()) return;
             float updateTime = 1.0f;
             updateTimer += Time.deltaTime;
             if (updateTimer >= updateTime)
             {
                 updateTimer = 0;
+                Console.WriteLine("Checking for items");
                 ArchipelagoClient.UpdateArchipelagoState();
             }
         }
@@ -873,18 +927,18 @@ namespace MessengerRando
         private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
         {
             orig(self);
-            if (apMenu8 == null)
+            if (apTextDisplay8 == null)
             {
-                apMenu8 = UnityEngine.Object.Instantiate(self.hud_8.coinCount, self.hud_8.gameObject.transform);
-                apMenu16 = UnityEngine.Object.Instantiate(self.hud_16.coinCount, self.hud_16.gameObject.transform);
-                apMenu8.transform.Translate(0f, -110f, 0f);
-                apMenu16.transform.Translate(0f, -110f, 0f);
-                apMenu16.fontSize = apMenu8.fontSize = 3.8f;
-                apMenu16.alignment = apMenu8.alignment = TextAlignmentOptions.TopRight;
-                apMenu16.enableWordWrapping = apMenu8.enableWordWrapping = false;
-                apMenu16.color = apMenu8.color = Color.white;
+                apTextDisplay8 = UnityEngine.Object.Instantiate(self.hud_8.coinCount, self.hud_8.gameObject.transform);
+                apTextDisplay16 = UnityEngine.Object.Instantiate(self.hud_16.coinCount, self.hud_16.gameObject.transform);
+                apTextDisplay8.transform.Translate(0f, -110f, 0f);
+                apTextDisplay16.transform.Translate(0f, -110f, 0f);
+                apTextDisplay16.fontSize = apTextDisplay8.fontSize = 3.8f;
+                apTextDisplay16.alignment = apTextDisplay8.alignment = TextAlignmentOptions.TopRight;
+                apTextDisplay16.enableWordWrapping = apTextDisplay8.enableWordWrapping = false;
+                apTextDisplay16.color = apTextDisplay8.color = Color.white;
             }
-            apMenu16.text = apMenu8.text = ArchipelagoClient.UpdateMenuText();
+            apTextDisplay16.text = apTextDisplay8.text = ArchipelagoClient.UpdateMenuText();
         }
     }
 }

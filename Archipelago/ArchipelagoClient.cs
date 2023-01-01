@@ -7,6 +7,8 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
+using MessengerRando.Utils;
+using UnityEngine;
 
 namespace MessengerRando.Archipelago
 {
@@ -33,6 +35,7 @@ namespace MessengerRando.Archipelago
                 return;
             }
             ItemsAndLocationsHandler.Initialize();
+            Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
             ThreadPool.QueueUserWorkItem(_ => Connect());
         }
 
@@ -53,7 +56,7 @@ namespace MessengerRando.Archipelago
                 result = Session.TryConnectAndLogin(
                     "The Messenger",
                     ServerData.SlotName,
-                    ItemsHandlingFlags.IncludeStartingInventory,
+                    ItemsHandlingFlags.AllItems,
                     new Version(ApVersion),
                     null,
                     "",
@@ -138,10 +141,20 @@ namespace MessengerRando.Archipelago
                 return;
             }
             if (ServerData.Index >= Session.Items.AllItemsReceived.Count) return;
-            var currentItemId = Session.Items.AllItemsReceived[Convert.ToInt32(ServerData.Index)].Item;
+            var currentItem = Session.Items.AllItemsReceived[Convert.ToInt32(ServerData.Index)];
+            var currentItemId = currentItem.Item;
             ++ServerData.Index;
             ItemsAndLocationsHandler.Unlock(currentItemId);
             ServerData.UpdateSave();
+            if (!currentItem.Player.Equals(Session.ConnectionInfo.Slot))
+            {
+                DialogSequence receivedItem = ScriptableObject.CreateInstance<DialogSequence>();
+                receivedItem.dialogID = "RANDO_ITEM";
+                receivedItem.name = Session.Items.GetItemName(currentItemId);
+                receivedItem.choices = new List<DialogSequenceChoice>();
+                AwardItemPopupParams receivedItemParams = new AwardItemPopupParams(receivedItem, true);
+                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedItemParams, true);
+            }
         }
 
         public static void UpdateClientStatus(ArchipelagoClientState newState)
@@ -191,12 +204,47 @@ namespace MessengerRando.Archipelago
             return false;
         }
 
+        private static int GetHintCost()
+        {
+            var hintCost = Session.RoomState.HintCost;
+            if (hintCost > 0)
+            {
+                RandomizerStateManager stateManager = RandomizerStateManager.Instance;
+                int locationCount = RandomizerConstants.GetRandoLocationList().Count();
+                if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
+                {
+                    hintCost = locationCount / hintCost;
+                }
+                else
+                {
+                    locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
+                    hintCost = locationCount / hintCost;
+                }
+            }
+            return hintCost;
+        }
+
+        public static bool CanHint()
+        {
+            bool canHint = false;
+            if (Authenticated)
+            {
+                canHint = GetHintCost() <= Session.RoomState.HintPoints;
+            }
+            return canHint;
+        }
+
         public static string UpdateMenuText()
         {
             string text = string.Empty;
             if (Authenticated)
             {
-                text = $"Connected to Archipelago server v{Session.RoomState.Version}\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {Session.RoomState.HintCost}";
+                text = $"Connected to Archipelago server v{Session.RoomState.Version}";
+                var hintCost = GetHintCost();
+                if (hintCost > 0)
+                {
+                    text += $"\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {hintCost}";
+                }
             }
             else if (HasConnected)
             {

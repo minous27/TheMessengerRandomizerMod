@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MessengerRando.RO;
 using MessengerRando.Utils;
+using UnityEngine;
 
 namespace MessengerRando.Archipelago
 {
@@ -82,6 +83,7 @@ namespace MessengerRando.Archipelago
             }
             Console.WriteLine($"Adding {randoItem.Name} to inventory...");
             randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
+            ArchipelagoClient.ServerData.ReceivedItems.Add(randoItem);
             Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
         }
 
@@ -91,6 +93,7 @@ namespace MessengerRando.Archipelago
             long checkID = LocationsLookup[checkedLocation];
             ArchipelagoClient.ServerData.CheckedLocations.Add(checkID);
             ArchipelagoClient.Session.Locations.CompleteLocationChecks(checkID);
+            ArchipelagoClient.ServerData.UpdateSave();
         }
     }
 }
