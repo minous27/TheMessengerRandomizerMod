@@ -22,7 +22,18 @@ namespace MessengerRando.Archipelago
         public Dictionary<string, object> SlotData;
         public static bool DeathLink = false;
         public List<long> CheckedLocations = new List<long>();
-        public List<RandoItemRO> ReceivedItems = new List<RandoItemRO>();
+        public float StartTime;
+        public float PlayTime
+        {
+            get
+            {
+                if (StartTime > 0)
+                {
+                    return Time.realtimeSinceStartup - StartTime;
+                }
+                return 0;
+            }
+        }
         private Dictionary<LocationRO, RandoItemRO> _locationToItemMapping;
         public SeedRO MessengerSeed
         {

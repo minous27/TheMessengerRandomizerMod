@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using WebSocketSharp;
 
 namespace MessengerRando.Archipelago
 {
@@ -11,6 +12,7 @@ namespace MessengerRando.Archipelago
         public DeathLinkInterface Instance;
         public PlayerController Player;
         private List<DeathLink> DeathLinks = new List<DeathLink>();
+        private bool _receivedDeath = false;
 
         public DeathLinkInterface()
         {
@@ -31,6 +33,7 @@ namespace MessengerRando.Archipelago
 
         public void DeathLinkReceived(DeathLink deathLink)
         {
+            _receivedDeath = true;
             DeathLinks.Add(deathLink);
             Console.WriteLine($"Received Death Link from: {deathLink.Source} due to {deathLink.Cause}");
         }
@@ -39,9 +42,19 @@ namespace MessengerRando.Archipelago
         {
             try
             {
-                if (DeathLinks.Count > 0)
+                if (DeathLinks.Count > 0 && _receivedDeath)
                 {
-                    ArchipelagoClient.MessageQueue.Add($"Received Death Link from: {DeathLinks[0].Source} due to {DeathLinks[0].Cause}");
+                    var cause = DeathLinks[0].Cause;
+                    if (cause.IsNullOrEmpty())
+                    {
+                        cause = "as they dropped their letter";
+                    }
+                    DialogSequence receivedDeath = ScriptableObject.CreateInstance<DialogSequence>();
+                    receivedDeath.dialogID = "DEATH_LINK";
+                    receivedDeath.name = DeathLinks[0].Source + cause;
+                    receivedDeath.choices = new List<DialogSequenceChoice>();
+                    AwardItemPopupParams receivedDeathParams = new AwardItemPopupParams(receivedDeath, false);
+                    Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedDeathParams, true);
                     Player.Kill(EDeathType.GENERIC, null);
                     DeathLinks.RemoveAt(0);
                 }
@@ -50,13 +63,14 @@ namespace MessengerRando.Archipelago
             {
                 Console.WriteLine(e.ToString());
             }
+            _receivedDeath = false;
         }
 
         public void SendDeathLink(EDeathType type, Transform killedBy)
         {
             try
             {
-                if (ArchipelagoData.DeathLink)
+                if (ArchipelagoData.DeathLink && !_receivedDeath)
                 {
                     Console.WriteLine("Sharing death with your friends...");
                     DeathLinkService.SendDeathLink(new DeathLink(ArchipelagoClient.ServerData.SlotName));

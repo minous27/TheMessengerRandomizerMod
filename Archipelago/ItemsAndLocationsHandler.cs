@@ -83,7 +83,6 @@ namespace MessengerRando.Archipelago
             }
             Console.WriteLine($"Adding {randoItem.Name} to inventory...");
             randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
-            ArchipelagoClient.ServerData.ReceivedItems.Add(randoItem);
             Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
         }
 

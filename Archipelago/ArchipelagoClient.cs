@@ -268,9 +268,12 @@ namespace MessengerRando.Archipelago
                         text += $"\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {hintCost}";
                     }
                     
-                    var playTime = (int)(Time.time - Manager<ProgressionManager>.Instance.lastSaveTime + Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SecondsPlayed);
-                    var t = TimeSpan.FromSeconds(playTime);
-                    text += $"\nPlayTime: " + string.Format("{0:D2}:{1:D2}:{2:D2}", t.Hours, t.Minutes, t.Seconds);
+                    var playTime = ServerData.PlayTime;
+                    if (playTime > 0)
+                    {
+                        var t = TimeSpan.FromSeconds(playTime);
+                        text += $"\nPlayTime: " + string.Format("{0:D2}:{1:D2}:{2:D2}", t.Hours, t.Minutes, t.Seconds);
+                    }
                 }
                 else if (HasConnected)
                 {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Diagnostics;
 using MessengerRando.Archipelago;
 using MessengerRando.Overrides;
 using MessengerRando.Utils;
@@ -150,8 +149,6 @@ namespace MessengerRando
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
             On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
-            //On.PlayerController.ReceiveHit += PlayerController_ReceiveHit;
-            //On.PlayerController.Duck += PlayerController_OnDuck;
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
@@ -209,7 +206,7 @@ namespace MessengerRando
         {
             Console.WriteLine($"Starting dialogue{self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
-            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM"))
+            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM") || self.dialogID == "DEATH_LINK")
             {
                 Console.WriteLine("Trying some rando dialog stuff.");
                 List<DialogInfo> dialogInfoList = new List<DialogInfo>();
@@ -223,6 +220,9 @@ namespace MessengerRando
                     case "ARCHIPELAGO_ITEM":
                         Console.WriteLine($"Item is {self.name}");
                         dialog.text = $"You have found {self.name}";
+                        break;
+                    case "DEATH_LINK":
+                        dialog.text = $"Received death from {self.name}";
                         break;
                     default:
                         //dialog.text = "???";
@@ -405,47 +405,10 @@ namespace MessengerRando
                 //int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
 
 
-                //Check if this is an Archipelago seed and whether it was checked in that state
-                /*
-                if (ArchipelagoClient.HasConnected)
-                {
-                    try
-                    {
-                        Console.WriteLine($"Checking if {check.PrettyLocationName} has been checked.");
-                        if (ArchipelagoClient.ServerData.CheckedLocations.Contains(ItemsAndLocationsHandler.LocationsLookup[check]))
-                        {
-                            int quantity = 1;
-                            switch (self.conditionOperator)
-                            {
-                                case EConditionOperator.LESS_THAN:
-                                    hasItem = quantity < self.quantityToHave;
-                                    break;
-                                case EConditionOperator.LESS_OR_EQUAL:
-                                    hasItem = quantity <= self.quantityToHave;
-                                    break;
-                                case EConditionOperator.EQUAL:
-                                    hasItem = quantity == self.quantityToHave;
-                                    break;
-                                case EConditionOperator.GREATER_OR_EQUAL:
-                                    hasItem = quantity >= self.quantityToHave;
-                                    break;
-                                case EConditionOperator.GREATER_THAN:
-                                    hasItem = quantity > self.quantityToHave;
-                                    break;
-                            }
-                            return hasItem;
-                        }
-                        else hasItem = false;
-                        Console.WriteLine($"Game says {orig(self)}, but returning {hasItem}");
-                        return hasItem;
-                    }
-                    catch (Exception e) { Console.WriteLine(e.ToString()); return false; }
-                }*/
-
                 //NEW WAY
                 //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
                 int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
-                
+
                 switch (self.conditionOperator)
                 {
                     case EConditionOperator.LESS_THAN:
@@ -503,7 +466,11 @@ namespace MessengerRando
                         break;
                     default:
                         if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
+                        {
                             newClientState = ArchipelagoClientState.ClientPlaying;
+                            if (!(ArchipelagoClient.ServerData.StartTime > 0))
+                                ArchipelagoClient.ServerData.StartTime = Time.realtimeSinceStartup;
+                        }                            
                         break;
                 }
                 if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
@@ -929,6 +896,10 @@ namespace MessengerRando
                      */
                     randoItem = EItems.NONE;
                 }
+                if (ArchipelagoClient.HasConnected)
+                {
+                    ItemsAndLocationsHandler.SendLocationCheck(ruxxAmuletLocation);
+                }
                 return randoItem;
             }
             else
@@ -960,7 +931,7 @@ namespace MessengerRando
 
         private void PlayerController_OnUpdate(PlayerController controller)
         {
-            if (!ArchipelagoClient.Authenticated) return;
+            if (!ArchipelagoClient.HasConnected) return;
             ArchipelagoClient.DeathLinkHandler.Player = controller;
             if (randoStateManager.IsSafeTeleportState()) ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
@@ -1016,30 +987,6 @@ namespace MessengerRando
                 }
             }
             orig(self, applySaveDelay);
-        }
-
-        private void PlayerController_ReceiveHit(On.PlayerController.orig_ReceiveHit orig, PlayerController self, HitData hitData)
-        {
-            //Check if we'll die from taking damage and send a death link if so
-            var damageReduction = Manager<InventoryManager>.Instance.GetItemQuantity(EItems.DAMAGE_REDUCTION);
-            int damageTaken = hitData.damage;
-            if (hitData.damage > 1)
-            {
-                damageTaken = Mathf.Max(1, damageTaken - damageReduction);
-            }
-            var adjustedHP = self.CurrentHP - damageTaken;
-            if (self.IsDead() || adjustedHP <= 0) ArchipelagoClient.DeathLinkHandler.SendDeathLink(hitData.deathType, hitData.sender);
-
-            orig(self, hitData);
-        }
-
-        private void PlayerController_OnDuck(On.PlayerController.orig_Duck orig, PlayerController self)
-        {
-            if (!self.IsDucking)
-            {
-                if (self.Controller.GetTopCollisionIntersection()) ArchipelagoClient.DeathLinkHandler.SendDeathLink(EDeathType.SQUISH, null);
-            }
-            orig(self);
         }
 
         private void Quarble_OnPlayerDied(On.Quarble.orig_OnPlayerDied orig, Quarble self, EDeathType deathType, bool fastReload)
