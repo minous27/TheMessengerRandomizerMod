@@ -1,23 +1,26 @@
 ﻿using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MessengerRando.Archipelago
 {
     public class DeathLinkInterface
     {
-        public static DeathLinkService DeathLinkService;
-        private static bool _deathLinkKilling;
+        public DeathLinkService DeathLinkService;
         public DeathLinkInterface Instance;
+        public PlayerController Player;
+        private List<DeathLink> DeathLinks = new List<DeathLink>();
 
-        public static void Initialize()
+        public DeathLinkInterface()
         {
             try
             {
-                Console.WriteLine("Initializing death link service...");
+                Console.WriteLine($"Initializing death link service... Should be set to {ArchipelagoData.DeathLink}");
                 DeathLinkService = ArchipelagoClient.Session.CreateDeathLinkService();
                 DeathLinkService.OnDeathLinkReceived += DeathLinkReceived;
-                if (ArchipelagoClient.ServerData.DeathLink)
+
+                if (ArchipelagoData.DeathLink)
                     DeathLinkService.EnableDeathLink();
                 else
                     DeathLinkService.DisableDeathLink();
@@ -26,26 +29,43 @@ namespace MessengerRando.Archipelago
             
         }
 
-        public static void DeathLinkReceived(DeathLink deathLink)
+        public void DeathLinkReceived(DeathLink deathLink)
         {
-            _deathLinkKilling = true;
+            DeathLinks.Add(deathLink);
             Console.WriteLine($"Received Death Link from: {deathLink.Source} due to {deathLink.Cause}");
-            Manager<PlayerManager>.Instance.Player.Kill(EDeathType.GENERIC, null);
         }
 
-        public static void SendDeathLink(On.PlayerController.orig_Die orig, PlayerController self, EDeathType type, Transform killedBy)
+        public void KillPlayer()
         {
-            if (!_deathLinkKilling)
+            try
             {
-                if (ArchipelagoClient.ServerData.DeathLink)
+                if (DeathLinks.Count > 0)
                 {
-                    Console.WriteLine("Sharing the death...");
-                    DeathLinkService.SendDeathLink(new DeathLink(ArchipelagoClient.ServerData.SlotName, killedBy.name));
+                    ArchipelagoClient.MessageQueue.Add($"Received Death Link from: {DeathLinks[0].Source} due to {DeathLinks[0].Cause}");
+                    Player.Kill(EDeathType.GENERIC, null);
+                    DeathLinks.RemoveAt(0);
                 }
             }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
 
-            _deathLinkKilling = false;
-            orig(self, type, killedBy);
+        public void SendDeathLink(EDeathType type, Transform killedBy)
+        {
+            try
+            {
+                if (ArchipelagoData.DeathLink)
+                {
+                    Console.WriteLine("Sharing death with your friends...");
+                    DeathLinkService.SendDeathLink(new DeathLink(ArchipelagoClient.ServerData.SlotName));
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e}");
+            }
         }
     }
 }

@@ -30,8 +30,9 @@ namespace MessengerRando.Archipelago
         public static bool DisplayStatus = true;
 
         public static ArchipelagoSession Session;
+        public static DeathLinkInterface DeathLinkHandler;
 
-        private static List<string> messageQueue = new List<string>();
+        public static List<string> MessageQueue = new List<string>();
 
         public static void ConnectAsync()
         {
@@ -81,13 +82,17 @@ namespace MessengerRando.Archipelago
                 ServerData.SlotData = success.SlotData;
                 ServerData.SeedName = Session.RoomState.Seed;
                 Authenticated = true;
-                if (success.SlotData.TryGetValue("deathlink", out var deathLink))
+                
+                if (ServerData.SlotData.TryGetValue("deathlink", out var deathLink))
                 {
-                    ServerData.DeathLink = (bool)deathLink;
-                    Console.WriteLine($"Death Link status from server: {ServerData.DeathLink}");
+                    ArchipelagoData.DeathLink = (bool)deathLink;
+                }
+                else
+                {
+                    Console.WriteLine("Failed to get deathlink option");
                 }
 
-                DeathLinkInterface.Initialize();
+                DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
                     for (int i = Session.Locations.AllLocationsChecked.Count; i < ServerData.CheckedLocations.Count; i++)
@@ -118,7 +123,7 @@ namespace MessengerRando.Archipelago
         private static void OnMessageReceived(LogMessage message)
         {
             Console.WriteLine(message.ToString());
-            messageQueue.Add(message.ToString());
+            MessageQueue.Add(message.ToString());
         }
 
         private static void SessionErrorReceived(Exception e, string message)
@@ -142,6 +147,8 @@ namespace MessengerRando.Archipelago
 
         public static void UpdateArchipelagoState()
         {
+            Console.WriteLine("Updating Archipelago State");
+            HasConnected = true;
             if (!Authenticated)
             {
                 var now = DateTime.Now.Second;
@@ -159,7 +166,6 @@ namespace MessengerRando.Archipelago
             var currentItemId = currentItem.Item;
             ++ServerData.Index;
             ItemsAndLocationsHandler.Unlock(currentItemId);
-            ServerData.UpdateSave();
             if (!currentItem.Player.Equals(Session.ConnectionInfo.Slot))
             {
                 DialogSequence receivedItem = ScriptableObject.CreateInstance<DialogSequence>();
@@ -277,11 +283,11 @@ namespace MessengerRando.Archipelago
         public static string UpdateMessagesText()
         {
             var text = string.Empty;
-            if (messageQueue.Count > 0)
+            if (MessageQueue.Count > 0)
             {
                 if (DisplayAPMessages)
-                    text = messageQueue.First();
-                messageQueue.RemoveAt(0);
+                    text = MessageQueue.First();
+                MessageQueue.RemoveAt(0);
             }
             return text;
         }

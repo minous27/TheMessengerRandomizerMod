@@ -20,9 +20,10 @@ namespace MessengerRando.Archipelago
         public int Index = 0;
         public string SeedName;
         public Dictionary<string, object> SlotData;
-        public bool DeathLink;
+        public static bool DeathLink = false;
         public List<long> CheckedLocations = new List<long>();
         public List<RandoItemRO> ReceivedItems = new List<RandoItemRO>();
+        private Dictionary<LocationRO, RandoItemRO> _locationToItemMapping;
         public SeedRO MessengerSeed
         {
             get
@@ -36,47 +37,54 @@ namespace MessengerRando.Archipelago
         {
             get
             {
-                var mapping = new Dictionary<LocationRO, RandoItemRO>();
-                try
+                if (_locationToItemMapping == null)
                 {
-                    var locations = new Dictionary<long, List<string>>();
-                    Console.WriteLine("Getting locations map");
-
-                    if (SlotData.TryGetValue("locations", out var otherLocations))
+                    var mapping = new Dictionary<LocationRO, RandoItemRO>();
+                    try
                     {
-                        locations = JsonConvert.DeserializeObject<Dictionary<long, List<string>>>(otherLocations.ToString());
-                    }
+                        var locations = new Dictionary<long, List<string>>();
 
-                    foreach (long locationID in ItemsAndLocationsHandler.LocationsLookup.Values)
-                    {
-                        LocationRO location = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(x => x.Value == locationID).Key;
-                        if (locations.TryGetValue(locationID, out var otherItemID))
+                        if (SlotData.TryGetValue("locations", out var otherLocations))
                         {
-                            RandoItemRO item = new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
-                            mapping.Add(location, item);
-                            Console.WriteLine($"{location.PrettyLocationName} has {item.Name}");
+                            locations = JsonConvert.DeserializeObject<Dictionary<long, List<string>>>(otherLocations.ToString());
                         }
-                        else
+
+                        foreach (long locationID in ItemsAndLocationsHandler.LocationsLookup.Values)
                         {
-                            if (!RandomizerConstants.GetAdvancedRandoLocationList().Contains(location))
+                            LocationRO location = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(x => x.Value == locationID).Key;
+                            if (locations.TryGetValue(locationID, out var otherItemID))
                             {
-                                if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
-                                    Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
-                                else
-                                {
-                                    //this *should* add time shards to seal locations in basic logic seeds
-                                    mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
-                                }
+                                RandoItemRO item = new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
+                                mapping.Add(location, item);
                             }
-                                
+                            else
+                            {
+                                if (!RandomizerConstants.GetAdvancedRandoLocationList().Contains(location))
+                                {
+                                    if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
+                                        Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
+                                    else
+                                    {
+                                        //this *should* add time shards to seal locations in basic logic seeds
+                                        mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
+                                    }
+                                }
+
+                            }
                         }
                     }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Error: {e}");
+                    }
+                    _locationToItemMapping = mapping;
+                    return mapping;
                 }
-                catch (Exception e)
+                else
                 {
-                    Console.WriteLine($"Error: {e}");
+                    return _locationToItemMapping;
                 }
-                return mapping;
+                
             }
         }
 
@@ -111,6 +119,15 @@ namespace MessengerRando.Archipelago
             //if we aren't able to create a save file fail here
             if (!UpdateSave()) return new SeedRO(slot, SeedType.None, 0, null, null, null);
 
+            var saveSlotName = Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SlotName;
+            if (!saveSlotName.Equals(ArchipelagoClient.ServerData.SlotName))
+            {
+                var tempSaveSlot = new SaveGameSlot(Manager<SaveManager>.Instance.GetCurrentSaveGameSlot());
+                
+                tempSaveSlot.SlotName = saveSlotName;
+                Console.WriteLine($"Changing {saveSlotName} to {ArchipelagoClient.ServerData.SlotName}");
+                
+            }
             return MessengerSeed;
         }
 
@@ -120,12 +137,8 @@ namespace MessengerRando.Archipelago
             RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
             RandomizerStateManager.Instance.IsRandomizedFile = true;
             int slot = RandomizerStateManager.Instance.CurrentFileSlot;
-            if (slot > 0)
-            {
-                Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SlotName = SlotName;
-                return SaveData(slot);
-            }
-            return false;
+            
+            return SaveData(slot);
         }
 
         private bool SaveData(int slot)
@@ -134,18 +147,7 @@ namespace MessengerRando.Archipelago
             {
                 Console.WriteLine("Saving Archipelago save data...");
                 var filePath = Application.persistentDataPath + $"ArchipelagoSlot{slot}.map";
-                var outData = new ArchipelagoData()
-                {
-                    Uri = Uri,
-                    Port = Port,
-                    SlotName = SlotName,
-                    Password = Password,
-                    Index = Index,
-                    SeedName = SeedName,
-                    SlotData = SlotData,
-                    CheckedLocations = CheckedLocations
-                };
-                string output = JsonConvert.SerializeObject(outData);
+                string output = JsonConvert.SerializeObject(this);
                 string pattern = "MessengerSeed";
                 int cutoffIndex = output.IndexOf(pattern);
                 output = output.Substring(0, cutoffIndex-2) + "}";
@@ -215,6 +217,7 @@ namespace MessengerRando.Archipelago
                 //Attempt to connect to the server and save the new data
                 ArchipelagoClient.ConnectAsync();
                 if (!ArchipelagoClient.Authenticated) ItemsAndLocationsHandler.Initialize();
+                ArchipelagoClient.HasConnected = true; //Doing this here because of race conditions and the actual connection being threaded
                 return true;
             }
             catch (Exception ex) 

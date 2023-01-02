@@ -18,6 +18,7 @@ using TMPro;
 using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Packets;
+using System.Reflection;
 
 namespace MessengerRando 
 {
@@ -55,6 +56,7 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoHintButton;
         SubMenuButtonInfo archipelagoToggleMessagesButton;
         SubMenuButtonInfo archipelagoStatusButton;
+        SubMenuButtonInfo archipelagoDeathLinkButton;
 
         private TextMeshProUGUI apTextDisplay8;
         private TextMeshProUGUI apTextDisplay16;
@@ -123,8 +125,12 @@ namespace MessengerRando
 
             //Add Archipelago status button
             archipelagoStatusButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayStatus ? "Hide status information" : "Display status information", OnToggleAPStatus);
+            
             //Add Archipelago message button
             archipelagoToggleMessagesButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayAPMessages ? "Hide server messages" : "Display server messages", OnToggleAPMessages);
+
+            //Add Archipelago death link button
+            archipelagoDeathLinkButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoData.DeathLink ? "Disable Death Link" : "Enable Death Link", OnToggleDeathLink);
 
             //Plug in my code :3
             On.InventoryManager.AddItem += InventoryManager_AddItem;
@@ -143,7 +149,10 @@ namespace MessengerRando
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
-            On.PlayerController.Die += DeathLinkInterface.SendDeathLink;
+            On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
+            //On.PlayerController.ReceiveHit += PlayerController_ReceiveHit;
+            //On.PlayerController.Duck += PlayerController_OnDuck;
+            On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
@@ -168,6 +177,7 @@ namespace MessengerRando
             archipelagoHintButton.IsEnabled = () => ArchipelagoClient.CanHint();
             archipelagoToggleMessagesButton.IsEnabled = () => ArchipelagoClient.Authenticated;
             archipelagoStatusButton.IsEnabled = () => ArchipelagoClient.Authenticated;
+            archipelagoDeathLinkButton.IsEnabled = () => ArchipelagoClient.Authenticated;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -295,6 +305,11 @@ namespace MessengerRando
             
             //Call original add with items
             orig(self, itemId, quantity);
+            
+        }
+
+        public void SaveModData(RandoSave randoSave)
+        {
             
         }
         
@@ -477,20 +492,23 @@ namespace MessengerRando
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
         {
             Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
-            ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
-            switch (self.GetCurrentLevelEnum())
+            if (ArchipelagoClient.Authenticated)
             {
-                case ELevel.Level_Ending:
-                    Console.WriteLine("Goooooooaaaaaallll!!!!");
-                    newClientState = ArchipelagoClientState.ClientGoal;
-                    break;
-                default:
-                    if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
-                        newClientState = ArchipelagoClientState.ClientPlaying;
-                    break;
+                ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
+                switch (self.GetCurrentLevelEnum())
+                {
+                    case ELevel.Level_Ending:
+                        Console.WriteLine("Goooooooaaaaaallll!!!!");
+                        newClientState = ArchipelagoClientState.ClientGoal;
+                        break;
+                    default:
+                        if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
+                            newClientState = ArchipelagoClientState.ClientPlaying;
+                        break;
+                }
+                if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
+                    ArchipelagoClient.UpdateClientStatus(newClientState);
             }
-            if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
-                ArchipelagoClient.UpdateClientStatus(newClientState);
 
             return orig(self, scene);
         }
@@ -570,7 +588,7 @@ namespace MessengerRando
                     randoStateManager.AddSeed(ArchipelagoClient.ServerData.StartNewSeed(fileSlot));
                     randoStateManager.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
                 }
-                else
+                else if (randoStateManager.HasSeedForFileSlot(fileSlot))
                 {
                     //There's a valid seed and mapping available and Archipelago isn't involved
                     randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
@@ -585,7 +603,10 @@ namespace MessengerRando
             if (randoStateManager.HasSeedForFileSlot(fileSlot) || ArchipelagoClient.HasConnected)
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                
+                //This has to be done when the file is loaded or it won't take
+                if (ArchipelagoClient.HasConnected)
+                {
+                }
                 //Load mappings
                 randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
 
@@ -880,6 +901,11 @@ namespace MessengerRando
             ArchipelagoClient.DisplayAPMessages = !ArchipelagoClient.DisplayAPMessages;
         }
 
+        static void OnToggleDeathLink()
+        {
+            ArchipelagoData.DeathLink = !ArchipelagoData.DeathLink;
+        }
+
         /// <summary>
         /// Delegate function for getting rando item. This can be used by IL hooks that need to make this call later.
         /// </summary>
@@ -934,10 +960,9 @@ namespace MessengerRando
 
         private void PlayerController_OnUpdate(PlayerController controller)
         {
-            if (!ArchipelagoClient.HasConnected) return;
-            if (!randoStateManager.IsSafeTeleportState()) return;
-            //This updates every frame
-            apTextDisplay16.text = apTextDisplay8.text = ArchipelagoClient.UpdateStatusText();
+            if (!ArchipelagoClient.Authenticated) return;
+            ArchipelagoClient.DeathLinkHandler.Player = controller;
+            if (randoStateManager.IsSafeTeleportState()) ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
             float updateTime = 5.0f;
             updateTimer += Time.deltaTime;
@@ -945,8 +970,7 @@ namespace MessengerRando
             {
                 updateTimer = 0;
                 apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
-                Console.WriteLine("Checking for items");
-                ArchipelagoClient.UpdateArchipelagoState();
+                if (randoStateManager.IsSafeTeleportState()) ArchipelagoClient.UpdateArchipelagoState();
             }
         }
 
@@ -974,6 +998,54 @@ namespace MessengerRando
                 apMessagesDisplay16.color = apMessagesDisplay8.color = Color.green;
                 apMessagesDisplay16.text = apMessagesDisplay8.text = string.Empty;
             }
+            //This updates every frame
+            apTextDisplay16.text = apTextDisplay8.text = ArchipelagoClient.UpdateStatusText();
+        }
+
+        private void SaveManager_DoActualSave(On.SaveManager.orig_DoActualSaving orig, SaveManager self, bool applySaveDelay = true)
+        {
+            if (ArchipelagoClient.Authenticated)
+            {
+                ArchipelagoClient.ServerData.UpdateSave();
+                var saveSlot = self.GetCurrentSaveGameSlot();
+                if (!saveSlot.SlotName.Equals(ArchipelagoClient.ServerData.SlotName))
+                {
+                    FieldInfo saveGameField = typeof(SaveManager).GetField("saveGame", BindingFlags.NonPublic | BindingFlags.Instance);
+                    SaveGame saveGame = saveGameField.GetValue(self) as SaveGame;
+                    saveGame.saveSlots[self.GetSaveGameSlotIndex()].SlotName = ArchipelagoClient.ServerData.SlotName;
+                }
+            }
+            orig(self, applySaveDelay);
+        }
+
+        private void PlayerController_ReceiveHit(On.PlayerController.orig_ReceiveHit orig, PlayerController self, HitData hitData)
+        {
+            //Check if we'll die from taking damage and send a death link if so
+            var damageReduction = Manager<InventoryManager>.Instance.GetItemQuantity(EItems.DAMAGE_REDUCTION);
+            int damageTaken = hitData.damage;
+            if (hitData.damage > 1)
+            {
+                damageTaken = Mathf.Max(1, damageTaken - damageReduction);
+            }
+            var adjustedHP = self.CurrentHP - damageTaken;
+            if (self.IsDead() || adjustedHP <= 0) ArchipelagoClient.DeathLinkHandler.SendDeathLink(hitData.deathType, hitData.sender);
+
+            orig(self, hitData);
+        }
+
+        private void PlayerController_OnDuck(On.PlayerController.orig_Duck orig, PlayerController self)
+        {
+            if (!self.IsDucking)
+            {
+                if (self.Controller.GetTopCollisionIntersection()) ArchipelagoClient.DeathLinkHandler.SendDeathLink(EDeathType.SQUISH, null);
+            }
+            orig(self);
+        }
+
+        private void Quarble_OnPlayerDied(On.Quarble.orig_OnPlayerDied orig, Quarble self, EDeathType deathType, bool fastReload)
+        {
+            orig(self, deathType, fastReload);
+            ArchipelagoClient.DeathLinkHandler.SendDeathLink(deathType, null);
         }
     }
 }
