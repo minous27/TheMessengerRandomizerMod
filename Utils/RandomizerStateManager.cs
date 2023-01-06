@@ -174,8 +174,9 @@ namespace MessengerRando
 
             if (ArchipelagoClient.HasConnected)
             {
+                if (vanillaLocationItem.Equals(EItems.TIME_SHARD)) return isLocationRandomized;
                 locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
-                return true;
+                return isLocationRandomized = true;
             }
 
             //We'll check through notes first
