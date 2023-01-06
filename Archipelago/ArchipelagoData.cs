@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Discord;
 using MessengerRando.RO;
 using MessengerRando.Utils;
 using Newtonsoft.Json;
@@ -29,11 +28,13 @@ namespace MessengerRando.Archipelago
             {
                 if (StartTime > 0)
                 {
-                    return Time.realtimeSinceStartup - StartTime;
+                    return DateTime.UtcNow.Millisecond - StartTime;
                 }
                 return 0;
             }
         }
+        public float FinishTime;
+
         private Dictionary<LocationRO, RandoItemRO> _locationToItemMapping;
         public SeedRO MessengerSeed
         {

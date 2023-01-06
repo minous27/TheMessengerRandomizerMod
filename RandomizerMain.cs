@@ -180,7 +180,7 @@ namespace MessengerRando
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
-            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE /*&& Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") */&& randoStateManager.IsSafeTeleportState());
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
             seedNumButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE);
 
             SceneManager.sceneLoaded += OnSceneLoadedRando;
@@ -456,13 +456,15 @@ namespace MessengerRando
                     case ELevel.Level_Ending:
                         Console.WriteLine("Goooooooaaaaaallll!!!!");
                         newClientState = ArchipelagoClientState.ClientGoal;
+                        if (!(ArchipelagoClient.ServerData.FinishTime > 0))
+                            ArchipelagoClient.ServerData.FinishTime = ArchipelagoClient.ServerData.PlayTime;
                         break;
                     default:
                         if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
                         {
                             newClientState = ArchipelagoClientState.ClientPlaying;
                             if (!(ArchipelagoClient.ServerData.StartTime > 0))
-                                ArchipelagoClient.ServerData.StartTime = Time.realtimeSinceStartup;
+                                ArchipelagoClient.ServerData.StartTime = DateTime.UtcNow.Millisecond;
                         }                            
                         break;
                 }
