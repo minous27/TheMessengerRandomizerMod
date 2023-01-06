@@ -24,6 +24,10 @@ namespace MessengerRando.RO
 
         public LocationRO(string name) : this(name, name, new EItems[] { }, false, false, false){}
 
+        //overrides for archipelago since logic is already handled
+        public LocationRO(string name, EItems item) : this(name, item.ToString(), new EItems[] { }, false, false, false) { }
+        public LocationRO(string name, string prettyName) : this(name, prettyName, new EItems[] { }, false, false, false) { }
+
         public override bool Equals(object obj)
         {
             return obj is LocationRO rO &&

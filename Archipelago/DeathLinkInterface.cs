@@ -13,6 +13,7 @@ namespace MessengerRando.Archipelago
         public PlayerController Player;
         private List<DeathLink> DeathLinks = new List<DeathLink>();
         private bool _receivedDeath = false;
+        private System.Random random = new System.Random();
 
         public DeathLinkInterface()
         {
@@ -47,11 +48,11 @@ namespace MessengerRando.Archipelago
                     var cause = DeathLinks[0].Cause;
                     if (cause.IsNullOrEmpty())
                     {
-                        cause = "as they dropped their letter";
+                        cause = DeathLinks[0].Source + DeathLinkCauses[random.Next(DeathLinkCauses.Count)];
                     }
                     DialogSequence receivedDeath = ScriptableObject.CreateInstance<DialogSequence>();
                     receivedDeath.dialogID = "DEATH_LINK";
-                    receivedDeath.name = DeathLinks[0].Source + cause;
+                    receivedDeath.name = cause;
                     receivedDeath.choices = new List<DialogSequenceChoice>();
                     AwardItemPopupParams receivedDeathParams = new AwardItemPopupParams(receivedDeath, false);
                     Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedDeathParams, true);
@@ -73,7 +74,9 @@ namespace MessengerRando.Archipelago
                 if (ArchipelagoData.DeathLink && !_receivedDeath)
                 {
                     Console.WriteLine("Sharing death with your friends...");
-                    DeathLinkService.SendDeathLink(new DeathLink(ArchipelagoClient.ServerData.SlotName));
+                    var alias = ArchipelagoClient.Session.Players.GetPlayerAliasAndName(ArchipelagoClient.Session.ConnectionInfo.Slot);
+                    var cause = DeathLinkCauses[random.Next(DeathLinkCauses.Count)];
+                    DeathLinkService.SendDeathLink(new DeathLink(ArchipelagoClient.ServerData.SlotName, alias + cause));
                 }
             }
             catch (Exception e)
@@ -81,5 +84,14 @@ namespace MessengerRando.Archipelago
                 Console.WriteLine($"Error: {e}");
             }
         }
+
+        public static List<string> DeathLinkCauses = new List<string>()
+        {
+            " dropped their message.",
+            " forgot to jump.",
+            " just wanted to see Quarble.",
+            " thought it was a simulation.",
+            " blames that on input delay.",
+        };
     }
 }

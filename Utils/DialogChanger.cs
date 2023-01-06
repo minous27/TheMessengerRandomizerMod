@@ -96,6 +96,37 @@ namespace MessengerRando.Utils
                 }
             }
             */
+
+            /*
+            if (ArchipelagoClient.HasConnected)
+            {
+                try
+                {
+                    foreach (LocationRO location in ItemsAndLocationsHandler.ArchipelagoLocations)
+                    {
+                        if (RandomizerConstants.GetAdvancedRandoLocationList().Contains(location)) continue;
+
+                        EItems locationChecked = (EItems)Enum.Parse(typeof(EItems), location.PrettyLocationName);
+                        current = ArchipelagoClient.ServerData.LocationToItemMapping;
+                        if (current.TryGetValue(location, out RandoItemRO itemActuallyFound))
+                        {
+                            if (itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
+                            {
+                                string outputText;
+                                if (EItems.NONE.Equals(itemActuallyFound.Item)) outputText = $"ARCHIPELAGO_ITEM~{itemActuallyFound.Name}~{itemActuallyFound.RecipientName}";
+                                else outputText = itemToDialogIDMap[itemActuallyFound.Item];
+
+                                dialogmap.Add(itemToDialogIDMap[locationChecked], outputText);
+                            }
+                        }
+                    }
+                    return dialogmap;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
+            }*/
             
             //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
             foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())

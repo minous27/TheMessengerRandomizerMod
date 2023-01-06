@@ -169,6 +169,7 @@ namespace MessengerRando
             archipelagoNameButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
             archipelagoPassButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
             archipelagoConnectButton.IsEnabled = () => Manager<LevelManager>.Instance.GetCurrentLevelEnum() == ELevel.NONE && !ArchipelagoClient.Authenticated;
+            //These AP buttons can exist in or out of game
             archipelagoReleaseButton.IsEnabled = () => ArchipelagoClient.CanRelease();
             archipelagoCollectButton.IsEnabled = () => ArchipelagoClient.CanCollect();
             archipelagoHintButton.IsEnabled = () => ArchipelagoClient.CanHint();
@@ -179,7 +180,7 @@ namespace MessengerRando
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
             teleportToHqButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && randoStateManager.IsSafeTeleportState());
-            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") && randoStateManager.IsSafeTeleportState());
+            teleportToNinjaVillage.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE /*&& Manager<ProgressionManager>.Instance.HasCutscenePlayed("ElderAwardSeedCutscene") */&& randoStateManager.IsSafeTeleportState());
             seedNumButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE);
 
             SceneManager.sceneLoaded += OnSceneLoadedRando;
@@ -222,7 +223,7 @@ namespace MessengerRando
                         dialog.text = $"You have found {self.name}";
                         break;
                     case "DEATH_LINK":
-                        dialog.text = $"Received death from {self.name}";
+                        dialog.text = $"Deathlink: {self.name}";
                         break;
                     default:
                         //dialog.text = "???";
@@ -338,14 +339,6 @@ namespace MessengerRando
                 if (ArchipelagoClient.HasConnected)
                 {
                     ItemsAndLocationsHandler.SendLocationCheck(powerSealLocation);
-                    if (!EItems.NONE.Equals(RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation].Item))
-                    {
-                        //Before adding the item to the inventory, add this item to the override
-                        RandomizerStateManager.Instance.AddTempRandoItemOverride(challengeRoomRandoItem.Item);
-                        Manager<InventoryManager>.Instance.AddItem(challengeRoomRandoItem.Item, 1);
-                        //Now remove the override
-                        RandomizerStateManager.Instance.RemoveTempRandoItemOverride(challengeRoomRandoItem.Item);
-                    }
                 }
                 //Handle timeshards
                 else if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem.Item))
@@ -548,6 +541,8 @@ namespace MessengerRando
                 {
                     //The player is connected to an Archipelago server and trying to load a save file so check it's valid
                     Console.WriteLine($"Successfully loaded Archipelago seed {fileSlot}");
+                    //I need to reload these after we connect so they take
+                    Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
                 }
                 else if (ArchipelagoClient.Authenticated && Manager<SaveManager>.Instance.GetSaveSlot(slotIndex).SecondsPlayed <= 100)
                 {
@@ -570,10 +565,6 @@ namespace MessengerRando
             if (randoStateManager.HasSeedForFileSlot(fileSlot) || ArchipelagoClient.HasConnected)
             {
                 Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
-                //This has to be done when the file is loaded or it won't take
-                if (ArchipelagoClient.HasConnected)
-                {
-                }
                 //Load mappings
                 randoStateManager.CurrentLocationDialogtoRandomDialogMapping = DialogChanger.GenerateDialogMappingforItems();
 
@@ -719,6 +710,11 @@ namespace MessengerRando
 
             ArchipelagoData.ClearData();
             randoStateManager.ResetRandomizerState();
+            for (int i = 1; i <= 3; i++)
+            {
+                randoStateManager.ResetSeedForFileSlot(i);
+            }
+            Save.seedData = string.Empty;
             string path = Application.persistentDataPath + "/SaveGame.txt";
             using (StreamWriter sw = File.CreateText(path))
             {

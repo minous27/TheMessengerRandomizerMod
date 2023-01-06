@@ -200,6 +200,10 @@ namespace MessengerRando.Archipelago
             }
             if (ArchipelagoClient.Authenticated)
             {
+                Console.WriteLine("Loaded seed name: ");
+                Console.WriteLine(TempServerData.SeedName.ToString());
+                Console.WriteLine("Connected seed name: ");
+                Console.WriteLine(SeedName.ToString());
                 //we're already connected to an archipelago server so check if the file is valid
                 if (TempServerData.SeedName.Equals(SeedName))
                 {
@@ -241,7 +245,7 @@ namespace MessengerRando.Archipelago
         public static void ClearData()
         {
             string filePath = Application.persistentDataPath + $"ArchipelagoSlot";
-            for (int slot = 1; slot < 4; slot++)
+            for (int slot = 1; slot <= 3; slot++)
             {
                 var currentPath = filePath + $"{slot}.map";
                 if (File.Exists(currentPath)) { File.Delete(currentPath); }

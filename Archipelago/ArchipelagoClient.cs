@@ -95,7 +95,7 @@ namespace MessengerRando.Archipelago
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
-                    for (int i = Session.Locations.AllLocationsChecked.Count; i < ServerData.CheckedLocations.Count; i++)
+                    for (int i = Session.Locations.AllLocationsChecked.Count; i <= ServerData.CheckedLocations.Count; i++)
                     {
                         Session.Locations.CompleteLocationChecks(ServerData.CheckedLocations[i]);
                     }

@@ -152,6 +152,11 @@ namespace MessengerRando
             {
                 isTeleportSafe = false;
             }
+            //Player is in a cutscene or recovering from taking damage
+            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible())
+            {
+                isTeleportSafe = false;
+            }
 
             return isTeleportSafe;
         }
@@ -166,6 +171,12 @@ namespace MessengerRando
         {
             bool isLocationRandomized = false;
             locationFromItem = null;
+
+            if (ArchipelagoClient.HasConnected)
+            {
+                locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
+                return true;
+            }
 
             //We'll check through notes first
             foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
@@ -199,7 +210,7 @@ namespace MessengerRando
                 }
 
 
-                foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
+                foreach (RandoItemRO item in CurrentLocationToItemMapping.Values)
                 {
                     if (item.Item.Equals(vanillaLocationItem))
                     { 
@@ -219,6 +230,7 @@ namespace MessengerRando
 
                     }
                 }
+
             }
 
             //Return whether we found it or not.
