@@ -935,19 +935,22 @@ namespace MessengerRando
         {
             if (!ArchipelagoClient.HasConnected) return;
             ArchipelagoClient.DeathLinkHandler.Player = controller;
-            if (randoStateManager.IsSafeTeleportState()) ArchipelagoClient.DeathLinkHandler.KillPlayer();
+            if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused) ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
             float updateTime = 5.0f;
             updateTimer += Time.deltaTime;
             if (updateTimer >= updateTime)
             {
-                updateTimer = 0;
                 apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
-                if (randoStateManager.IsSafeTeleportState()) ArchipelagoClient.UpdateArchipelagoState();
+                if (randoStateManager.IsSafeTeleportState())
+                {
+                    ArchipelagoClient.UpdateArchipelagoState();
+                    updateTimer = 0;
+                }
             }
         }
 
-        private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
+            private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
         {
             orig(self);
             if (apTextDisplay8 == null)

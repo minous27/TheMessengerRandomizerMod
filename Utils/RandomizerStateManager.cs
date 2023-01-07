@@ -4,6 +4,7 @@ using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
 using System.Linq;
+using UnityEngine;
 
 namespace MessengerRando
 {
@@ -158,7 +159,7 @@ namespace MessengerRando
                 isTeleportSafe = false;
             }
             //Player is in a cutscene or recovering from taking damage
-            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible())
+            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible() || Manager<PauseManager>.Instance.IsPaused)
             {
                 isTeleportSafe = false;
             }
@@ -178,7 +179,7 @@ namespace MessengerRando
             
             if (ArchipelagoClient.HasConnected)
             {
-                locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.LocationName.Equals(vanillaLocationItem.ToString()));
+                locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
                 if (locationFromItem != null ) { isLocationRandomized = true; }
                 return isLocationRandomized;
             }
