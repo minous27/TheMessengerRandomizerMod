@@ -456,15 +456,19 @@ namespace MessengerRando
                     case ELevel.Level_Ending:
                         Console.WriteLine("Goooooooaaaaaallll!!!!");
                         newClientState = ArchipelagoClientState.ClientGoal;
+                        /*
                         if (!(ArchipelagoClient.ServerData.FinishTime > 0))
                             ArchipelagoClient.ServerData.FinishTime = ArchipelagoClient.ServerData.PlayTime;
+                        */
                         break;
                     default:
                         if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
                         {
                             newClientState = ArchipelagoClientState.ClientPlaying;
+                            /*
                             if (!(ArchipelagoClient.ServerData.StartTime > 0))
                                 ArchipelagoClient.ServerData.StartTime = DateTime.UtcNow.Millisecond;
+                            */
                         }                            
                         break;
                 }

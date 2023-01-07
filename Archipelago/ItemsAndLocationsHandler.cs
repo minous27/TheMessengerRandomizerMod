@@ -63,8 +63,8 @@ namespace MessengerRando.Archipelago
             new RandoItemRO("Rope_Dart", EItems.GRAPLOU),
             new RandoItemRO("Ninja_Tabis", EItems.MAGIC_BOOTS),
             //quest items
-            new RandoItemRO("Astral_Seed", EItems.TEA_SEED),
-            new RandoItemRO("Astral_Tea_Leaves", EItems.TEA_LEAVES),
+            //new RandoItemRO("Astral_Seed", EItems.TEA_SEED),
+            //new RandoItemRO("Astral_Tea_Leaves", EItems.TEA_LEAVES),
             new RandoItemRO("Candle", EItems.CANDLE),
             new RandoItemRO("Seashell", EItems.SEASHELL),
             new RandoItemRO("Power_Thistle", EItems.POWER_THISTLE),

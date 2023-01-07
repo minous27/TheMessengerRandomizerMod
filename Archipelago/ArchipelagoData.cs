@@ -21,6 +21,7 @@ namespace MessengerRando.Archipelago
         public Dictionary<string, object> SlotData;
         public static bool DeathLink = false;
         public List<long> CheckedLocations = new List<long>();
+        /*
         public float StartTime;
         public float PlayTime
         {
@@ -34,7 +35,7 @@ namespace MessengerRando.Archipelago
             }
         }
         public float FinishTime;
-
+        */
         private Dictionary<LocationRO, RandoItemRO> _locationToItemMapping;
         public SeedRO MessengerSeed
         {

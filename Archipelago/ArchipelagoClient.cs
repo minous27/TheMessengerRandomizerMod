@@ -267,6 +267,7 @@ namespace MessengerRando.Archipelago
                     {
                         text += $"\nHint points available: {Session.RoomState.HintPoints}\nHint point cost: {hintCost}";
                     }
+                    /*
                     TimeSpan t = new TimeSpan();
                     var playTime = ServerData.PlayTime;
                     if (ServerData.FinishTime > 0)
@@ -278,6 +279,7 @@ namespace MessengerRando.Archipelago
                         t = TimeSpan.FromMilliseconds(playTime);
                     }
                     text += $"\nPlayTime: " + string.Format("{0:D2}:{1:D2}:{2:D2}.{3:D3}", t.Hours, t.Minutes, t.Seconds, t.Milliseconds);
+                    */
                 }
                 else if (HasConnected)
                 {
