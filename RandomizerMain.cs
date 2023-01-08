@@ -401,7 +401,12 @@ namespace MessengerRando
                 //NEW WAY
                 //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
                 int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
-
+                if (ArchipelagoClient.HasConnected)
+                {
+                    var locationID = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(location => location.Key.Equals(check)).Value;
+                    itemQuantity = ArchipelagoClient.ServerData.CheckedLocations.Contains(locationID) ? 1 : 0;
+                }
+                
                 switch (self.conditionOperator)
                 {
                     case EConditionOperator.LESS_THAN:
@@ -941,9 +946,9 @@ namespace MessengerRando
             updateTimer += Time.deltaTime;
             if (updateTimer >= updateTime)
             {
-                apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
                 if (randoStateManager.IsSafeTeleportState())
                 {
+                    apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
                     ArchipelagoClient.UpdateArchipelagoState();
                     updateTimer = 0;
                 }
