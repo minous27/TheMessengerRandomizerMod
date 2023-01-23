@@ -88,6 +88,7 @@
   <ItemGroup>
     <Compile Include="Archipelago\ArchipelagoClient.cs" />
     <Compile Include="Archipelago\ArchipelagoData.cs" />
+    <Compile Include="Archipelago\DeathLinkInterface.cs" />
     <Compile Include="Archipelago\ItemsAndLocationsHandler.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
