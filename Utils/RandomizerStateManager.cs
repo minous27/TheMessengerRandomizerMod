@@ -158,11 +158,6 @@ namespace MessengerRando
             {
                 isTeleportSafe = false;
             }
-            //Player is in a cutscene or recovering from taking damage
-            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible())
-            {
-                isTeleportSafe = false;
-            }
             return isTeleportSafe;
         }
 

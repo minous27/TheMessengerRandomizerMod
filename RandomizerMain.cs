@@ -384,7 +384,7 @@ namespace MessengerRando
         {
             bool hasItem = false;
             //Check to make sure this is an item that was randomized and make sure we are not ignoring this specific trigger check
-            if (randoStateManager.IsLocationRandomized(self.item, out var check) && randoStateManager.IsRandomizedFile && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
+            if (randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(self.item, out var check) && !RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name))
             {
                 if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && RandomizerConstants.GetSpecialTriggerNames().Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
@@ -469,6 +469,8 @@ namespace MessengerRando
                     default:
                         if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
                         {
+                            //setting the client status as playing since the last level was `None`
+                            //ELevel.None can be the main menu, shop, or teleport hub so this isn't always useful. 
                             newClientState = ArchipelagoClientState.ClientPlaying;
                             /*
                             if (!(ArchipelagoClient.ServerData.StartTime > 0))
