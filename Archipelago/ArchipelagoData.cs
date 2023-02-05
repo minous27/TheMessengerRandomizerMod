@@ -72,15 +72,13 @@ namespace MessengerRando.Archipelago
                             }
                             else
                             {
-                                if (!RandomizerConstants.GetAdvancedRandoLocationList().Contains(location))
+                                if (RandomizerConstants.GetAdvancedRandoLocationList().Contains(location)) continue;
+                                if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
+                                    Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
+                                else
                                 {
-                                    if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
-                                        Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
-                                    else
-                                    {
-                                        //this *should* add time shards to seal locations in basic logic seeds
-                                        mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
-                                    }
+                                    //this *should* add time shards to seal locations in basic logic seeds
+                                    mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
                                 }
 
                             }

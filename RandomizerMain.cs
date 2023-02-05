@@ -145,6 +145,12 @@ namespace MessengerRando
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
+            On.ProgressionManager.SetBossAsDefeated += ProgressionManager_SetBossAsDefeated;
+            //These functions let us override and manage power seals ourselves with 'fake' items
+            On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
+            On.ShopChest.CollectedAllPowerSeals += ShopChest_CollectedAllPowerSeals;
+            On.ProgressionManager.HasCutscenePlayed += ProgressionManager_HasCutscenePlayed;
+            On.Level.ChangeRoom += Level_ChangeRoom;
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
@@ -207,7 +213,7 @@ namespace MessengerRando
         {
             Console.WriteLine($"Starting dialogue{self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
-            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM") || self.dialogID == "DEATH_LINK")
+            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM" || self.dialogID == "DEATH_LINK"))
             {
                 Console.WriteLine("Trying some rando dialog stuff.");
                 List<DialogInfo> dialogInfoList = new List<DialogInfo>();
@@ -598,7 +604,6 @@ namespace MessengerRando
             }
 
             orig(self, slotIndex);
-
         }
 
         void SaveGameSelectionScreen_OnNewGame(On.SaveGameSelectionScreen.orig_OnNewGame orig, SaveGameSelectionScreen self, SaveSlotUI slot)
@@ -681,6 +686,54 @@ namespace MessengerRando
             Console.WriteLine($"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
 
             return isUnlocked;
+        }
+
+        void ProgressionManager_SetBossAsDefeated(On.ProgressionManager.orig_SetBossAsDefeated orig,
+            ProgressionManager self, string bossName)
+        {
+            // if (!ArchipelagoClient.ServerData.DefeatedBosses.Contains(bossName))
+            //     ArchipelagoClient.ServerData.DefeatedBosses.Add(bossName);
+            orig(self, bossName);
+        }
+
+        int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,
+            ProgressionManager self)
+        {
+            return orig(self);
+        }
+
+        bool ShopChest_CollectedAllPowerSeals(On.ShopChest.orig_CollectedAllPowerSeals orig, ShopChest self)
+        {
+            return orig(self);
+            return true;
+        }
+
+        bool ProgressionManager_HasCutscenePlayed(On.ProgressionManager.orig_HasCutscenePlayed orig,
+            ProgressionManager self, string cutsceneID)
+        {
+            return cutsceneID == typeof(ShopChestOpenCutscene).ToString() || orig(self, cutsceneID);
+        }
+
+        void Level_ChangeRoom(On.Level.orig_ChangeRoom orig, Level self,
+            ScreenEdge newRoomLeftEdge, ScreenEdge newRoomRightEdge,
+            ScreenEdge newRoomBottomEdge, ScreenEdge newRoomTopEdge,
+            bool teleportedInRoom)
+        {
+            string GetRoomKey()
+            {
+                return newRoomLeftEdge.edgeIdX + newRoomRightEdge.edgeIdX
+                                               + newRoomBottomEdge.edgeIdY + newRoomTopEdge.edgeIdY;
+            }
+            Console.WriteLine($"new roomKey: {GetRoomKey()}");
+            if (self.CurrentRoom != null)
+                Console.WriteLine($"currentRoom roomKey: {self.CurrentRoom.roomKey}");
+            else
+                Console.WriteLine("currentRoom does not exist.");
+            Console.WriteLine($"teleported: {teleportedInRoom}");
+            //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
+            //if we're in a room, it leaves the current room then enters the new room with the teleported bool
+            //no idea what the teleported bool does currently
+            orig(self, newRoomLeftEdge, newRoomRightEdge, newRoomBottomEdge, newRoomTopEdge, teleportedInRoom);
         }
 
         ///On submit of rando file location
