@@ -91,6 +91,9 @@
     <Compile Include="Archipelago\DeathLinkInterface.cs" />
     <Compile Include="Archipelago\ItemsAndLocationsHandler.cs" />
     <Compile Include="Exceptions\RandomizerException.cs" />
+    <Compile Include="GameOverrideMappings\RandoBossManager.cs" />
+    <Compile Include="GameOverrideMappings\RandoPowerSealManager.cs" />
+    <Compile Include="GameOverrideMappings\RandoLevelManager.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
