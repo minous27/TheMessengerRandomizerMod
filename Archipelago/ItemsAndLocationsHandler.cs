@@ -190,17 +190,23 @@ namespace MessengerRando.Archipelago
                 return;
             }
 
-            if (EItems.WINDMILL_SHURIKEN.Equals(randoItem.Item)) RandomizerMain.OnToggleWindmillShuriken();
-            else if (EItems.TIME_SHARD.Equals(randoItem.Item))
+            switch (randoItem.Item)
             {
-                Console.WriteLine("Unlocking time shards...");
-                Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
-                randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
-                return; //Collecting timeshards internally call add item so I dont need to do it again.
+                case EItems.WINDMILL_SHURIKEN:
+                    RandomizerMain.OnToggleWindmillShuriken();
+                    break;
+                case EItems.TIME_SHARD:
+                    Console.WriteLine("Unlocking time shards...");
+                    Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
+                    break;
+                case EItems.POWER_SEAL:
+                    randoStateManager.PowerSealManager.AddPowerSeal();
+                    break;
+                default:
+                    Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
+                    break;
             }
-            Console.WriteLine($"Adding {randoItem.Name} to inventory...");
             randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
-            Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
         }
 
         public static void SendLocationCheck(LocationRO checkedLocation)

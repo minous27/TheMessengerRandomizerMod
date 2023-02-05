@@ -149,7 +149,8 @@ namespace MessengerRando
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
             On.ShopChest.CollectedAllPowerSeals += ShopChest_CollectedAllPowerSeals;
-            On.ProgressionManager.HasCutscenePlayed += ProgressionManager_HasCutscenePlayed;
+            On.ShopChest.SetState += (orig, self) => randoStateManager.PowerSealManager?.ShopChestSetState(self);
+            // On.ProgressionManager.HasCutscenePlayed += ProgressionManager_HasCutscenePlayed;
             On.Level.ChangeRoom += Level_ChangeRoom;
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
@@ -604,6 +605,15 @@ namespace MessengerRando
             }
 
             orig(self, slotIndex);
+            if (ArchipelagoClient.Authenticated)
+            {
+                if (randoStateManager.PowerSealManager != null)
+                {
+                    MethodInfo ShopChestState =
+                        typeof(ShopChest).GetMethod("SetState", BindingFlags.NonPublic | BindingFlags.Instance);
+                    // => randoStateManager.PowerSealManager.ShopChestSetState();
+                }
+            }
         }
 
         void SaveGameSelectionScreen_OnNewGame(On.SaveGameSelectionScreen.orig_OnNewGame orig, SaveGameSelectionScreen self, SaveSlotUI slot)
@@ -699,19 +709,24 @@ namespace MessengerRando
         int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,
             ProgressionManager self)
         {
-            return orig(self);
+            return randoStateManager.PowerSealManager?.TotalPowerSeals() ?? orig(self);
         }
 
         bool ShopChest_CollectedAllPowerSeals(On.ShopChest.orig_CollectedAllPowerSeals orig, ShopChest self)
         {
-            return orig(self);
-            return true;
+            return randoStateManager.PowerSealManager?.CanOpenChest() ?? orig(self);
         }
 
         bool ProgressionManager_HasCutscenePlayed(On.ProgressionManager.orig_HasCutscenePlayed orig,
             ProgressionManager self, string cutsceneID)
         {
-            return cutsceneID == typeof(ShopChestOpenCutscene).ToString() || orig(self, cutsceneID);
+            //For some reason the state that determines if the chest is open or not is a private method with a hardcoded
+            //check for collectedSeals >= totalSeals instead of using its public bool? easier to just skip the cutscene
+            //than it is to patch that method
+            if (randoStateManager.PowerSealManager != null)
+                return randoStateManager.PowerSealManager.CanOpenChest() &&
+                       cutsceneID == typeof(ShopChestOpenCutscene).ToString();
+            return orig(self, cutsceneID);
         }
 
         void Level_ChangeRoom(On.Level.orig_ChangeRoom orig, Level self,

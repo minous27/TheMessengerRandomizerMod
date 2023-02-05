@@ -4,6 +4,7 @@ using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
 using System.Linq;
+using MessengerRando.GameOverrideMappings;
 using UnityEngine;
 
 namespace MessengerRando
@@ -15,6 +16,10 @@ namespace MessengerRando
 
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
+
+        public RandoPowerSealManager PowerSealManager;
+
+        public string Goal;
 
         private Dictionary<int, SeedRO> seeds;
 

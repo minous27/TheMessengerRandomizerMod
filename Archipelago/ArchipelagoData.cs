@@ -50,52 +50,45 @@ namespace MessengerRando.Archipelago
         {
             get
             {
-                if (_locationToItemMapping == null)
+                if (_locationToItemMapping != null) return _locationToItemMapping;
+                var mapping = new Dictionary<LocationRO, RandoItemRO>();
+                try
                 {
-                    var mapping = new Dictionary<LocationRO, RandoItemRO>();
-                    try
+                    var locations = new Dictionary<long, List<string>>();
+
+                    if (SlotData.TryGetValue("locations", out var otherLocations))
                     {
-                        var locations = new Dictionary<long, List<string>>();
+                        locations = JsonConvert.DeserializeObject<Dictionary<long, List<string>>>(otherLocations.ToString());
+                    }
 
-                        if (SlotData.TryGetValue("locations", out var otherLocations))
+                    foreach (long locationID in ItemsAndLocationsHandler.LocationsLookup.Values)
+                    {
+                        LocationRO location = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(x => x.Value == locationID).Key;
+                        if (locations.TryGetValue(locationID, out var otherItemID))
                         {
-                            locations = JsonConvert.DeserializeObject<Dictionary<long, List<string>>>(otherLocations.ToString());
+                            RandoItemRO item = new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
+                            mapping.Add(location, item);
                         }
-
-                        foreach (long locationID in ItemsAndLocationsHandler.LocationsLookup.Values)
+                        else
                         {
-                            LocationRO location = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(x => x.Value == locationID).Key;
-                            if (locations.TryGetValue(locationID, out var otherItemID))
-                            {
-                                RandoItemRO item = new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
-                                mapping.Add(location, item);
-                            }
+                            if (RandomizerConstants.GetAdvancedRandoLocationList().Contains(location)) continue;
+                            if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
+                                Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
                             else
                             {
-                                if (RandomizerConstants.GetAdvancedRandoLocationList().Contains(location)) continue;
-                                if (SettingValue.Advanced.Equals(GameSettings[SettingType.Difficulty]))
-                                    Console.WriteLine($"Couldn't find {location.PrettyLocationName} in slot data");
-                                else
-                                {
-                                    //this *should* add time shards to seal locations in basic logic seeds
-                                    mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
-                                }
-
+                                //this *should* add time shards to seal locations in basic logic seeds
+                                mapping.Add(location, ItemsAndLocationsHandler.ItemsLookup[locationID]);
                             }
+
                         }
                     }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine($"Error: {e}");
-                    }
-                    _locationToItemMapping = mapping;
-                    return mapping;
                 }
-                else
+                catch (Exception e)
                 {
-                    return _locationToItemMapping;
+                    Console.WriteLine($"Error: {e}");
                 }
-                
+                _locationToItemMapping = mapping;
+                return mapping;
             }
         }
 
@@ -156,10 +149,11 @@ namespace MessengerRando.Archipelago
         {
             if (ArchipelagoClient.Authenticated)
             {
+                const string pattern = "MessengerSeed";
+                
                 Console.WriteLine("Saving Archipelago save data...");
                 var filePath = Application.persistentDataPath + $"ArchipelagoSlot{slot}.map";
                 string output = JsonConvert.SerializeObject(this);
-                string pattern = "MessengerSeed";
                 int cutoffIndex = output.IndexOf(pattern);
                 output = output.Substring(0, cutoffIndex-2) + "}";
                 File.WriteAllText(filePath, output, encoding);
@@ -178,38 +172,31 @@ namespace MessengerRando.Archipelago
 
         private bool loadData(int slot)
         {
-            string path = Application.persistentDataPath + $"ArchipelagoSlot{slot}.map";
+            string path = $"{Application.persistentDataPath}ArchipelagoSlot{slot}.map";
             Console.WriteLine($"Loading data from {path}");
-            ArchipelagoData TempServerData = null;
+            ArchipelagoData tempServerData = null;
             if (File.Exists(path))
             {
                 using (StreamReader reader = new StreamReader(path))
                 {
-                    TempServerData = JsonConvert.DeserializeObject<ArchipelagoData>(reader.ReadToEnd());
+                    tempServerData = JsonConvert.DeserializeObject<ArchipelagoData>(reader.ReadToEnd());
                 }
             }
-            else
-            {
-                Console.WriteLine("Didn't find Archipelago data.");
-                return false;
-            }
-            if(TempServerData == null)
+            if(tempServerData == null)
             {
                 Console.WriteLine("Didn't find Archipelago data.");
                 return false;
             }
             if (ArchipelagoClient.Authenticated)
             {
-                Console.WriteLine("Loaded seed name: ");
-                Console.WriteLine(TempServerData.SeedName.ToString());
-                Console.WriteLine("Connected seed name: ");
-                Console.WriteLine(SeedName.ToString());
+                Console.WriteLine($"Loaded seed name: {tempServerData.SeedName}");
+                Console.WriteLine($"Connected seed name: {SeedName}");
                 //we're already connected to an archipelago server so check if the file is valid
-                if (TempServerData.SeedName.Equals(SeedName))
+                if (tempServerData.SeedName.Equals(SeedName))
                 {
                     //We're continuing an existing multiworld so likely a port change. Save the new data
-                    Index = TempServerData.Index;
-                    CheckedLocations.AddRange(TempServerData.CheckedLocations);
+                    Index = tempServerData.Index;
+                    CheckedLocations.AddRange(tempServerData.CheckedLocations);
 
                     return true;
                 }
@@ -221,16 +208,16 @@ namespace MessengerRando.Archipelago
             try
             {
                 //We aren't connected to an Archipelago server so attempt to use the found data
-                Uri = TempServerData.Uri;
-                Port = TempServerData.Port;
-                SlotName = TempServerData.SlotName;
-                Password = TempServerData.Password;
-                Index = TempServerData.Index;
-                SeedName = TempServerData.SeedName;
-                SlotData = TempServerData.SlotData;
-                CheckedLocations.AddRange(TempServerData.CheckedLocations);
+                Uri = tempServerData.Uri;
+                Port = tempServerData.Port;
+                SlotName = tempServerData.SlotName;
+                Password = tempServerData.Password;
+                Index = tempServerData.Index;
+                SeedName = tempServerData.SeedName;
+                SlotData = tempServerData.SlotData;
+                CheckedLocations.AddRange(tempServerData.CheckedLocations);
                 //Attempt to connect to the server and save the new data
-                ArchipelagoClient.ConnectAsync();
+                ArchipelagoClient.Connect();
                 if (!ArchipelagoClient.Authenticated) ItemsAndLocationsHandler.Initialize();
                 ArchipelagoClient.HasConnected = true; //Doing this here because of race conditions and the actual connection being threaded
                 return true;

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Archipelago.MultiClient.Net;
-using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
+using MessengerRando.GameOverrideMappings;
 using MessengerRando.Utils;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -41,14 +41,14 @@ namespace MessengerRando.Archipelago
                 ServerData = new ArchipelagoData();
                 return;
             }
-            ItemsAndLocationsHandler.Initialize();
             Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
             ThreadPool.QueueUserWorkItem(_ => Connect());
         }
 
-        private static void Connect()
+        public static void Connect()
         {
             if (Authenticated) return;
+            if (ItemsAndLocationsHandler.ItemsLookup == null) ItemsAndLocationsHandler.Initialize();
 
             LoginResult result;
 
@@ -90,6 +90,20 @@ namespace MessengerRando.Archipelago
                 else
                 {
                     Console.WriteLine("Failed to get deathlink option");
+                }
+
+                if (ServerData.SlotData.TryGetValue("goal", out var gameGoal))
+                {
+                    string goal = (string)gameGoal;
+                    RandomizerStateManager.Instance.Goal = goal;
+                    if (goal == "Chest")
+                    {
+                        if (ServerData.SlotData.TryGetValue("power_seals_required", out var requiredSeals))
+                        {
+                            RandomizerStateManager.Instance.PowerSealManager =
+                                new RandoPowerSealManager((int)requiredSeals);
+                        }
+                    }
                 }
 
                 DeathLinkHandler = new DeathLinkInterface();
