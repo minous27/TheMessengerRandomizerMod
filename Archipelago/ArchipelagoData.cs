@@ -20,6 +20,7 @@ namespace MessengerRando.Archipelago
         public string SeedName;
         public Dictionary<string, object> SlotData;
         public static bool DeathLink = false;
+        public int PowerSealsCollected;
         public List<long> CheckedLocations = new List<long>();
         /*
         public float StartTime;
@@ -215,12 +216,12 @@ namespace MessengerRando.Archipelago
                 Index = tempServerData.Index;
                 SeedName = tempServerData.SeedName;
                 SlotData = tempServerData.SlotData;
+                PowerSealsCollected = tempServerData.PowerSealsCollected;
                 CheckedLocations.AddRange(tempServerData.CheckedLocations);
                 //Attempt to connect to the server and save the new data
-                ArchipelagoClient.Connect();
+                ArchipelagoClient.ConnectAsync();
                 if (!ArchipelagoClient.Authenticated) ItemsAndLocationsHandler.Initialize();
-                ArchipelagoClient.HasConnected = true; //Doing this here because of race conditions and the actual connection being threaded
-                return true;
+                return ArchipelagoClient.HasConnected = true; //Doing this here because of race conditions and the actual connection being threaded
             }
             catch (Exception ex) 
             {

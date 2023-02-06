@@ -5,38 +5,44 @@ namespace MessengerRando.GameOverrideMappings
 {
     public class RandoPowerSealManager
     {
-        private int totalPowerSealsCollected;
-        private readonly int requiredPowerSeals;
+        private int amountPowerSealsCollected;
+        public readonly int requiredPowerSeals;
 
         public RandoPowerSealManager(int requiredPowerSeals)
         {
-            this.requiredPowerSeals = requiredPowerSeals;
+            this.requiredPowerSeals = Manager<ProgressionManager>.Instance.powerSealTotal = requiredPowerSeals;
+            amountPowerSealsCollected = ArchipelagoClient.ServerData.PowerSealsCollected;
         }
 
-        public void AddPowerSeal()
+        public void AddPowerSeal() => ArchipelagoClient.ServerData.PowerSealsCollected = ++amountPowerSealsCollected;
+
+        public void ShopChestSetState(On.ShopChest.orig_SetState orig, ShopChest shopChest)
         {
-            ++totalPowerSealsCollected;
+            if (CanOpenChest() && !Manager<ProgressionManager>.Instance.HasCutscenePlayed<ShopChestOpenCutscene>())
+                ArchipelagoClient.UpdateClientStatus(ArchipelagoClientState.ClientGoal);
+            
+            //no idea why but this block of code causes the game to freeze when the chest can't be opened.
+            //Haven't tracked down the failing event so still calling the original code which will reward the windmill shuriken.
+            //
+            // if (!CanOpenChest())
+            //     shopChest.animator.SetTrigger("ClosedInstant");
+            // else if (CanOpenChest() && !ProgressionManager.HasCutscenePlayed<ShopChestOpenCutscene>())
+            //     shopChest.animator.SetTrigger("ClosedReadyInstant");
+            // else if (ProgressionManager.useWindmillShuriken)
+            //     shopChest.animator.SetTrigger("OpenedShurikenInstant");
+            // else
+            //     shopChest.animator.SetTrigger("OpenedWindmillInstant");
+            //
+            orig(shopChest);
         }
 
-        public void ShopChestSetState(ShopChest shopChest)
-        {
-            if (!CanOpenChest())
-                shopChest.animator.SetTrigger("ClosedInstant");
-            // for some reason this line is hardcoded in the decompiled code so had to essentially override the entire
-            // function
-            else if (CanOpenChest() && !Manager<ProgressionManager>.Instance.HasCutscenePlayed<ShopChestOpenCutscene>())
-            {
-                shopChest.animator.SetTrigger("ClosedReadyInstant");
-                if (RandomizerStateManager.Instance.Goal.Equals("Chest") && ArchipelagoClient.Authenticated)
-                    ArchipelagoClient.UpdateClientStatus(ArchipelagoClientState.ClientGoal);
-            }
-            else if (Manager<ProgressionManager>.Instance.useWindmillShuriken)
-                shopChest.animator.SetTrigger("OpenedShurikenInstant");
-            else
-                shopChest.animator.SetTrigger("OpenedWindmillInstant");
-        }
+        /// <summary>
+        /// Assigns our total power seal count to the game and then returns the value. Unsure if the assignment is safe
+        /// here, but trying it so it'll show the required count in the dialog.
+        /// </summary>
+        /// <returns></returns>
+        public int AmountPowerSealsCollected() => amountPowerSealsCollected;
 
-        public int TotalPowerSeals() => totalPowerSealsCollected;
-        public bool CanOpenChest() => totalPowerSealsCollected >= requiredPowerSeals;
+        public bool CanOpenChest() => amountPowerSealsCollected >= requiredPowerSeals;
     }
 }

@@ -9,8 +9,6 @@ using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.GameOverrideMappings;
 using MessengerRando.Utils;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 namespace MessengerRando.Archipelago
 {
@@ -96,12 +94,13 @@ namespace MessengerRando.Archipelago
                 {
                     string goal = (string)gameGoal;
                     RandomizerStateManager.Instance.Goal = goal;
-                    if (goal == "Chest")
+                    if (goal.Equals("Shop Chest"))
                     {
-                        if (ServerData.SlotData.TryGetValue("power_seals_required", out var requiredSeals))
+                        if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
                         {
                             RandomizerStateManager.Instance.PowerSealManager =
-                                new RandoPowerSealManager((int)requiredSeals);
+                                new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
+                            //don't want to set this hook until after our manager exists since it can't be static
                         }
                     }
                 }
@@ -170,7 +169,7 @@ namespace MessengerRando.Archipelago
                 lastAttemptTime = now;
                 disconnectTimeout -= dT;
                 if (!(disconnectTimeout <= 0.0f)) return;
-                
+                Console.WriteLine("Attempting to reconnect to Archipelago Server...");
                 ConnectAsync();
                 disconnectTimeout = 5;
                 return;

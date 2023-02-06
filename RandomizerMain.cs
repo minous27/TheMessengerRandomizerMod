@@ -148,9 +148,11 @@ namespace MessengerRando
             On.ProgressionManager.SetBossAsDefeated += ProgressionManager_SetBossAsDefeated;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
-            On.ShopChest.CollectedAllPowerSeals += ShopChest_CollectedAllPowerSeals;
-            On.ShopChest.SetState += (orig, self) => randoStateManager.PowerSealManager?.ShopChestSetState(self);
+            // On.ShopChest.CollectedAllPowerSeals += ShopChest_CollectedAllPowerSeals;
             // On.ProgressionManager.HasCutscenePlayed += ProgressionManager_HasCutscenePlayed;
+            On.ShopChest.SetState += (orig, self) => RandomizerStateManager.Instance.PowerSealManager?.ShopChestSetState(orig, self);
+            On.DialogCutscene.Play += DialogCutscene_Play;
+            On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.Level.ChangeRoom += Level_ChangeRoom;
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
@@ -212,7 +214,7 @@ namespace MessengerRando
 
         List<DialogInfo> DialogSequence_GetDialogList(On.DialogSequence.orig_GetDialogList orig, DialogSequence self)
         {
-            Console.WriteLine($"Starting dialogue{self.dialogID}");
+            Console.WriteLine($"Starting dialogue {self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
             if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM" || self.dialogID == "DEATH_LINK"))
             {
@@ -709,12 +711,16 @@ namespace MessengerRando
         int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,
             ProgressionManager self)
         {
-            return randoStateManager.PowerSealManager?.TotalPowerSeals() ?? orig(self);
+            if (randoStateManager.PowerSealManager == null) return orig(self);
+            Console.WriteLine($"Checking power seals collected: {randoStateManager.PowerSealManager.AmountPowerSealsCollected()}/{randoStateManager.PowerSealManager.requiredPowerSeals}");
+            return randoStateManager.PowerSealManager.AmountPowerSealsCollected();
         }
 
         bool ShopChest_CollectedAllPowerSeals(On.ShopChest.orig_CollectedAllPowerSeals orig, ShopChest self)
         {
-            return randoStateManager.PowerSealManager?.CanOpenChest() ?? orig(self);
+            var hasEnoughSeals = randoStateManager.PowerSealManager?.CanOpenChest() ?? orig(self);
+            Console.WriteLine($"Checking if the chest can be opened: {hasEnoughSeals}");
+            return hasEnoughSeals;
         }
 
         bool ProgressionManager_HasCutscenePlayed(On.ProgressionManager.orig_HasCutscenePlayed orig,
@@ -723,10 +729,28 @@ namespace MessengerRando
             //For some reason the state that determines if the chest is open or not is a private method with a hardcoded
             //check for collectedSeals >= totalSeals instead of using its public bool? easier to just skip the cutscene
             //than it is to patch that method
-            if (randoStateManager.PowerSealManager != null)
-                return randoStateManager.PowerSealManager.CanOpenChest() &&
-                       cutsceneID == typeof(ShopChestOpenCutscene).ToString();
+            try
+            {
+                if (randoStateManager.PowerSealManager != null)
+                    return cutsceneID == typeof(ShopChestOpenCutscene).ToString() &&
+                           randoStateManager.PowerSealManager.CanOpenChest();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);   
+            }
             return orig(self, cutsceneID);
+        }
+
+        void DialogCutscene_Play(On.DialogCutscene.orig_Play orig, DialogCutscene self)
+        {
+            Console.WriteLine($"Playing dialog cutscene: {self}");
+        }
+
+        void MusicBox_SetNotesState(On.MusicBox.orig_SetNotesState orig, MusicBox self)
+        {
+            // this determines which notes should be shown present in the music box
+            orig(self);
         }
 
         void Level_ChangeRoom(On.Level.orig_ChangeRoom orig, Level self,
