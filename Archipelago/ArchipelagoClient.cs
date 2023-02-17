@@ -94,7 +94,7 @@ namespace MessengerRando.Archipelago
                 {
                     string goal = (string)gameGoal;
                     RandomizerStateManager.Instance.Goal = goal;
-                    if (goal.Equals("Shop Chest"))
+                    if (goal.Equals("shop_chest"))
                     {
                         if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
                         {

@@ -110,6 +110,9 @@
     <Compile Include="Utils\ItemRandomizerUtil.cs" />
     <Compile Include="RandomizerMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Content Include="courier.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

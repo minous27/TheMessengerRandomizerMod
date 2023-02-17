@@ -148,20 +148,22 @@ namespace MessengerRando
             On.ProgressionManager.SetBossAsDefeated += ProgressionManager_SetBossAsDefeated;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
-            // On.ShopChest.CollectedAllPowerSeals += ShopChest_CollectedAllPowerSeals;
-            // On.ProgressionManager.HasCutscenePlayed += ProgressionManager_HasCutscenePlayed;
-            On.ShopChest.SetState += (orig, self) => RandomizerStateManager.Instance.PowerSealManager?.ShopChestSetState(orig, self);
-            On.DialogCutscene.Play += DialogCutscene_Play;
-            On.MusicBox.SetNotesState += MusicBox_SetNotesState;
-            On.Level.ChangeRoom += Level_ChangeRoom;
+            On.ShopChestOpenCutscene.OnChestOpened += (orig, self) =>
+                RandomizerStateManager.Instance.PowerSealManager?.OnShopChestOpen(orig, self);
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
             On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
+            On.Cutscene.Play += Cutscene_Play;
+            On.PhantomIntroCutscene.OnFirstDialogDone += PhantomIntro_OnFirstDialogDone;
+            On.DialogCutscene.Play += DialogCutscene_Play;
+            On.MusicBox.SetNotesState += MusicBox_SetNotesState;
+            On.Level.ChangeRoom += Level_ChangeRoom;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
+            On.LevelManager.LoadLevel += LevelManager_LoadLevel;
             On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
 
             Console.WriteLine("Randomizer finished loading!");
@@ -459,6 +461,16 @@ namespace MessengerRando
             return orig(self, item);
         }
 
+        void LevelManager_LoadLevel(On.LevelManager.orig_LoadLevel orig, LevelManager self, LevelLoadingInfo levelInfo)
+        {
+            Console.WriteLine($"Loading Level: {levelInfo.levelName}");
+            Console.WriteLine($"Entrance ID: {levelInfo.levelEntranceId}, Dimension: {levelInfo.dimension}, Scene Mode: {levelInfo.loadSceneMode}");
+            Console.WriteLine($"Position Player: {levelInfo.positionPlayer}, Show Transition: {levelInfo.showTransition}, Transition Type: {levelInfo.transitionType}");
+            Console.WriteLine($"Pooled Level Instance: {levelInfo.pooledLevelInstance}, Show Intro: {levelInfo.showLevelIntro}, Close Transition On Level Loaded: {levelInfo.closeTransitionOnLevelLoaded}");
+            Console.WriteLine($"Set Scene as Active Scene: {levelInfo.setSceneAsActiveScene}");
+            orig(self, levelInfo);
+        }
+
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
         {
             Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
@@ -468,8 +480,8 @@ namespace MessengerRando
                 switch (self.GetCurrentLevelEnum())
                 {
                     case ELevel.Level_Ending:
-                        Console.WriteLine("Goooooooaaaaaallll!!!!");
-                        newClientState = ArchipelagoClientState.ClientGoal;
+                        // Console.WriteLine("Goooooooaaaaaallll!!!!");
+                        // newClientState = ArchipelagoClientState.ClientGoal;
                         /*
                         if (!(ArchipelagoClient.ServerData.FinishTime > 0))
                             ArchipelagoClient.ServerData.FinishTime = ArchipelagoClient.ServerData.PlayTime;
@@ -711,40 +723,37 @@ namespace MessengerRando
         int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,
             ProgressionManager self)
         {
-            if (randoStateManager.PowerSealManager == null) return orig(self);
-            Console.WriteLine($"Checking power seals collected: {randoStateManager.PowerSealManager.AmountPowerSealsCollected()}/{randoStateManager.PowerSealManager.requiredPowerSeals}");
-            return randoStateManager.PowerSealManager.AmountPowerSealsCollected();
+            return randoStateManager.PowerSealManager?.AmountPowerSealsCollected() ?? orig(self);
         }
 
-        bool ShopChest_CollectedAllPowerSeals(On.ShopChest.orig_CollectedAllPowerSeals orig, ShopChest self)
+        void Cutscene_Play(On.Cutscene.orig_Play orig, Cutscene self)
         {
-            var hasEnoughSeals = randoStateManager.PowerSealManager?.CanOpenChest() ?? orig(self);
-            Console.WriteLine($"Checking if the chest can be opened: {hasEnoughSeals}");
-            return hasEnoughSeals;
+            Console.WriteLine($"Playing cutscene: {self}");
+            var skipPhantom = true;
+            if (self is PhantomIntroCutscene && skipPhantom)
+            {
+                MethodInfo method = self.GetType().GetMethod("OnFirstDialogDone", BindingFlags.NonPublic | BindingFlags.Instance);
+                UnityEngine.Object.FindObjectOfType<View>().onOutDone -= new Action<View>(method.Invoke());
+                Manager<ProgressionManager>.Instance.SetBossAsDefeated(nameof(PhantomBoss));
+                UnityEngine.Object.FindObjectOfType<PhantomOutroCutscene>().Play();
+            }
+            else
+            {
+                orig(self);   
+            }
         }
 
-        bool ProgressionManager_HasCutscenePlayed(On.ProgressionManager.orig_HasCutscenePlayed orig,
-            ProgressionManager self, string cutsceneID)
+        void PhantomIntro_OnFirstDialogDone(On.PhantomIntroCutscene.orig_OnFirstDialogDone orig,
+            PhantomIntroCutscene self, View dialogBox)
         {
-            //For some reason the state that determines if the chest is open or not is a private method with a hardcoded
-            //check for collectedSeals >= totalSeals instead of using its public bool? easier to just skip the cutscene
-            //than it is to patch that method
-            try
-            {
-                if (randoStateManager.PowerSealManager != null)
-                    return cutsceneID == typeof(ShopChestOpenCutscene).ToString() &&
-                           randoStateManager.PowerSealManager.CanOpenChest();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);   
-            }
-            return orig(self, cutsceneID);
+            Console.WriteLine($"Finished first phantom dialog: {dialogBox}");
+            orig(self, dialogBox);
         }
 
         void DialogCutscene_Play(On.DialogCutscene.orig_Play orig, DialogCutscene self)
         {
             Console.WriteLine($"Playing dialog cutscene: {self}");
+            orig(self);
         }
 
         void MusicBox_SetNotesState(On.MusicBox.orig_SetNotesState orig, MusicBox self)
@@ -769,6 +778,7 @@ namespace MessengerRando
             else
                 Console.WriteLine("currentRoom does not exist.");
             Console.WriteLine($"teleported: {teleportedInRoom}");
+
             //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
             //if we're in a room, it leaves the current room then enters the new room with the teleported bool
             //no idea what the teleported bool does currently
@@ -1036,7 +1046,7 @@ namespace MessengerRando
             ArchipelagoClient.DeathLinkHandler.Player = controller;
             if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused) ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 5.0f;
+            float updateTime = 3.0f;
             updateTimer += Time.deltaTime;
             if (updateTimer >= updateTime)
             {
@@ -1081,6 +1091,11 @@ namespace MessengerRando
         {
             if (ArchipelagoClient.Authenticated)
             {
+                // The game calls the save method after the ending cutscene before rolling credits
+                if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_Ending))
+                {
+                    ArchipelagoClient.UpdateClientStatus(ArchipelagoClientState.ClientGoal);
+                }
                 ArchipelagoClient.ServerData.UpdateSave();
                 var saveSlot = self.GetCurrentSaveGameSlot();
                 if (!saveSlot.SlotName.Equals(ArchipelagoClient.ServerData.SlotName))
