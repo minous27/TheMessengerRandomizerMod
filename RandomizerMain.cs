@@ -944,17 +944,14 @@ namespace MessengerRando
             ArchipelagoClient.DeathLinkHandler.Player = controller;
             if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused) ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 5.0f;
+            var updateTime = 5.0f;
             updateTimer += Time.deltaTime;
-            if (updateTimer >= updateTime)
-            {
-                if (randoStateManager.IsSafeTeleportState())
-                {
-                    apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
-                    ArchipelagoClient.UpdateArchipelagoState();
-                    updateTimer = 0;
-                }
-            }
+            if ((updateTimer < updateTime)) return;
+            
+            apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
+            if (!randoStateManager.IsSafeTeleportState()) return;
+            ArchipelagoClient.UpdateArchipelagoState();
+            updateTimer = 0;
         }
 
             private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
@@ -1004,7 +1001,7 @@ namespace MessengerRando
         private void Quarble_OnPlayerDied(On.Quarble.orig_OnPlayerDied orig, Quarble self, EDeathType deathType, bool fastReload)
         {
             orig(self, deathType, fastReload);
-            ArchipelagoClient.DeathLinkHandler.SendDeathLink(deathType, null);
+            ArchipelagoClient.DeathLinkHandler.SendDeathLink(deathType);
         }
     }
 }
