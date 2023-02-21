@@ -18,6 +18,7 @@ using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Packets;
 using System.Reflection;
+using MessengerRando.GameOverrideMappings;
 
 namespace MessengerRando 
 {
@@ -480,7 +481,12 @@ namespace MessengerRando
                 ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
                 switch (self.GetCurrentLevelEnum())
                 {
+                    case ELevel.Level_11_B_MusicBox:
+                        if (randoStateManager.SkipMusicBox) RandoLevelManager.TeleportToMusicBox();
+                        break;
                     case ELevel.Level_Ending:
+                        // leaving the switch in case we need it, but moved this check to the save method since there's
+                        // a save when the credits start rolling
                         // Console.WriteLine("Goooooooaaaaaallll!!!!");
                         // newClientState = ArchipelagoClientState.ClientGoal;
                         /*
