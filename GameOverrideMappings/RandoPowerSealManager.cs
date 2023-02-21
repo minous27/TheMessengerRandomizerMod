@@ -1,13 +1,14 @@
-﻿using Archipelago.MultiClient.Net.Enums;
+﻿using System;
+using System.Collections.Generic;
 using MessengerRando.Archipelago;
-using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace MessengerRando.GameOverrideMappings
 {
     public class RandoPowerSealManager
     {
         private int amountPowerSealsCollected;
-        public readonly int requiredPowerSeals;
+        private readonly int requiredPowerSeals;
 
         public RandoPowerSealManager(int requiredPowerSeals)
         {
@@ -39,16 +40,19 @@ namespace MessengerRando.GameOverrideMappings
 
         public void OnShopChestOpen(On.ShopChestOpenCutscene.orig_OnChestOpened orig, ShopChestOpenCutscene self)
         {
-            if (RandomizerStateManager.Instance.Goal == "shop_chest")
+            if (new List<string>{"shop_chest", "shop_chest_and_music_box"}.Contains(RandomizerStateManager.Instance.Goal))
             {
                 //going to attempt to teleport the player to the ending sequence when they open the chest
-                Manager<AudioManager>.Instance.FadeMusicVolume(1f, 0f, true);
-                Manager<Level>.Instance.CurrentRoom.LeaveRoom();
-                LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo(ELevel.Level_Ending + "_Build",
-                    true, false, LoadSceneMode.Single, ELevelEntranceID.ENTRANCE_A,
-                    EBits.BITS_8);
-                Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
-                UnityEngine.Object.FindObjectOfType<EndingCutscene>().Play();
+                try
+                {
+                    Object.FindObjectOfType<Shop>().LeaveToCurrentLevel();
+                    RandoLevelManager.TeleportToMusicBox();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                self.EndCutScene();
             }
             else orig(self);
         }

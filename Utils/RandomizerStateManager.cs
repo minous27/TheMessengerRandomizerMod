@@ -20,6 +20,8 @@ namespace MessengerRando
         public RandoPowerSealManager PowerSealManager;
 
         public string Goal;
+        public bool SkipMusicBox = false;
+        public bool SkipPhantom = false;
 
         private Dictionary<int, SeedRO> seeds;
 

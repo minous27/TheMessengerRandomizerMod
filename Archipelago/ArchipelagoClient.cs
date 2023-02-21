@@ -94,13 +94,29 @@ namespace MessengerRando.Archipelago
                 {
                     string goal = (string)gameGoal;
                     RandomizerStateManager.Instance.Goal = goal;
-                    if (goal.Equals("shop_chest"))
+                    switch (goal)
                     {
-                        if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
+                        case "phantom":
+                            RandomizerStateManager.Instance.SkipMusicBox = true;
+                            break;
+                        case "shop_chest":
                         {
-                            RandomizerStateManager.Instance.PowerSealManager =
-                                new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
-                            //don't want to set this hook until after our manager exists since it can't be static
+                            if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
+                            {
+                                RandomizerStateManager.Instance.PowerSealManager =
+                                    new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
+                                RandomizerStateManager.Instance.SkipMusicBox = true;
+                            }
+                            break;
+                        }
+                        case "shop_chest_and_music_box":
+                        {
+                            if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
+                            {
+                                RandomizerStateManager.Instance.PowerSealManager =
+                                    new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
+                            }
+                            break;
                         }
                     }
                 }

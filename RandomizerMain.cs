@@ -157,7 +157,8 @@ namespace MessengerRando
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
             On.Cutscene.Play += Cutscene_Play;
-            On.PhantomIntroCutscene.OnFirstDialogDone += PhantomIntro_OnFirstDialogDone;
+            On.PhantomIntroCutscene.OnEnterRoom += PhantomIntro_OnEnterRoom; //this lets us skip the phantom fight
+            On.UIManager.ShowView += UIManager_ShowView;
             On.DialogCutscene.Play += DialogCutscene_Play;
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.Level.ChangeRoom += Level_ChangeRoom;
@@ -729,25 +730,34 @@ namespace MessengerRando
         void Cutscene_Play(On.Cutscene.orig_Play orig, Cutscene self)
         {
             Console.WriteLine($"Playing cutscene: {self}");
-            var skipPhantom = true;
-            if (self is PhantomIntroCutscene && skipPhantom)
+            orig(self);
+        }
+
+        void PhantomIntro_OnEnterRoom(On.PhantomIntroCutscene.orig_OnEnterRoom orig, PhantomIntroCutscene self,
+            bool teleportedInRoom)
+        {
+            if (randoStateManager.SkipPhantom)
             {
-                MethodInfo method = self.GetType().GetMethod("OnFirstDialogDone", BindingFlags.NonPublic | BindingFlags.Instance);
-                UnityEngine.Object.FindObjectOfType<View>().onOutDone -= new Action<View>(method.Invoke());
-                Manager<ProgressionManager>.Instance.SetBossAsDefeated(nameof(PhantomBoss));
+                Manager<AudioManager>.Instance.StopMusic();
                 UnityEngine.Object.FindObjectOfType<PhantomOutroCutscene>().Play();
             }
             else
             {
-                orig(self);   
+                
+                orig(self, teleportedInRoom);
             }
         }
 
-        void PhantomIntro_OnFirstDialogDone(On.PhantomIntroCutscene.orig_OnFirstDialogDone orig,
-            PhantomIntroCutscene self, View dialogBox)
+
+        View UIManager_ShowView(On.UIManager.orig_ShowView orig, UIManager self, Type viewType,
+            EScreenLayers layer, IViewParams screenParams, bool transitionIn, AnimatorUpdateMode animUpdateMode)
         {
-            Console.WriteLine($"Finished first phantom dialog: {dialogBox}");
-            orig(self, dialogBox);
+            Console.WriteLine($"viewType {viewType}");
+            Console.WriteLine($"layer {layer}");
+            Console.WriteLine($"params {screenParams}");
+            Console.WriteLine($"transition {transitionIn}");
+            Console.WriteLine($"updateMode {animUpdateMode}");
+            return orig(self, viewType, layer, screenParams, transitionIn, animUpdateMode);
         }
 
         void DialogCutscene_Play(On.DialogCutscene.orig_Play orig, DialogCutscene self)
@@ -772,6 +782,11 @@ namespace MessengerRando
                 return newRoomLeftEdge.edgeIdX + newRoomRightEdge.edgeIdX
                                                + newRoomBottomEdge.edgeIdY + newRoomTopEdge.edgeIdY;
             }
+            Console.WriteLine("new room params:" +
+                              $"{newRoomLeftEdge.edgeIdX} " +
+                              $"{newRoomRightEdge.edgeIdX} " +
+                              $"{newRoomBottomEdge.edgeIdY} " +
+                              $"{newRoomTopEdge.edgeIdY} ");
             Console.WriteLine($"new roomKey: {GetRoomKey()}");
             if (self.CurrentRoom != null)
                 Console.WriteLine($"currentRoom roomKey: {self.CurrentRoom.roomKey}");

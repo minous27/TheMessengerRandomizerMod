@@ -66,10 +66,7 @@ namespace MessengerRando.Utils
         public static string getDialogMapping(string dialogID)
         {
             Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-                return mappings[dialogID];
-            else
-                return dialogID;
+            return mappings.ContainsKey(dialogID) ? mappings[dialogID] : dialogID;
         }
 
         /// <summary>
