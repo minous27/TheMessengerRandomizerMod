@@ -40,7 +40,7 @@ namespace MessengerRando.GameOverrideMappings
 
         public void OnShopChestOpen(On.ShopChestOpenCutscene.orig_OnChestOpened orig, ShopChestOpenCutscene self)
         {
-            if (new List<string>{"shop_chest", "shop_chest_and_music_box"}.Contains(RandomizerStateManager.Instance.Goal))
+            if (new List<string>{"open_shop_chest"}.Contains(RandomizerStateManager.Instance.Goal))
             {
                 //going to attempt to teleport the player to the ending sequence when they open the chest
                 try

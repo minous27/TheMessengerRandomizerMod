@@ -80,36 +80,18 @@ namespace MessengerRando.Archipelago
                 ServerData.SlotData = success.SlotData;
                 ServerData.SeedName = Session.RoomState.Seed;
                 Authenticated = true;
-                
+
                 if (ServerData.SlotData.TryGetValue("deathlink", out var deathLink))
-                {
-                    ArchipelagoData.DeathLink = (bool)deathLink;
-                }
-                else
-                {
-                    Console.WriteLine("Failed to get deathlink option");
-                }
+                    ArchipelagoData.DeathLink = Convert.ToInt32(deathLink) == 1;
+                else Console.WriteLine("Failed to get deathlink option");
 
                 if (ServerData.SlotData.TryGetValue("goal", out var gameGoal))
                 {
-                    string goal = (string)gameGoal;
+                    var goal = (string)gameGoal;
                     RandomizerStateManager.Instance.Goal = goal;
                     switch (goal)
                     {
-                        case "phantom":
-                            RandomizerStateManager.Instance.SkipMusicBox = true;
-                            break;
-                        case "shop_chest":
-                        {
-                            if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
-                            {
-                                RandomizerStateManager.Instance.PowerSealManager =
-                                    new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
-                                RandomizerStateManager.Instance.SkipMusicBox = true;
-                            }
-                            break;
-                        }
-                        case "shop_chest_and_music_box":
+                        case "open_shop_chest":
                         {
                             if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
                             {
@@ -119,15 +101,24 @@ namespace MessengerRando.Archipelago
                             break;
                         }
                     }
+
+                    if (ServerData.SlotData.TryGetValue("music_box", out var doMusicBox))
+                        RandomizerStateManager.Instance.SkipMusicBox = Convert.ToInt32(doMusicBox) == 0;
+                    else Console.WriteLine("Failed to get music_box option");
+                    
                 }
+                else Console.WriteLine("Failed to get goal option");
 
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
-                    for (int i = Session.Locations.AllLocationsChecked.Count; i <= ServerData.CheckedLocations.Count; i++)
-                    {
-                        Session.Locations.CompleteLocationChecks(ServerData.CheckedLocations[i]);
-                    }
+                    foreach (var location in Session.Locations.AllLocationsChecked.Where(location => 
+                                 !ServerData.CheckedLocations.Contains(location)))
+                        ServerData.CheckedLocations.Add(location);
+
+                    foreach (var location in ServerData.CheckedLocations.Where(location =>
+                                 !Session.Locations.AllLocationsChecked.Contains(location)))
+                        Session.Locations.CompleteLocationChecks(location);
                     return;
                 }
                 ServerData.UpdateSave();
@@ -256,19 +247,16 @@ namespace MessengerRando.Archipelago
         private static int GetHintCost()
         {
             var hintCost = Session.RoomState.HintCost;
-            if (hintCost > 0)
+            if (hintCost <= 0) return hintCost;
+            int locationCount = RandomizerConstants.GetRandoLocationList().Count();
+            if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
             {
-                RandomizerStateManager stateManager = RandomizerStateManager.Instance;
-                int locationCount = RandomizerConstants.GetRandoLocationList().Count();
-                if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
-                {
-                    hintCost = locationCount / hintCost;
-                }
-                else
-                {
-                    locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
-                    hintCost = locationCount / hintCost;
-                }
+                hintCost = locationCount / hintCost;
+            }
+            else
+            {
+                locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
+                hintCost = locationCount / hintCost;
             }
             return hintCost;
         }

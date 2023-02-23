@@ -151,6 +151,8 @@ namespace MessengerRando
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
             On.ShopChestOpenCutscene.OnChestOpened += (orig, self) =>
                 RandomizerStateManager.Instance.PowerSealManager?.OnShopChestOpen(orig, self);
+            On.ShopChest.SetState += (orig, self) =>
+                RandomizerStateManager.Instance.PowerSealManager?.ShopChestSetState(orig, self);
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
