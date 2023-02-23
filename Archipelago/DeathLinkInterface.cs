@@ -11,18 +11,18 @@ namespace MessengerRando.Archipelago
     public class DeathLinkInterface
     {
         public DeathLinkService DeathLinkService;
-        public DeathLinkInterface Instance;
+        public static DeathLinkInterface Instance;
         public PlayerController Player;
-        private List<DeathLink> DeathLinks = new List<DeathLink>();
-        private bool _receivedDeath = false;
+        private readonly List<DeathLink> deathLinks = new List<DeathLink>();
+        private bool receivedDeath = false;
         private System.Random random = new System.Random();
         private int deathsSent;
-        private List<string> GenericDeathCauses;
-        private List<string> ProjectileDeathCauses;
-        private List<string> SpikeDeathCauses;
-        private List<string> PitfallDeathCauses;
-        private List<string> SquishDeathCauses;
-        private List<string> FrequentDeathCauses;
+        private List<string> genericDeathCauses;
+        private List<string> projectileDeathCauses;
+        private List<string> spikeDeathCauses;
+        private List<string> pitfallDeathCauses;
+        private List<string> squishDeathCauses;
+        private List<string> frequentDeathCauses;
 
         public DeathLinkInterface()
         {
@@ -31,11 +31,12 @@ namespace MessengerRando.Archipelago
                 Console.WriteLine($"Initializing death link service... Should be set to {ArchipelagoData.DeathLink}");
                 DeathLinkService = ArchipelagoClient.Session.CreateDeathLinkService();
                 DeathLinkService.OnDeathLinkReceived += DeathLinkReceived;
+                GenerateFunnyCauses();
+                Instance = this;
 
                 if (ArchipelagoData.DeathLink)
                 {
                     DeathLinkService.EnableDeathLink();
-                    GenerateFunnyCauses();
                 }
                 else
                     DeathLinkService.DisableDeathLink();
@@ -46,8 +47,8 @@ namespace MessengerRando.Archipelago
 
         public void DeathLinkReceived(DeathLink deathLink)
         {
-            _receivedDeath = true;
-            DeathLinks.Add(deathLink);
+            receivedDeath = true;
+            deathLinks.Add(deathLink);
             Console.WriteLine($"Received Death Link from: {deathLink.Source} due to {deathLink.Cause}");
         }
 
@@ -55,12 +56,12 @@ namespace MessengerRando.Archipelago
         {
             try
             {
-                if (DeathLinks.Count > 0) _receivedDeath = true;
-                if (!_receivedDeath) return;
-                var cause = DeathLinks[0].Cause;
+                if (deathLinks.Count > 0) this.receivedDeath = true;
+                if (!this.receivedDeath) return;
+                var cause = deathLinks[0].Cause;
                 if (cause.IsNullOrEmpty())
                 {
-                    cause = DeathLinks[0].Source + " sent you pain from afar.";
+                    cause = deathLinks[0].Source + " sent you pain from afar.";
                 }
                 DialogSequence receivedDeath = ScriptableObject.CreateInstance<DialogSequence>();
                 receivedDeath.dialogID = "DEATH_LINK";
@@ -69,8 +70,8 @@ namespace MessengerRando.Archipelago
                 AwardItemPopupParams receivedDeathParams = new AwardItemPopupParams(receivedDeath, false);
                 Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedDeathParams, true);
                 Player.Kill(EDeathType.GENERIC, null);
-                DeathLinks.RemoveAt(0);
-                _receivedDeath = false;
+                deathLinks.RemoveAt(0);
+                this.receivedDeath = false;
             }
             catch (Exception e)
             {
@@ -82,7 +83,7 @@ namespace MessengerRando.Archipelago
         {
             try
             {
-                if (!ArchipelagoData.DeathLink || _receivedDeath) return;
+                if (!ArchipelagoData.DeathLink || receivedDeath) return;
                 deathsSent++;
                 Console.WriteLine("Sharing death with your friends...");
                 var alias = ArchipelagoClient.Session.Players.GetPlayerAliasAndName(ArchipelagoClient.Session.ConnectionInfo.Slot);
@@ -99,7 +100,7 @@ namespace MessengerRando.Archipelago
         {
             FieldInfo stolenShardsCount =
                 typeof(Quarble).GetField("timeShardList", BindingFlags.NonPublic | BindingFlags.Instance);
-            GenericDeathCauses = new List<string> 
+            genericDeathCauses = new List<string> 
             {
                 " dropped their message.",
                 " forgot to jump.",
@@ -115,7 +116,7 @@ namespace MessengerRando.Archipelago
                 " is playing with their feet.",
             };
             
-            ProjectileDeathCauses = new List<string>
+            projectileDeathCauses = new List<string>
             {
                 " thought that was a health potion.",
                 " didn't dodge.",
@@ -125,15 +126,24 @@ namespace MessengerRando.Archipelago
                 " forgot to tell the enemies not to shoot The Messenger.",
             };
 
-            SpikeDeathCauses = new List<string>
+            spikeDeathCauses = new List<string>
             {
                 " didn't avoid the spikes.",
                 " didn't watch their step.",
-                " wanted to see how long until the death quotes loop.",
-                " just fell.",
+                " lacks aichmophobia.",
+                " needs an item to reduce spike damage.",
+                " saved Quarble from a very boring dinner.",
             };
 
-            SquishDeathCauses = new List<string>
+            pitfallDeathCauses = new List<string>
+            {
+                " just fell in a pit.",
+                " definitely fell due to input lag.",
+                " thought that was a secret passage.",
+                " wanted to see how long until the death quotes loop.",
+            };
+
+            squishDeathCauses = new List<string>
             {
                 " died in a painful way.",
                 " had to confirm that one.",
@@ -142,7 +152,7 @@ namespace MessengerRando.Archipelago
                 " was pressed.",
             };
 
-            FrequentDeathCauses = new List<string>
+            frequentDeathCauses = new List<string>
             {
                 " deserves a discount at this point.",
                 " won't give Quarble a break.",
@@ -161,17 +171,17 @@ namespace MessengerRando.Archipelago
                 case EDeathType.INTRO:
                     return " is a new customer!";
                 case EDeathType.GENERIC:
-                    return GenericDeathCauses[random.Next()];
+                    return genericDeathCauses[random.Next()];
                 case EDeathType.PROJECTILE:
-                    return ProjectileDeathCauses[random.Next()];
+                    return projectileDeathCauses[random.Next()];
                 case EDeathType.SPIKES:
-                    return SpikeDeathCauses[random.Next()];
+                    return spikeDeathCauses[random.Next()];
                 case EDeathType.PITFALL:
-                    return PitfallDeathCauses[random.Next()];
+                    return pitfallDeathCauses[random.Next()];
                 case EDeathType.SQUISH:
-                    return SquishDeathCauses[random.Next()];
+                    return squishDeathCauses[random.Next()];
                 case EDeathType.FREQUENT:
-                    return FrequentDeathCauses[random.Next()];
+                    return frequentDeathCauses[random.Next()];
                 default:
                     throw new ArgumentOutOfRangeException(nameof(deathType));
             }
