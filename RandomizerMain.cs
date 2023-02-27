@@ -159,6 +159,7 @@ namespace MessengerRando
             On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
+            #if DEBUG
             On.Cutscene.Play += Cutscene_Play;
             On.PhantomIntroCutscene.OnEnterRoom += PhantomIntro_OnEnterRoom; //this lets us skip the phantom fight
             On.UIManager.ShowView += UIManager_ShowView;
@@ -166,10 +167,11 @@ namespace MessengerRando
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.Level.ChangeRoom += Level_ChangeRoom;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
-            On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.LoadLevel += LevelManager_LoadLevel;
+            #endif
+            On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
-
+            
             Console.WriteLine("Randomizer finished loading!");
         }
         
@@ -271,7 +273,6 @@ namespace MessengerRando
                 if (ArchipelagoClient.HasConnected && randoStateManager.IsLocationRandomized(itemId, out randoItemCheck))
                 {
                     ItemsAndLocationsHandler.SendLocationCheck(randoItemCheck);
-                    Console.WriteLine(randoStateManager.CurrentLocationToItemMapping[randoItemCheck].RecipientName);
                     if (string.IsNullOrEmpty(randoStateManager.CurrentLocationToItemMapping[randoItemCheck].RecipientName))
                     {
 
@@ -796,11 +797,23 @@ namespace MessengerRando
                               $"{newRoomBottomEdge.edgeIdY} " +
                               $"{newRoomTopEdge.edgeIdY} ");
             Console.WriteLine($"new roomKey: {GetRoomKey()}");
-            if (self.CurrentRoom != null)
-                Console.WriteLine($"currentRoom roomKey: {self.CurrentRoom.roomKey}");
-            else
-                Console.WriteLine("currentRoom does not exist.");
+            Console.WriteLine(self.CurrentRoom != null
+                ? $"currentRoom roomKey: {self.CurrentRoom.roomKey}"
+                : "currentRoom does not exist.");
             Console.WriteLine($"teleported: {teleportedInRoom}");
+            var position = Manager<PlayerManager>.Instance.Player.transform.position;
+            Console.WriteLine("Player position before room change: " +
+                              $"{position.x} " +
+                              $"{position.y} " +
+                              $"{position.z}");
+            self.onChangedRoom += () =>
+            {
+                position = Manager<PlayerManager>.Instance.Player.transform.position;
+                Console.WriteLine("Adjusted? Player position: " +
+                                  $"{position.x} " +
+                                  $"{position.y} " +
+                                  $"{position.z}");
+            };
 
             //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
             //if we're in a room, it leaves the current room then enters the new room with the teleported bool
@@ -1067,22 +1080,19 @@ namespace MessengerRando
         {
             if (!ArchipelagoClient.HasConnected) return;
             ArchipelagoClient.DeathLinkHandler.Player = controller;
-            if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused) ArchipelagoClient.DeathLinkHandler.KillPlayer();
+            if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused)
+                ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 3.0f;
+            float updateTime = 5.0f;
             updateTimer += Time.deltaTime;
-            if (updateTimer >= updateTime)
-            {
-                if (randoStateManager.IsSafeTeleportState())
-                {
-                    apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
-                    ArchipelagoClient.UpdateArchipelagoState();
-                    updateTimer = 0;
-                }
-            }
+            if (!(updateTimer >= updateTime)) return;
+            apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
+            updateTimer = 0;
+            if (!randoStateManager.IsSafeTeleportState()) return;
+            ArchipelagoClient.UpdateArchipelagoState();
         }
 
-            private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
+        private void InGameHud_OnGUI(On.InGameHud.orig_OnGUI orig, InGameHud self)
         {
             orig(self);
             if (apTextDisplay8 == null)
@@ -1112,10 +1122,12 @@ namespace MessengerRando
 
         private void SaveManager_DoActualSave(On.SaveManager.orig_DoActualSaving orig, SaveManager self, bool applySaveDelay = true)
         {
-            if (ArchipelagoClient.Authenticated)
+            Console.WriteLine($"checking if saveSlot {self.GetSaveGameSlotIndex()} name matches {randoStateManager.CurrentFileSlot} name");
+            if (ArchipelagoClient.HasConnected)
             {
                 // The game calls the save method after the ending cutscene before rolling credits
-                if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_Ending))
+                if (ArchipelagoClient.Authenticated
+                    && Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_Ending))
                 {
                     ArchipelagoClient.UpdateClientStatus(ArchipelagoClientState.ClientGoal);
                 }
@@ -1123,9 +1135,10 @@ namespace MessengerRando
                 var saveSlot = self.GetCurrentSaveGameSlot();
                 if (!saveSlot.SlotName.Equals(ArchipelagoClient.ServerData.SlotName))
                 {
-                    FieldInfo saveGameField = typeof(SaveManager).GetField("saveGame", BindingFlags.NonPublic | BindingFlags.Instance);
-                    SaveGame saveGame = saveGameField.GetValue(self) as SaveGame;
-                    saveGame.saveSlots[self.GetSaveGameSlotIndex()].SlotName = ArchipelagoClient.ServerData.SlotName;
+                    // FieldInfo saveGameField = typeof(SaveManager).GetField("saveGame", BindingFlags.NonPublic | BindingFlags.Instance);
+                    // SaveGame saveGame = saveGameField.GetValue(self) as SaveGame;
+                    // saveGame.saveSlots[self.GetSaveGameSlotIndex()].SlotName = ArchipelagoClient.ServerData.SlotName;
+                    saveSlot.SlotName = ArchipelagoClient.ServerData.SlotName;
                 }
             }
             orig(self, applySaveDelay);

@@ -91,7 +91,7 @@ namespace MessengerRando.Archipelago
                     RandomizerStateManager.Instance.Goal = goal;
                     switch (goal)
                     {
-                        case "open_shop_chest":
+                        case "power_seal_hunt":
                         {
                             if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
                             {

@@ -122,18 +122,9 @@ namespace MessengerRando.Archipelago
             //reward our own items. Locations with items for other players will just be empty
             Index = 0;
             //if we aren't able to create a save file fail here
-            if (!UpdateSave()) return new SeedRO(slot, SeedType.None, 0, null, null, null);
-
-            var saveSlotName = Manager<SaveManager>.Instance.GetCurrentSaveGameSlot().SlotName;
-            if (!saveSlotName.Equals(ArchipelagoClient.ServerData.SlotName))
-            {
-                var tempSaveSlot = new SaveGameSlot(Manager<SaveManager>.Instance.GetCurrentSaveGameSlot());
-                
-                tempSaveSlot.SlotName = saveSlotName;
-                Console.WriteLine($"Changing {saveSlotName} to {ArchipelagoClient.ServerData.SlotName}");
-                
-            }
-            return MessengerSeed;
+            return !UpdateSave()
+                ? new SeedRO(slot, SeedType.None, 0, null, null, null)
+                : MessengerSeed;
         }
 
         public bool UpdateSave()
@@ -148,11 +139,10 @@ namespace MessengerRando.Archipelago
 
         private bool SaveData(int slot)
         {
-            if (ArchipelagoClient.Authenticated)
+            if (ArchipelagoClient.HasConnected)
             {
                 const string pattern = "MessengerSeed";
                 
-                Console.WriteLine("Saving Archipelago save data...");
                 var filePath = Application.persistentDataPath + $"ArchipelagoSlot{slot}.map";
                 string output = JsonConvert.SerializeObject(this);
                 int cutoffIndex = output.IndexOf(pattern);
@@ -160,7 +150,7 @@ namespace MessengerRando.Archipelago
                 File.WriteAllText(filePath, output, encoding);
                 return true;
             }
-            Console.WriteLine("Attempted to save Archipelago data but not currently connected.");
+            Console.WriteLine("Attempted to save Archipelago data but hasn't connected.");
             return false;
         }
 

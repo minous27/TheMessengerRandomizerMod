@@ -214,8 +214,8 @@ namespace MessengerRando.Archipelago
             Console.WriteLine($"Player found item at {checkedLocation.PrettyLocationName}");
             long checkID = LocationsLookup[checkedLocation];
             ArchipelagoClient.ServerData.CheckedLocations.Add(checkID);
-            ArchipelagoClient.Session.Locations.CompleteLocationChecks(checkID);
-            ArchipelagoClient.ServerData.UpdateSave();
+            if (ArchipelagoClient.Authenticated)
+                ArchipelagoClient.Session.Locations.CompleteLocationChecks(checkID);
         }
     }
 }
