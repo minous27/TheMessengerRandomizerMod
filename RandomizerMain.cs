@@ -379,7 +379,10 @@ namespace MessengerRando
                 if (EItems.NONE.Equals(challengeRoomRandoItem.Item))
                 {
                     challengeSequence.dialogID = "ARCHIPELAGO_ITEM";
-                    challengeSequence.name = $"{challengeRoomRandoItem.Name} for {challengeRoomRandoItem.RecipientName}";
+                    challengeSequence.name =
+                        challengeRoomRandoItem.RecipientName.Equals(ArchipelagoClient.ServerData.SlotName)
+                            ? $"{challengeRoomRandoItem.Name}"
+                            : $"{challengeRoomRandoItem.Name} for {challengeRoomRandoItem.RecipientName}";
                 }
                 else
                 {
