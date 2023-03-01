@@ -20,21 +20,7 @@ namespace MessengerRando.GameOverrideMappings
 
         public void ShopChestSetState(On.ShopChest.orig_SetState orig, ShopChest shopChest)
         {
-            // if (CanOpenChest() && !Manager<ProgressionManager>.Instance.HasCutscenePlayed<ShopChestOpenCutscene>())
-            //     ArchipelagoClient.UpdateClientStatus(ArchipelagoClientState.ClientGoal);
-            
-            //no idea why but this block of code causes the game to freeze when the chest can't be opened.
-            //Haven't tracked down the failing event so still calling the original code which will reward the windmill shuriken.
-            //
-            // if (!CanOpenChest())
-            //     shopChest.animator.SetTrigger("ClosedInstant");
-            // else if (CanOpenChest() && !ProgressionManager.HasCutscenePlayed<ShopChestOpenCutscene>())
-            //     shopChest.animator.SetTrigger("ClosedReadyInstant");
-            // else if (ProgressionManager.useWindmillShuriken)
-            //     shopChest.animator.SetTrigger("OpenedShurikenInstant");
-            // else
-            //     shopChest.animator.SetTrigger("OpenedWindmillInstant");
-            //
+            if (CanOpenChest() && Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.NONE)) return;
             orig(shopChest);
         }
 

@@ -333,7 +333,9 @@ namespace MessengerRando
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
         {
             //if this is a rando file, go ahead and give the item we expect to get
-            if (randoStateManager.IsRandomizedFile)
+            if (randoStateManager.IsRandomizedFile &&
+                randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).Settings[SettingType.Difficulty]
+                    .Equals(SettingValue.Advanced))
             {
                 LocationRO powerSealLocation = null;
                 foreach(LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
