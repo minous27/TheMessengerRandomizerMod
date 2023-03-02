@@ -8,7 +8,7 @@ namespace MessengerRando.GameOverrideMappings
         private static bool teleporting;
         public static void TeleportToMusicBox()
         {
-            if (!teleporting) return;
+            if (teleporting) return;
             Manager<AudioManager>.Instance.StopMusic();
             var playerPosition = RandomizerStateManager.Instance.SkipMusicBox
                 ? new Vector3(125f, 40f)
