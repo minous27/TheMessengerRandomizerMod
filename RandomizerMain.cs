@@ -141,6 +141,7 @@ namespace MessengerRando
             On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
+            On.PauseScreen.OnQuitToTitle += PauseScreen_OnQuiteToTitle;
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
@@ -658,6 +659,18 @@ namespace MessengerRando
             randoStateManager.ResetSeedForFileSlot(slot.slotIndex + 1);
 
             orig(self, slot);
+        }
+
+        void PauseScreen_OnQuiteToTitle(On.PauseScreen.orig_OnQuitToTitle orig, PauseScreen self)
+        {
+            if (ArchipelagoClient.HasConnected)
+            {
+                ArchipelagoClient.Disconnect();
+                ArchipelagoClient.HasConnected = false;
+                ArchipelagoClient.ServerData = null;
+            }
+
+            orig(self);
         }
 
         //Fixing necro cutscene check

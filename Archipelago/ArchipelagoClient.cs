@@ -11,6 +11,7 @@ using MessengerRando.Utils;
 using Mod.Courier.UI;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MessengerRando.Archipelago
 {
@@ -56,13 +57,14 @@ namespace MessengerRando.Archipelago
         private static void OnConnected(bool connectStatus, SubMenuButtonInfo connectButton)
         {
             TextEntryPopup successPopup = InitTextEntryPopup(connectButton.addedTo, string.Empty,
-                entry => true, 1, null, CharsetFlags.Space);
+                entry => true, 0, null, CharsetFlags.Space);
             var successText = connectStatus
                 ? $"Successfully connected to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}!"
                 : $"Failed to connect to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}. " +
                   "Verify correct information.";
             successPopup.Init(successText);
             successPopup.gameObject.SetActive(true);
+            // Object.Destroy(successPopup.transform.Find("BigFrame").Find("SymbolsGrid").gameObject);
             Console.WriteLine(successText);
         }
 
