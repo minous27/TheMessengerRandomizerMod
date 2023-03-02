@@ -224,36 +224,35 @@ namespace MessengerRando
         {
             Console.WriteLine($"Starting dialogue {self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
-            if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM" || self.dialogID == "ARCHIPELAGO_ITEM" || self.dialogID == "DEATH_LINK"))
+            if (!randoStateManager.IsRandomizedFile &&
+                !new[] { "RANDO_ITEM", "ARCHIPELAGO_ITEM", "DEATH_LINK"}.Contains(self.dialogID))
+                return orig(self);
+            Console.WriteLine("Trying some rando dialog stuff.");
+            List<DialogInfo> dialogInfoList = new List<DialogInfo>();
+            DialogInfo dialog = new DialogInfo();
+            switch (self.dialogID)
             {
-                Console.WriteLine("Trying some rando dialog stuff.");
-                List<DialogInfo> dialogInfoList = new List<DialogInfo>();
-                DialogInfo dialog = new DialogInfo();
-                switch (self.dialogID)
-                {
-                    case "RANDO_ITEM":
-                        Console.WriteLine($"Item is {self.name}");
-                        dialog.text = $"You have received item: '{self.name}'";
-                        break;
-                    case "ARCHIPELAGO_ITEM":
-                        Console.WriteLine($"Item is {self.name}");
-                        dialog.text = $"You have found {self.name}";
-                        break;
-                    case "DEATH_LINK":
-                        dialog.text = $"Deathlink: {self.name}";
-                        break;
-                    default:
-                        //dialog.text = "???";
-                        break;
-                }
+                case "RANDO_ITEM":
+                    Console.WriteLine($"Item is {self.name}");
+                    dialog.text = $"You have received item: '{self.name}'";
+                    break;
+                case "ARCHIPELAGO_ITEM":
+                    Console.WriteLine($"Item is {self.name}");
+                    dialog.text = $"You have found {self.name}";
+                    break;
+                case "DEATH_LINK":
+                    dialog.text = $"Deathlink: {self.name}";
+                    break;
+                default:
+                    //dialog.text = "???";
+                    break;
+            }
                     
                 
-                dialogInfoList.Add(dialog);
+            dialogInfoList.Add(dialog);
 
-                return dialogInfoList;
-            }
+            return dialogInfoList;
 
-            return orig(self);
         }
 
         void InventoryManager_AddItem(On.InventoryManager.orig_AddItem orig, InventoryManager self, EItems itemId, int quantity)
@@ -333,10 +332,16 @@ namespace MessengerRando
         void ProgressionManager_SetChallengeRoomAsCompleted(On.ProgressionManager.orig_SetChallengeRoomAsCompleted orig, ProgressionManager self, string roomKey)
         {
             //if this is a rando file, go ahead and give the item we expect to get
-            if (randoStateManager.IsRandomizedFile &&
-                randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).Settings[SettingType.Difficulty]
-                    .Equals(SettingValue.Advanced))
+            if (randoStateManager.IsRandomizedFile)
             {
+                // if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot)
+                //         .Settings[SettingType.Difficulty]
+                //         .Equals(SettingValue.Advanced) ||
+                //     !ArchipelagoClient.ServerData.GameSettings[SettingType.Difficulty].Equals(SettingValue.Advanced))
+                // {
+                //     Console.WriteLine("Power Seals not shuffled so calling original.");
+                //     orig(self, roomKey);
+                // }
                 LocationRO powerSealLocation = null;
                 foreach(LocationRO location in RandomizerConstants.GetAdvancedRandoLocationList())
                 {
@@ -988,7 +993,7 @@ namespace MessengerRando
             if (ArchipelagoClient.ServerData.Uri == null) ArchipelagoClient.ServerData.Uri = "archipelago.gg";
             if (ArchipelagoClient.ServerData.Port == 0) ArchipelagoClient.ServerData.Port = 38281;
 
-            ArchipelagoClient.ConnectAsync();
+            ArchipelagoClient.ConnectAsync(archipelagoConnectButton);
         }
 
         void OnSelectArchipelagoRelease()

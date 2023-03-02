@@ -8,6 +8,8 @@ using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.GameOverrideMappings;
 using MessengerRando.Utils;
+using Mod.Courier.UI;
+using static Mod.Courier.UI.TextEntryButtonInfo;
 using UnityEngine;
 
 namespace MessengerRando.Archipelago
@@ -21,6 +23,7 @@ namespace MessengerRando.Archipelago
         private static int lastAttemptTime;
         private static int disconnectTimeout = 5;
 
+        private delegate void OnConnectAttempt(bool result);
         public static bool Authenticated;
         public static bool HasConnected;
 
@@ -30,20 +33,40 @@ namespace MessengerRando.Archipelago
         public static ArchipelagoSession Session;
         public static DeathLinkInterface DeathLinkHandler;
 
-        public static List<string> MessageQueue = new List<string>();
+        private static readonly List<string> MessageQueue = new List<string>();
 
         public static void ConnectAsync()
         {
-            if (ServerData == null)
-            {
-                ServerData = new ArchipelagoData();
-                return;
-            }
-            Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
-            ThreadPool.QueueUserWorkItem(_ => Connect());
+            ThreadPool.QueueUserWorkItem(_ => Connect(OnConnected));
         }
 
-        public static void Connect()
+        public static void ConnectAsync(SubMenuButtonInfo connectButton)
+        {
+            if (ServerData == null)
+                ServerData = new ArchipelagoData();
+            Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
+            Connect(result => OnConnected(result, connectButton));
+        }
+
+        private static void OnConnected(bool connectStats)
+        {
+            
+        }
+
+        private static void OnConnected(bool connectStatus, SubMenuButtonInfo connectButton)
+        {
+            TextEntryPopup successPopup = InitTextEntryPopup(connectButton.addedTo, string.Empty,
+                entry => true, 1, null, CharsetFlags.Space);
+            var successText = connectStatus
+                ? $"Successfully connected to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}!"
+                : $"Failed to connect to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}. " +
+                  "Verify correct information.";
+            successPopup.Init(successText);
+            successPopup.gameObject.SetActive(true);
+            Console.WriteLine(successText);
+        }
+
+        private static void Connect(OnConnectAttempt attempt)
         {
             if (Authenticated) return;
             if (ItemsAndLocationsHandler.ItemsLookup == null) ItemsAndLocationsHandler.Initialize();
@@ -138,6 +161,8 @@ namespace MessengerRando.Archipelago
                 Authenticated = false;
                 Disconnect();
             }
+
+            attempt(result.Successful);
         }
 
         private static void OnMessageReceived(LogMessage message)
