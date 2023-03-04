@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using MessengerRando.GameOverrideMappings;
+using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando
 {
@@ -16,6 +16,7 @@ namespace MessengerRando
         public int CurrentFileSlot { set; get; }
 
         public RandoPowerSealManager PowerSealManager;
+        public RandoBossManager BossManager;
 
         public string Goal;
         public bool SkipMusicBox = false;

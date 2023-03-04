@@ -6,12 +6,11 @@ using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
-using MessengerRando.GameOverrideMappings;
+using MessengerRando.GameOverrideManagers;
 using MessengerRando.Utils;
 using Mod.Courier.UI;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace MessengerRando.Archipelago
 {

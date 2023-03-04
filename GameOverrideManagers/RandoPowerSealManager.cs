@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using MessengerRando.Archipelago;
 using Object = UnityEngine.Object;
 
-namespace MessengerRando.GameOverrideMappings
+namespace MessengerRando.GameOverrideManagers
 {
     public class RandoPowerSealManager
     {

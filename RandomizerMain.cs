@@ -18,7 +18,7 @@ using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Packets;
 using System.Reflection;
-using MessengerRando.GameOverrideMappings;
+using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando 
 {
@@ -148,7 +148,15 @@ namespace MessengerRando
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
-            On.ProgressionManager.SetBossAsDefeated += ProgressionManager_SetBossAsDefeated;
+            // boss management
+            On.ProgressionManager.HasDefeatedBoss +=
+                (orig, self, bossName) => RandoBossManager.HasBossDefeated(bossName);
+            On.ProgressionManager.HasEverDefeatedBoss +=
+                (orig, self, bossName) => RandoBossManager.HasBossDefeated(bossName);
+            On.ProgressionManager.SetBossAsDefeated +=
+                (orig, self, bossName) => RandoBossManager.SetBossAsDefeated(bossName);
+            // level teleporting etc management
+            On.Level.ChangeRoom += RandoLevelManager.Level_ChangeRoom;
             //On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
@@ -167,7 +175,6 @@ namespace MessengerRando
             On.PhantomIntroCutscene.OnEnterRoom += PhantomIntro_OnEnterRoom; //this lets us skip the phantom fight
             On.UIManager.ShowView += UIManager_ShowView;
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
-            On.Level.ChangeRoom += Level_ChangeRoom;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.LevelManager.LoadLevel += LevelManager_LoadLevel;
             On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
@@ -645,6 +652,8 @@ namespace MessengerRando
 
                 //We force a reload of all dialog when loading the game
                 Manager<DialogManager>.Instance.LoadDialogs(Manager<LocalizationManager>.Instance.CurrentLanguage);
+                Manager<ProgressionManager>.Instance.bossesDefeated =
+                    Manager<ProgressionManager>.Instance.allTimeBossesDefeated = new List<string>();
             }
             else
             {
@@ -655,15 +664,6 @@ namespace MessengerRando
             }
 
             orig(self, slotIndex);
-            if (ArchipelagoClient.Authenticated)
-            {
-                if (randoStateManager.PowerSealManager != null)
-                {
-                    MethodInfo ShopChestState =
-                        typeof(ShopChest).GetMethod("SetState", BindingFlags.NonPublic | BindingFlags.Instance);
-                    // => randoStateManager.PowerSealManager.ShopChestSetState();
-                }
-            }
         }
 
         void SaveGameSelectionScreen_OnNewGame(On.SaveGameSelectionScreen.orig_OnNewGame orig, SaveGameSelectionScreen self, SaveSlotUI slot)
@@ -761,14 +761,6 @@ namespace MessengerRando
             return isUnlocked;
         }
 
-        void ProgressionManager_SetBossAsDefeated(On.ProgressionManager.orig_SetBossAsDefeated orig,
-            ProgressionManager self, string bossName)
-        {
-            // if (!ArchipelagoClient.ServerData.DefeatedBosses.Contains(bossName))
-            //     ArchipelagoClient.ServerData.DefeatedBosses.Add(bossName);
-            orig(self, bossName);
-        }
-
         int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,
             ProgressionManager self)
         {
@@ -844,37 +836,6 @@ namespace MessengerRando
             orig(self);
         }
 
-        void Level_ChangeRoom(On.Level.orig_ChangeRoom orig, Level self,
-            ScreenEdge newRoomLeftEdge, ScreenEdge newRoomRightEdge,
-            ScreenEdge newRoomBottomEdge, ScreenEdge newRoomTopEdge,
-            bool teleportedInRoom)
-        {
-            string GetRoomKey()
-            {
-                return newRoomLeftEdge.edgeIdX + newRoomRightEdge.edgeIdX
-                                               + newRoomBottomEdge.edgeIdY + newRoomTopEdge.edgeIdY;
-            }
-            Console.WriteLine("new room params:" +
-                              $"{newRoomLeftEdge.edgeIdX} " +
-                              $"{newRoomRightEdge.edgeIdX} " +
-                              $"{newRoomBottomEdge.edgeIdY} " +
-                              $"{newRoomTopEdge.edgeIdY} ");
-            Console.WriteLine($"new roomKey: {GetRoomKey()}");
-            Console.WriteLine(self.CurrentRoom != null
-                ? $"currentRoom roomKey: {self.CurrentRoom.roomKey}"
-                : "currentRoom does not exist.");
-            Console.WriteLine($"teleported: {teleportedInRoom}");
-            var position = Manager<PlayerManager>.Instance.Player.transform.position;
-            Console.WriteLine("Player position: " +
-                              $"{position.x} " +
-                              $"{position.y} " +
-                              $"{position.z}");
-
-            //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
-            //if we're in a room, it leaves the current room then enters the new room with the teleported bool
-            //no idea what the teleported bool does currently
-            orig(self, newRoomLeftEdge, newRoomRightEdge, newRoomBottomEdge, newRoomTopEdge, teleportedInRoom);
-        }
 
         ///On submit of rando file location
         bool OnEnterFileSlot(string fileSlot)

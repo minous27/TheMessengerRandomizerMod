@@ -21,6 +21,7 @@ namespace MessengerRando.Archipelago
         public Dictionary<string, object> SlotData;
         public static bool DeathLink = false;
         public int PowerSealsCollected;
+        public readonly List<string> DefeatedBosses = new List<string>();
         public bool RuxxCutscene;
         public List<long> CheckedLocations = new List<long>();
         /*
