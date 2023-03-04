@@ -21,6 +21,7 @@ namespace MessengerRando.Archipelago
         public Dictionary<string, object> SlotData;
         public static bool DeathLink = false;
         public int PowerSealsCollected;
+        public bool RuxxCutscene;
         public List<long> CheckedLocations = new List<long>();
         /*
         public float StartTime;
@@ -64,10 +65,12 @@ namespace MessengerRando.Archipelago
 
                     foreach (long locationID in ItemsAndLocationsHandler.LocationsLookup.Values)
                     {
-                        LocationRO location = ItemsAndLocationsHandler.LocationsLookup.FirstOrDefault(x => x.Value == locationID).Key;
+                        LocationRO location = ItemsAndLocationsHandler.LocationsLookup
+                            .FirstOrDefault(x => x.Value == locationID).Key;
                         if (locations.TryGetValue(locationID, out var otherItemID))
                         {
-                            RandoItemRO item = new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
+                            RandoItemRO item =
+                                new RandoItemRO(otherItemID[0], EItems.NONE, 1, otherItemID[1]);
                             mapping.Add(location, item);
                         }
                         else
@@ -183,7 +186,7 @@ namespace MessengerRando.Archipelago
                 Console.WriteLine($"Loaded seed name: {tempServerData.SeedName}");
                 Console.WriteLine($"Connected seed name: {SeedName}");
                 //we're already connected to an archipelago server so check if the file is valid
-                if (tempServerData.SeedName.Equals(SeedName))
+                if (tempServerData.SeedName.Equals(SeedName) && tempServerData.SlotName.Equals(SlotName))
                 {
                     //We're continuing an existing multiworld so likely a port change. Save the new data
                     Index = tempServerData.Index;

@@ -114,16 +114,12 @@ namespace MessengerRando.Archipelago
                 {
                     var goal = (string)gameGoal;
                     RandomizerStateManager.Instance.Goal = goal;
-                    switch (goal)
+                    if (RandoPowerSealManager.Goals.Contains(goal))
                     {
-                        case "power_seal_hunt":
+                        if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
                         {
-                            if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
-                            {
-                                RandomizerStateManager.Instance.PowerSealManager =
-                                    new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
-                            }
-                            break;
+                            RandomizerStateManager.Instance.PowerSealManager =
+                                new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
                         }
                     }
 
@@ -187,6 +183,7 @@ namespace MessengerRando.Archipelago
 
         public static void Disconnect()
         {
+            Console.WriteLine("Disconnecting from server...");
             Session?.Socket.DisconnectAsync();
             Session = null;
             Authenticated = false;

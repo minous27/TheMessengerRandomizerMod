@@ -141,19 +141,21 @@ namespace MessengerRando
             On.CutsceneHasPlayed.IsTrue += CutsceneHasPlayed_IsTrue;
             On.SaveGameSelectionScreen.OnLoadGame += SaveGameSelectionScreen_OnLoadGame;
             On.SaveGameSelectionScreen.OnNewGame += SaveGameSelectionScreen_OnNewGame;
-            On.PauseScreen.OnQuitToTitle += PauseScreen_OnQuiteToTitle;
+            On.BackToTitleScreen.GoBackToTitleScreen += PauseScreen_OnQuitToTitle;
             On.NecrophobicWorkerCutscene.Play += NecrophobicWorkerCutscene_Play;
             IL.RuxxtinNoteAndAwardAmuletCutscene.Play += RuxxtinNoteAndAwardAmuletCutscene_Play;
+            On.DialogCutscene.Play += DialogCutscene_Play;
             On.CatacombLevelInitializer.OnBeforeInitDone += CatacombLevelInitializer_OnBeforeInitDone;
             On.DialogManager.LoadDialogs_ELanguage += DialogChanger.LoadDialogs_Elanguage;
             On.UpgradeButtonData.IsStoryUnlocked += UpgradeButtonData_IsStoryUnlocked;
             On.ProgressionManager.SetBossAsDefeated += ProgressionManager_SetBossAsDefeated;
+            //On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
             On.ShopChestOpenCutscene.OnChestOpened += (orig, self) =>
                 RandomizerStateManager.Instance.PowerSealManager?.OnShopChestOpen(orig, self);
-            On.ShopChest.SetState += (orig, self) =>
-                RandomizerStateManager.Instance.PowerSealManager?.ShopChestSetState(orig, self);
+            On.ShopChestChangeShurikenCutscene.Play += (orig, self) =>
+                RandomizerStateManager.Instance.PowerSealManager?.OnShopChestOpen(orig, self);
             //update loops for Archipelago
             Courier.Events.PlayerController.OnUpdate += PlayerController_OnUpdate;
             On.InGameHud.OnGUI += InGameHud_OnGUI;
@@ -164,14 +166,14 @@ namespace MessengerRando
             On.Cutscene.Play += Cutscene_Play;
             On.PhantomIntroCutscene.OnEnterRoom += PhantomIntro_OnEnterRoom; //this lets us skip the phantom fight
             On.UIManager.ShowView += UIManager_ShowView;
-            On.DialogCutscene.Play += DialogCutscene_Play;
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.Level.ChangeRoom += Level_ChangeRoom;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.LevelManager.LoadLevel += LevelManager_LoadLevel;
+            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
             #endif
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
-            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
+            On.LevelManager.EndLevelLoading += LevelManager_EndLevelLoading;
             
             Console.WriteLine("Randomizer finished loading!");
         }
@@ -225,8 +227,8 @@ namespace MessengerRando
         {
             Console.WriteLine($"Starting dialogue {self.dialogID}");
             //Using this function to add some of my own dialog stuff to the game.
-            if (!randoStateManager.IsRandomizedFile &&
-                !new[] { "RANDO_ITEM", "ARCHIPELAGO_ITEM", "DEATH_LINK"}.Contains(self.dialogID))
+            if (!randoStateManager.IsRandomizedFile) return orig(self);
+            if (!new[] { "RANDO_ITEM", "ARCHIPELAGO_ITEM", "DEATH_LINK"}.Contains(self.dialogID))
                 return orig(self);
             Console.WriteLine("Trying some rando dialog stuff.");
             List<DialogInfo> dialogInfoList = new List<DialogInfo>();
@@ -487,7 +489,8 @@ namespace MessengerRando
             orig(self, levelInfo);
         }
 
-        System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
+        System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig,
+            LevelManager self, Scene scene)
         {
             Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
             if (ArchipelagoClient.Authenticated)
@@ -495,9 +498,6 @@ namespace MessengerRando
                 ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
                 switch (self.GetCurrentLevelEnum())
                 {
-                    case ELevel.Level_11_B_MusicBox:
-                        if (randoStateManager.SkipMusicBox) RandoLevelManager.TeleportToMusicBox();
-                        break;
                     case ELevel.Level_Ending:
                         // leaving the switch in case we need it, but moved this check to the save method since there's
                         // a save when the credits start rolling
@@ -526,6 +526,21 @@ namespace MessengerRando
             }
 
             return orig(self, scene);
+        }
+
+        void LevelManager_EndLevelLoading(On.LevelManager.orig_EndLevelLoading orig, LevelManager self)
+        {
+            #if DEBUG
+            Console.WriteLine($"Finished loading into {Manager<LevelManager>.Instance.GetCurrentLevelEnum()}. " +
+                              $"player position: {Manager<PlayerManager>.Instance.Player.transform.position.x}, " +
+                              $"{Manager<PlayerManager>.Instance.Player.transform.position.y}");
+            #endif
+            orig(self);
+            if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_11_B_MusicBox) &&
+                randoStateManager.SkipMusicBox && randoStateManager.IsSafeTeleportState())
+            {
+                RandoLevelManager.SkipMusicBox();
+            }
         }
 
 
@@ -558,7 +573,7 @@ namespace MessengerRando
 
                 //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
                 Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}");
-
+                if (self.cutsceneId.Equals("RuxxtinNoteAndAwardAmuletCutscene") && ArchipelagoClient.HasConnected) return ArchipelagoClient.ServerData.RuxxCutscene;
                 
 
                 //Check to see if I have the item that is at this check.
@@ -661,16 +676,17 @@ namespace MessengerRando
             orig(self, slot);
         }
 
-        void PauseScreen_OnQuiteToTitle(On.PauseScreen.orig_OnQuitToTitle orig, PauseScreen self)
+        void PauseScreen_OnQuitToTitle(On.BackToTitleScreen.orig_GoBackToTitleScreen orig)
         {
             if (ArchipelagoClient.HasConnected)
             {
-                ArchipelagoClient.Disconnect();
+                if (ArchipelagoClient.Authenticated)
+                    ArchipelagoClient.Disconnect();
                 ArchipelagoClient.HasConnected = false;
                 ArchipelagoClient.ServerData = null;
             }
 
-            orig(self);
+            orig();
         }
 
         //Fixing necro cutscene check
@@ -762,6 +778,7 @@ namespace MessengerRando
         void Cutscene_Play(On.Cutscene.orig_Play orig, Cutscene self)
         {
             Console.WriteLine($"Playing cutscene: {self}");
+            // if (randoStateManager)
             orig(self);
         }
 
@@ -795,6 +812,29 @@ namespace MessengerRando
         void DialogCutscene_Play(On.DialogCutscene.orig_Play orig, DialogCutscene self)
         {
             Console.WriteLine($"Playing dialog cutscene: {self}");
+            //ruxxtin cutscene is being a bitch so just gonna hard code around it here.
+            if (ArchipelagoClient.HasConnected && self.name.Equals("ReadNote"))
+            {
+                if (randoStateManager.IsLocationRandomized(EItems.RUXXTIN_AMULET, out var check))
+                {
+                    var locID = ItemsAndLocationsHandler.LocationsLookup
+                        .FirstOrDefault(location => location.Key.Equals(check)).Value;
+                    if (!ArchipelagoClient.ServerData.CheckedLocations.Contains(locID))
+                    {
+                        var sendItem = randoStateManager.CurrentLocationToItemMapping[check];
+                        ItemsAndLocationsHandler.SendLocationCheck(check);
+                        DialogSequence sendItemDialog = ScriptableObject.CreateInstance<DialogSequence>();
+                        sendItemDialog.dialogID = "ARCHIPELAGO_ITEM";
+                        sendItemDialog.name =
+                            sendItem.RecipientName.Equals(ArchipelagoClient.ServerData.SlotName)
+                                ? $"{sendItem.Name}"
+                                : $"{sendItem.Name} for {sendItem.RecipientName}";
+                        sendItemDialog.choices = new List<DialogSequenceChoice>();
+                        var sendItemParams = new AwardItemPopupParams(sendItemDialog, true);
+                        Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, sendItemParams);
+                    }
+                }
+            }
             orig(self);
         }
 
@@ -825,18 +865,10 @@ namespace MessengerRando
                 : "currentRoom does not exist.");
             Console.WriteLine($"teleported: {teleportedInRoom}");
             var position = Manager<PlayerManager>.Instance.Player.transform.position;
-            Console.WriteLine("Player position before room change: " +
+            Console.WriteLine("Player position: " +
                               $"{position.x} " +
                               $"{position.y} " +
                               $"{position.z}");
-            self.onChangedRoom += () =>
-            {
-                position = Manager<PlayerManager>.Instance.Player.transform.position;
-                Console.WriteLine("Adjusted? Player position: " +
-                                  $"{position.x} " +
-                                  $"{position.y} " +
-                                  $"{position.z}");
-            };
 
             //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
             //if we're in a room, it leaves the current room then enters the new room with the teleported bool
@@ -1056,6 +1088,7 @@ namespace MessengerRando
             {
                 Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation]}'");
 
+                if (ArchipelagoClient.HasConnected) ArchipelagoClient.ServerData.RuxxCutscene = true;
                 EItems randoItem = randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation].Item;
                 
                 if(EItems.TIME_SHARD.Equals(randoItem))
@@ -1065,10 +1098,6 @@ namespace MessengerRando
                      * Checks after the first time rely on the collected items list so it shouldn't have any impact...
                      */
                     randoItem = EItems.NONE;
-                }
-                if (ArchipelagoClient.HasConnected)
-                {
-                    ItemsAndLocationsHandler.SendLocationCheck(ruxxAmuletLocation);
                 }
                 return randoItem;
             }
@@ -1106,7 +1135,7 @@ namespace MessengerRando
             if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused)
                 ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 5.0f;
+            float updateTime = 3.0f;
             updateTimer += Time.deltaTime;
             if (!(updateTimer >= updateTime)) return;
             apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();

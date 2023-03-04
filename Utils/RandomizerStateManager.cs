@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using System.Linq;
 using MessengerRando.GameOverrideMappings;
-using UnityEngine;
 
 namespace MessengerRando
 {
@@ -182,7 +180,7 @@ namespace MessengerRando
             if (ArchipelagoClient.HasConnected)
             {
                 locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
-                if (locationFromItem != null ) { isLocationRandomized = true; }
+                if (locationFromItem != null ) isLocationRandomized = true;
                 return isLocationRandomized;
             }
 

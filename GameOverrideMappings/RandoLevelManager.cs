@@ -1,27 +1,60 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MessengerRando.GameOverrideMappings
 {
     public class RandoLevelManager
     {
-        private static bool teleporting;
-        public static void TeleportToMusicBox()
+        public static bool Teleporting;
+        public static void SkipMusicBox()
         {
-            if (teleporting) return;
+            if (Teleporting)
+            {
+                Teleporting = false;
+                return;
+            }
             Manager<AudioManager>.Instance.StopMusic();
             var playerPosition = RandomizerStateManager.Instance.SkipMusicBox
-                ? new Vector3(125f, 40f)
-                : new Vector3(-334.5f, -69f);
+                ? new Vector2(125, 40)
+                : new Vector2(-428, -55);
 
-            Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = playerPosition;
-            LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo(ELevel.Level_Ending + "_Build",
-                true, false, LoadSceneMode.Single, ELevelEntranceID.ENTRANCE_A,
-                EBits.BITS_8);
-            // set this bool before and after the load call so that we can teleport within the music box loading
-            teleporting = true;
+            var playerDimension = RandomizerStateManager.Instance.SkipMusicBox ? EBits.BITS_8 : EBits.BITS_16;
+
+            TeleportInArea(ELevel.Level_11_B_MusicBox, playerPosition, playerDimension);
+        }
+
+        public static void TeleportInArea(ELevel area, Vector2 position, EBits dimension)
+        {
+            if (Teleporting)
+            {
+                Teleporting = false;
+                return;
+            }
+            Manager<AudioManager>.Instance.StopMusic();
+            Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = position;
+            LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo(area + "_Build",
+                false, true, LoadSceneMode.Single,
+                ELevelEntranceID.NONE, dimension);
+            Teleporting = true;
             Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
-            teleporting = false;
+        }
+
+        public static void ChangeRoom(On.Level.orig_ChangeRoom orig, Level self,
+            ScreenEdge newRoomLeftEdge, ScreenEdge newRoomRightEdge,
+            ScreenEdge newRoomBottomEdge, ScreenEdge newRoomTopEdge,
+            bool teleportedInRoom)
+        {
+            string GetRoomKey()
+            {
+                return newRoomLeftEdge.edgeIdX + newRoomRightEdge.edgeIdX
+                                               + newRoomBottomEdge.edgeIdY + newRoomTopEdge.edgeIdY;
+            }
+
+            if (RandomizerStateManager.Instance.SkipMusicBox && self.CurrentRoom.roomKey == "-436-404-60-44")
+            {
+                // newRoomLeftEdge.edgeIdX = 
+            }
         }
     }
 }

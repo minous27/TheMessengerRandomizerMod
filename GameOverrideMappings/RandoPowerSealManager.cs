@@ -7,6 +7,7 @@ namespace MessengerRando.GameOverrideMappings
 {
     public class RandoPowerSealManager
     {
+        public static readonly List<string> Goals = new List<string> { "power_seal_hunt" };
         private int amountPowerSealsCollected;
         private readonly int requiredPowerSeals;
 
@@ -18,29 +19,41 @@ namespace MessengerRando.GameOverrideMappings
 
         public void AddPowerSeal() => ArchipelagoClient.ServerData.PowerSealsCollected = ++amountPowerSealsCollected;
 
-        public void ShopChestSetState(On.ShopChest.orig_SetState orig, ShopChest shopChest)
-        {
-            if (CanOpenChest() && Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.NONE)) return;
-            orig(shopChest);
-        }
 
         public void OnShopChestOpen(On.ShopChestOpenCutscene.orig_OnChestOpened orig, ShopChestOpenCutscene self)
         {
-            if (new List<string>{"open_shop_chest"}.Contains(RandomizerStateManager.Instance.Goal))
+            if (Goals.Contains(RandomizerStateManager.Instance.Goal) &&
+                !Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.NONE))
             {
                 //going to attempt to teleport the player to the ending sequence when they open the chest
-                try
-                {
-                    Object.FindObjectOfType<Shop>().LeaveToCurrentLevel();
-                    RandoLevelManager.TeleportToMusicBox();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                OnShopChestOpen();
                 self.EndCutScene();
             }
             else orig(self);
+        }
+
+        public void OnShopChestOpen(On.ShopChestChangeShurikenCutscene.orig_Play orig, ShopChestChangeShurikenCutscene self)
+        {
+            if (Goals.Contains(RandomizerStateManager.Instance.Goal)
+                && RandomizerStateManager.Instance.IsSafeTeleportState())
+            {
+                OnShopChestOpen();
+                self.EndCutScene();
+            }
+            else orig(self);
+        }
+
+        private void OnShopChestOpen()
+        {
+            try
+            {
+                Object.FindObjectOfType<Shop>().LeaveToCurrentLevel();
+                RandoLevelManager.SkipMusicBox();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
         /// <summary>
