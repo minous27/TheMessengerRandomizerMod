@@ -9,6 +9,7 @@ using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.GameOverrideManagers;
 using MessengerRando.Utils;
 using Mod.Courier.UI;
+using Newtonsoft.Json;
 using static Mod.Courier.UI.TextEntryButtonInfo;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ namespace MessengerRando.Archipelago
 
         private static void OnConnected(bool connectStats)
         {
-            
+            return;
         }
 
         private static void OnConnected(bool connectStatus, SubMenuButtonInfo connectButton)
@@ -128,6 +129,26 @@ namespace MessengerRando.Archipelago
                     
                 }
                 else Console.WriteLine("Failed to get goal option");
+
+                if (ServerData.SlotData.TryGetValue("bosses", out var bosses))
+                {
+                    var bossMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(bosses.ToString());
+                    Console.WriteLine("Bosses:");
+                    foreach (var VARIABLE in bossMap)
+                    {
+                        Console.WriteLine($"{VARIABLE.Key}: {VARIABLE.Value}");
+                    }
+                    try
+                    {
+                        RandomizerStateManager.Instance.BossManager =
+                            new RandoBossManager(bossMap);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                }
+                else Console.WriteLine("Failed to get bosses option");
 
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)

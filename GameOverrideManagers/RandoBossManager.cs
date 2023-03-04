@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MessengerRando.Archipelago;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MessengerRando.GameOverrideManagers
 {
@@ -11,6 +12,7 @@ namespace MessengerRando.GameOverrideManagers
         public RandoBossManager Instance;
         private static readonly List<string> defeatedBosses = new List<string>();
         private Dictionary<string, string> origToNewBoss;
+        private static bool BossOverride;
 
         private struct BossLocation
         {
@@ -25,6 +27,36 @@ namespace MessengerRando.GameOverrideManagers
                 PlayerDimension = dim;
             }
         }
+
+        private static readonly List<string> vanillaBossNames = new List<string>
+        {
+            "LeafGolem",
+            "Necromancer",
+            "EmeraldGolem",
+            "QueenOfQuills",
+            // "Colos_Susses",
+            "Manfred",
+            // "TowerGolem",
+            "DemonGeneral",
+            "DemonArtificier",
+            "ButterflyMatriarch",
+            "Phantom"
+        };
+
+        public static readonly Dictionary<string, string> bossCutscenes = new Dictionary<string, string>
+        {
+            { "LeafGolem", "LeafGolemIntroCutscene" },
+            { "Necromancer", "NecromancerIntroCutscene" },
+            { "EmeraldGolem", "EmeraldGolemIntroCutscene" },
+            { "QueenOfQuills", "QueenOfQuillsIntroCutscene" },
+            // {"Colos_Susses", },
+            { "Manfred", "ManfredIntroCutscene" },
+            // {"TowerGolem", },
+            { "DemonGeneral", "DemonGeneralIntroCutscene" },
+            { "DemonArtificier", "DemonArtificierIntroCutscene" },
+            { "ButterflyMatriarch", "ButterflyMatriarchIntroCutscene" },
+            { "Phantom", "PhantomIntroCutscene" }
+        };
 
         private static readonly Dictionary<string, string> roomToVanillBoss = new Dictionary<string, string>
         {
@@ -76,31 +108,98 @@ namespace MessengerRando.GameOverrideManagers
         private static void AdjustPlayerInBossRoom(string bossName)
         {
             var newLocation = bossLocations[bossName];
-            Manager<PlayerManager>.Instance.Player.transform.position = newLocation.PlayerPosition;
-            Manager<DimensionManager>.Instance.SetDimension(newLocation.PlayerDimension);
+            if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(newLocation.BossRegion))
+            {
+                Manager<PlayerManager>.Instance.Player.transform.position = newLocation.PlayerPosition;
+                Manager<DimensionManager>.Instance.SetDimension(newLocation.PlayerDimension);
+            }
+            else
+            {
+                BossOverride = true;
+                RandoLevelManager.TeleportInArea(newLocation.BossRegion, newLocation.PlayerPosition,
+                    newLocation.PlayerDimension);
+            }
         }
         
         public static bool HasBossDefeated(string bossName)
         {
-            Console.WriteLine("Expected has defeated boss name: ");
-            Console.WriteLine($"{bossName}");
-            return !bossLocations.Keys.Contains(bossName) || defeatedBosses.Contains(bossName);
+            if (BossOverride)
+                bossName = RandomizerStateManager.Instance.BossManager.origToNewBoss
+                    .First(name => name.Value.Equals(bossName)).Key;
+            Console.WriteLine($"Checking if {bossName} is defeated.");
+            return !vanillaBossNames.Contains(bossName) || defeatedBosses.Contains(bossName);
         }
 
         public static void SetBossAsDefeated(string bossName)
         {
+            if (BossOverride)
+            {
+                bossName = RandomizerStateManager.Instance.BossManager.origToNewBoss[bossName];
+                BossOverride = false;
+            }
             if (ArchipelagoClient.HasConnected) ArchipelagoClient.ServerData.DefeatedBosses.Add(bossName);
             defeatedBosses.Add(bossName);
+            if (RandomizerStateManager.Instance.BossManager != null)
+            {
+                var newPosition = bossLocations[bossName];
+                
+                RandoLevelManager.TeleportInArea(newPosition.BossRegion, newPosition.PlayerPosition,
+                    newPosition.PlayerDimension);
+            }
         }
 
         public static bool ShouldFightBoss(string newRoomKey)
         {
-            if (!BossRoomKeys.Contains(newRoomKey)) return false;
-            var bossName = RandomizerStateManager.Instance.BossManager?.GetActualBoss(newRoomKey)
-                           ?? GetVanillaBoss(newRoomKey);
+            if (!BossRoomKeys.Contains(newRoomKey) || BossOverride) return false;
+            var bossName = GetVanillaBoss(newRoomKey);
+            Console.WriteLine($"Entered {bossName}'s room. Has Defeated: {HasBossDefeated(bossName)}");
             if (HasBossDefeated(bossName)) return false;
+            var teleporting = RandomizerStateManager.Instance.BossManager != null;
+            Console.WriteLine($"Should teleport: {teleporting}");
+            if (teleporting)
+            {
+                try
+                {
+                    foreach (var cutscene in Object.FindObjectsOfType<Cutscene>())
+                    {
+                        try
+                        {
+                            if (cutscene.IsInvoking())
+                            {
+                                Console.WriteLine($"Ending cutscene: {cutscene.name}");
+                                cutscene.EndCutScene();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"{e}\n{cutscene.name}");
+                        }
+                    }
+
+                    foreach (var cutscene in Object.FindObjectsOfType<DialogCutscene>())
+                    {
+                        try
+                        {
+                            if (cutscene.IsInvoking())
+                            {
+                                Console.WriteLine($"Ending cutscene: {cutscene.name}");
+                                cutscene.EndCutScene();
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"{e}\n{cutscene.name}");
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                bossName = RandomizerStateManager.Instance.BossManager.GetActualBoss(newRoomKey);
+            }
             AdjustPlayerInBossRoom(bossName);
-            return true;
+            return teleporting;
         }
 
         public RandoBossManager(Dictionary<string, string> bossMapping)
@@ -114,6 +213,7 @@ namespace MessengerRando.GameOverrideManagers
         private string GetActualBoss(string roomKey)
         {
             var vanillaBoss = roomToVanillBoss[roomKey];
+            Console.WriteLine($"requested {vanillaBoss}, going to {origToNewBoss[vanillaBoss]}");
             return origToNewBoss[vanillaBoss];
         }
     }

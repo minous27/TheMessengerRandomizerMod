@@ -784,7 +784,6 @@ namespace MessengerRando
             }
             else
             {
-                
                 orig(self, teleportedInRoom);
             }
         }

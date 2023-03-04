@@ -34,7 +34,7 @@ namespace MessengerRando.GameOverrideManagers
             Manager<AudioManager>.Instance.StopMusic();
             Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = position;
             LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo(area + "_Build",
-                false, true, LoadSceneMode.Single,
+                true, true, LoadSceneMode.Single,
                 ELevelEntranceID.NONE, dimension);
             Teleporting = true;
             Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
@@ -67,12 +67,12 @@ namespace MessengerRando.GameOverrideManagers
                               $"{position.y} " +
                               $"{position.z}");
 
-            RandoBossManager.ShouldFightBoss(GetRoomKey());
 
             //This func checks if the new roomKey exists within levelRooms before changing and checks if currentRoom exists
             //if we're in a room, it leaves the current room then enters the new room with the teleported bool
             //no idea what the teleported bool does currently
             orig(self, newRoomLeftEdge, newRoomRightEdge, newRoomBottomEdge, newRoomTopEdge, teleportedInRoom);
+            RandoBossManager.ShouldFightBoss(GetRoomKey());
         }
     }
 }
