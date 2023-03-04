@@ -17,7 +17,6 @@ using TMPro;
 using System.Linq;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Packets;
-using System.Reflection;
 using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando 
@@ -157,7 +156,7 @@ namespace MessengerRando
                 (orig, self, bossName) => RandoBossManager.SetBossAsDefeated(bossName);
             // level teleporting etc management
             On.Level.ChangeRoom += RandoLevelManager.Level_ChangeRoom;
-            //On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
+            On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
             On.ShopChestOpenCutscene.OnChestOpened += (orig, self) =>
@@ -759,6 +758,15 @@ namespace MessengerRando
             Console.WriteLine($"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
 
             return isUnlocked;
+        }
+        
+        
+        void MegaTimeShard_OnBreakDone(On.MegaTimeShard.orig_OnBreakDone orig, MegaTimeShard self)
+        {
+            var currentLevel = Manager<LevelManager>.Instance.GetCurrentLevelEnum();
+            var currentRoom = Manager<Level>.Instance.CurrentRoom.roomKey;
+            Console.WriteLine($"Broke Mega Time shard in {currentLevel}, {currentRoom}");
+            orig(self);
         }
 
         int ProgressionManager_TotalPowerSealCollected(On.ProgressionManager.orig_TotalPowerSealCollected orig,

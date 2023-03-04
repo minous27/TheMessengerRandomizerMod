@@ -16,9 +16,9 @@ namespace MessengerRando.GameOverrideManagers
 
         private struct BossLocation
         {
-            public ELevel BossRegion;
-            public Vector2 PlayerPosition;
-            public EBits PlayerDimension;
+            public readonly ELevel BossRegion;
+            public readonly Vector2 PlayerPosition;
+            public readonly EBits PlayerDimension;
 
             public BossLocation(ELevel area, Vector2 pos, EBits dim)
             {

@@ -28,7 +28,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>bin\Release\TheMessengerRandomizer\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -94,6 +94,7 @@
     <Compile Include="GameOverrideManagers\RandoBossManager.cs" />
     <Compile Include="GameOverrideManagers\RandoPowerSealManager.cs" />
     <Compile Include="GameOverrideManagers\RandoLevelManager.cs" />
+    <Compile Include="GameOverrideManagers\RandoTimeShardManager.cs" />
     <Compile Include="Overrides\RandoCatacombLevelInitializer.cs" />
     <Compile Include="RO\SamplePlayerRO.cs" />
     <Compile Include="RO\RandoItemRO.cs" />
