@@ -11,12 +11,15 @@ namespace MessengerRando.RO
         public EItems Item { get; }
         //amount to give
         public int Quantity { get; }
+        //player name for other players' items
+        public string RecipientName { get; }
 
-        public RandoItemRO(string name, EItems item, int quantity = 1)
+        public RandoItemRO(string name, EItems item, int quantity = 1, string recipient = null)
         {
             Name = name;
             Item = item;
             Quantity = quantity;
+            RecipientName = recipient;
         }
 
         public override string ToString()

@@ -8,6 +8,7 @@ namespace MessengerRando.Utils
     {
         None, //No type yet set (signifies a seed yet to be set up)
         No_Logic, //Seed that does no logical checks
-        Logic //Seed that uses logic engine
+        Logic, //Seed that uses logic engine
+        Archipelago //Seed was generated using Archipelago
     }
 }
