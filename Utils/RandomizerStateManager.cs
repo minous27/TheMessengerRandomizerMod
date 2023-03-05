@@ -21,6 +21,7 @@ namespace MessengerRando
         public string Goal;
         public bool SkipMusicBox = false;
         public bool SkipPhantom = false;
+        public bool MegaShards = false;
 
         private Dictionary<int, SeedRO> seeds;
 

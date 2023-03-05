@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
 using MessengerRando.RO;
-using MessengerRando.Utils;
-using SonicBloom.MIDI.Objects;
-using UnityEngine;
+using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando.Archipelago
 {
@@ -39,6 +36,8 @@ namespace MessengerRando.Archipelago
             offset = baseOffset;
             Console.WriteLine("Building LocationsLookup...");
             LocationsLookup = new Dictionary<LocationRO, long>();
+            var megaShards = RandoTimeShardManager.MegaShardLookup.Values.ToList();
+            ArchipelagoLocations.AddRange(megaShards);
             foreach (var progLocation in ArchipelagoLocations)
             {
                 LocationsLookup.Add(progLocation, offset);
