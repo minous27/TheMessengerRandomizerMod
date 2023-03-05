@@ -156,7 +156,6 @@ namespace MessengerRando
                 (orig, self, bossName) => RandoBossManager.SetBossAsDefeated(bossName);
             // level teleporting etc management
             On.Level.ChangeRoom += RandoLevelManager.Level_ChangeRoom;
-            On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
             //These functions let us override and manage power seals ourselves with 'fake' items
             On.ProgressionManager.TotalPowerSealCollected += ProgressionManager_TotalPowerSealCollected;
             On.ShopChestOpenCutscene.OnChestOpened += (orig, self) =>
@@ -170,6 +169,7 @@ namespace MessengerRando
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
             //temp add
             #if DEBUG
+            On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
             On.Cutscene.Play += Cutscene_Play;
             On.PhantomIntroCutscene.OnEnterRoom += PhantomIntro_OnEnterRoom; //this lets us skip the phantom fight
             On.UIManager.ShowView += UIManager_ShowView;
