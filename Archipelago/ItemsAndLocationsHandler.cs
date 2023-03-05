@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
 using MessengerRando.RO;
-using MessengerRando.Utils;
-using SonicBloom.MIDI.Objects;
-using UnityEngine;
+using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando.Archipelago
 {
@@ -39,6 +36,8 @@ namespace MessengerRando.Archipelago
             offset = baseOffset;
             Console.WriteLine("Building LocationsLookup...");
             LocationsLookup = new Dictionary<LocationRO, long>();
+            var megaShards = RandoTimeShardManager.MegaShardLookup.Values.ToList();
+            ArchipelagoLocations.AddRange(megaShards);
             foreach (var progLocation in ArchipelagoLocations)
             {
                 LocationsLookup.Add(progLocation, offset);
@@ -190,17 +189,23 @@ namespace MessengerRando.Archipelago
                 return;
             }
 
-            if (EItems.WINDMILL_SHURIKEN.Equals(randoItem.Item)) RandomizerMain.OnToggleWindmillShuriken();
-            else if (EItems.TIME_SHARD.Equals(randoItem.Item))
+            switch (randoItem.Item)
             {
-                Console.WriteLine("Unlocking time shards...");
-                Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
-                randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
-                return; //Collecting timeshards internally call add item so I dont need to do it again.
+                case EItems.WINDMILL_SHURIKEN:
+                    RandomizerMain.OnToggleWindmillShuriken();
+                    break;
+                case EItems.TIME_SHARD:
+                    Console.WriteLine("Unlocking time shards...");
+                    Manager<InventoryManager>.Instance.CollectTimeShard(quantity);
+                    break;
+                case EItems.POWER_SEAL:
+                    randoStateManager.PowerSealManager.AddPowerSeal();
+                    break;
+                default:
+                    Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
+                    break;
             }
-            Console.WriteLine($"Adding {randoItem.Name} to inventory...");
             randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Add(randoItem);
-            Manager<InventoryManager>.Instance.AddItem(randoItem.Item, quantity);
         }
 
         public static void SendLocationCheck(LocationRO checkedLocation)
@@ -208,8 +213,8 @@ namespace MessengerRando.Archipelago
             Console.WriteLine($"Player found item at {checkedLocation.PrettyLocationName}");
             long checkID = LocationsLookup[checkedLocation];
             ArchipelagoClient.ServerData.CheckedLocations.Add(checkID);
-            ArchipelagoClient.Session.Locations.CompleteLocationChecks(checkID);
-            ArchipelagoClient.ServerData.UpdateSave();
+            if (ArchipelagoClient.Authenticated)
+                ArchipelagoClient.Session.Locations.CompleteLocationChecks(checkID);
         }
     }
 }

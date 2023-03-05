@@ -66,10 +66,7 @@ namespace MessengerRando.Utils
         public static string getDialogMapping(string dialogID)
         {
             Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            if (mappings.ContainsKey(dialogID))
-                return mappings[dialogID];
-            else
-                return dialogID;
+            return mappings.ContainsKey(dialogID) ? mappings[dialogID] : dialogID;
         }
 
         /// <summary>
@@ -202,18 +199,10 @@ namespace MessengerRando.Utils
                         {
                             var text = replacewithKey.Split('~');
                             DialogInfo archipelagoDialog = new DialogInfo();
-                            if (ArchipelagoClient.ServerData.SlotName.Equals(text[2]))
-                            {
-                                archipelagoDialog.text = $"Found {text[1]}.";
-                            }
-                            else
-                            {
-                                archipelagoDialog.text = $"Found {text[1]} for {text[2]}.";
-                            }                            
-                            LocCopy[tobereplacedKey] = new List<DialogInfo>
-                            {
-                                archipelagoDialog
-                            };
+                            archipelagoDialog.text = ArchipelagoClient.ServerData.SlotName.Equals(text[2])
+                                ? $"Found {text[1]}."
+                                : $"Found {text[1]} for {text[2]}.";
+                            LocCopy[tobereplacedKey] = new List<DialogInfo> { archipelagoDialog };
                         }
                         else
                         {

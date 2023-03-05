@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using System.Linq;
-using UnityEngine;
+using MessengerRando.GameOverrideManagers;
 
 namespace MessengerRando
 {
@@ -15,6 +14,14 @@ namespace MessengerRando
 
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
+
+        public RandoPowerSealManager PowerSealManager;
+        public RandoBossManager BossManager;
+
+        public string Goal;
+        public bool SkipMusicBox = false;
+        public bool SkipPhantom = false;
+        public bool MegaShards = false;
 
         private Dictionary<int, SeedRO> seeds;
 
@@ -175,7 +182,7 @@ namespace MessengerRando
             if (ArchipelagoClient.HasConnected)
             {
                 locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
-                if (locationFromItem != null ) { isLocationRandomized = true; }
+                if (locationFromItem != null ) isLocationRandomized = true;
                 return isLocationRandomized;
             }
 

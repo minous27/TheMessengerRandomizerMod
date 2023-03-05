@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Archipelago.MultiClient.Net;
-using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
+using MessengerRando.GameOverrideManagers;
 using MessengerRando.Utils;
+using Mod.Courier.UI;
+using Newtonsoft.Json;
+using static Mod.Courier.UI.TextEntryButtonInfo;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 namespace MessengerRando.Archipelago
 {
@@ -23,6 +24,7 @@ namespace MessengerRando.Archipelago
         private static int lastAttemptTime;
         private static int disconnectTimeout = 5;
 
+        private delegate void OnConnectAttempt(bool result);
         public static bool Authenticated;
         public static bool HasConnected;
 
@@ -32,23 +34,44 @@ namespace MessengerRando.Archipelago
         public static ArchipelagoSession Session;
         public static DeathLinkInterface DeathLinkHandler;
 
-        public static List<string> MessageQueue = new List<string>();
+        private static readonly List<string> MessageQueue = new List<string>();
 
         public static void ConnectAsync()
         {
-            if (ServerData == null)
-            {
-                ServerData = new ArchipelagoData();
-                return;
-            }
-            ItemsAndLocationsHandler.Initialize();
-            Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
-            ThreadPool.QueueUserWorkItem(_ => Connect());
+            ThreadPool.QueueUserWorkItem(_ => Connect(OnConnected));
         }
 
-        private static void Connect()
+        public static void ConnectAsync(SubMenuButtonInfo connectButton)
+        {
+            if (ServerData == null)
+                ServerData = new ArchipelagoData();
+            Console.WriteLine($"Connecting to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}");
+            Connect(result => OnConnected(result, connectButton));
+        }
+
+        private static void OnConnected(bool connectStats)
+        {
+            return;
+        }
+
+        private static void OnConnected(bool connectStatus, SubMenuButtonInfo connectButton)
+        {
+            TextEntryPopup successPopup = InitTextEntryPopup(connectButton.addedTo, string.Empty,
+                entry => true, 0, null, CharsetFlags.Space);
+            var successText = connectStatus
+                ? $"Successfully connected to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}!"
+                : $"Failed to connect to {ServerData.Uri}:{ServerData.Port} as {ServerData.SlotName}. " +
+                  "Verify correct information.";
+            successPopup.Init(successText);
+            successPopup.gameObject.SetActive(true);
+            // Object.Destroy(successPopup.transform.Find("BigFrame").Find("SymbolsGrid").gameObject);
+            Console.WriteLine(successText);
+        }
+
+        private static void Connect(OnConnectAttempt attempt)
         {
             if (Authenticated) return;
+            if (ItemsAndLocationsHandler.ItemsLookup == null) ItemsAndLocationsHandler.Initialize();
 
             LoginResult result;
 
@@ -82,23 +105,61 @@ namespace MessengerRando.Archipelago
                 ServerData.SlotData = success.SlotData;
                 ServerData.SeedName = Session.RoomState.Seed;
                 Authenticated = true;
-                
+
                 if (ServerData.SlotData.TryGetValue("deathlink", out var deathLink))
+                    ArchipelagoData.DeathLink = Convert.ToInt32(deathLink) == 1;
+                else Console.WriteLine("Failed to get deathlink option");
+
+                if (ServerData.SlotData.TryGetValue("goal", out var gameGoal))
                 {
-                    ArchipelagoData.DeathLink = (bool)deathLink;
+                    var goal = (string)gameGoal;
+                    RandomizerStateManager.Instance.Goal = goal;
+                    if (RandoPowerSealManager.Goals.Contains(goal))
+                    {
+                        if (ServerData.SlotData.TryGetValue("required_seals", out var requiredSeals))
+                        {
+                            RandomizerStateManager.Instance.PowerSealManager =
+                                new RandoPowerSealManager(Convert.ToInt32(requiredSeals));
+                        }
+                    }
+
+                    if (ServerData.SlotData.TryGetValue("music_box", out var doMusicBox))
+                        RandomizerStateManager.Instance.SkipMusicBox = Convert.ToInt32(doMusicBox) == 0;
+                    else Console.WriteLine("Failed to get music_box option");
+                    
                 }
-                else
+                else Console.WriteLine("Failed to get goal option");
+
+                if (ServerData.SlotData.TryGetValue("bosses", out var bosses))
                 {
-                    Console.WriteLine("Failed to get deathlink option");
+                    var bossMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(bosses.ToString());
+                    Console.WriteLine("Bosses:");
+                    foreach (var VARIABLE in bossMap)
+                    {
+                        Console.WriteLine($"{VARIABLE.Key}: {VARIABLE.Value}");
+                    }
+                    try
+                    {
+                        RandomizerStateManager.Instance.BossManager =
+                            new RandoBossManager(bossMap);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
                 }
+                else Console.WriteLine("Failed to get bosses option");
 
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
-                    for (int i = Session.Locations.AllLocationsChecked.Count; i <= ServerData.CheckedLocations.Count; i++)
-                    {
-                        Session.Locations.CompleteLocationChecks(ServerData.CheckedLocations[i]);
-                    }
+                    foreach (var location in Session.Locations.AllLocationsChecked.Where(location => 
+                                 !ServerData.CheckedLocations.Contains(location)))
+                        ServerData.CheckedLocations.Add(location);
+
+                    foreach (var location in ServerData.CheckedLocations.Where(location =>
+                                 !Session.Locations.AllLocationsChecked.Contains(location)))
+                        Session.Locations.CompleteLocationChecks(location);
                     return;
                 }
                 ServerData.UpdateSave();
@@ -118,6 +179,8 @@ namespace MessengerRando.Archipelago
                 Authenticated = false;
                 Disconnect();
             }
+
+            attempt(result.Successful);
         }
 
         private static void OnMessageReceived(LogMessage message)
@@ -140,6 +203,7 @@ namespace MessengerRando.Archipelago
 
         public static void Disconnect()
         {
+            Console.WriteLine("Disconnecting from server...");
             Session?.Socket.DisconnectAsync();
             Session = null;
             Authenticated = false;
@@ -156,7 +220,7 @@ namespace MessengerRando.Archipelago
                 lastAttemptTime = now;
                 disconnectTimeout -= dT;
                 if (!(disconnectTimeout <= 0.0f)) return;
-                
+                Console.WriteLine("Attempting to reconnect to Archipelago Server...");
                 ConnectAsync();
                 disconnectTimeout = 5;
                 return;
@@ -227,19 +291,16 @@ namespace MessengerRando.Archipelago
         private static int GetHintCost()
         {
             var hintCost = Session.RoomState.HintCost;
-            if (hintCost > 0)
+            if (hintCost <= 0) return hintCost;
+            int locationCount = RandomizerConstants.GetRandoLocationList().Count();
+            if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
             {
-                RandomizerStateManager stateManager = RandomizerStateManager.Instance;
-                int locationCount = RandomizerConstants.GetRandoLocationList().Count();
-                if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
-                {
-                    hintCost = locationCount / hintCost;
-                }
-                else
-                {
-                    locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
-                    hintCost = locationCount / hintCost;
-                }
+                hintCost = locationCount / hintCost;
+            }
+            else
+            {
+                locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
+                hintCost = locationCount / hintCost;
             }
             return hintCost;
         }
