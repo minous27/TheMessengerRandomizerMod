@@ -10,7 +10,7 @@ namespace MessengerRando.GameOverrideManagers
     public class RandoBossManager
     {
         public RandoBossManager Instance;
-        private static readonly List<string> defeatedBosses = new List<string>();
+        public static readonly List<string> DefeatedBosses = new List<string>();
         private Dictionary<string, string> origToNewBoss;
         private static bool BossOverride;
 
@@ -127,7 +127,7 @@ namespace MessengerRando.GameOverrideManagers
                 bossName = RandomizerStateManager.Instance.BossManager.origToNewBoss
                     .First(name => name.Value.Equals(bossName)).Key;
             Console.WriteLine($"Checking if {bossName} is defeated.");
-            return !vanillaBossNames.Contains(bossName) || defeatedBosses.Contains(bossName);
+            return !vanillaBossNames.Contains(bossName) || DefeatedBosses.Contains(bossName);
         }
 
         public static void SetBossAsDefeated(string bossName)
@@ -138,7 +138,7 @@ namespace MessengerRando.GameOverrideManagers
                 BossOverride = false;
             }
             if (ArchipelagoClient.HasConnected) ArchipelagoClient.ServerData.DefeatedBosses.Add(bossName);
-            defeatedBosses.Add(bossName);
+            DefeatedBosses.Add(bossName);
             if (RandomizerStateManager.Instance.BossManager != null)
             {
                 var newPosition = bossLocations[bossName];
