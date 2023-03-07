@@ -151,9 +151,11 @@ namespace MessengerRando.GameOverrideManagers
         public static bool ShouldFightBoss(string newRoomKey)
         {
             if (!BossRoomKeys.Contains(newRoomKey) || BossOverride) return false;
+            var currentLevel = Manager<LevelManager>.Instance.GetCurrentLevelEnum();
             var bossName = GetVanillaBoss(newRoomKey);
             Console.WriteLine($"Entered {bossName}'s room. Has Defeated: {HasBossDefeated(bossName)}");
-            if (HasBossDefeated(bossName)) return false;
+            if (HasBossDefeated(bossName) || !currentLevel.Equals(bossLocations[bossName].BossRegion)) return false;
+            
             var teleporting = RandomizerStateManager.Instance.BossManager != null;
             Console.WriteLine($"Should teleport: {teleporting}");
             if (teleporting)
