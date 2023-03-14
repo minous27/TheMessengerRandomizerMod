@@ -622,6 +622,8 @@ namespace MessengerRando
                 }
                 else if (ArchipelagoClient.Authenticated && Manager<SaveManager>.Instance.GetSaveSlot(slotIndex).SecondsPlayed <= 100)
                 {
+                    randoStateManager.ResetRandomizerState();
+                    randoStateManager.ResetSeedForFileSlot(fileSlot);
                     //Hopefully this ensures this is a clean rando slot so the player doesn't just connect with an invalid slot
                     randoStateManager.AddSeed(ArchipelagoClient.ServerData.StartNewSeed(fileSlot));
                     randoStateManager.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
