@@ -10,7 +10,9 @@ namespace MessengerRando.GameOverrideManagers
     public class RandoBossManager
     {
         public RandoBossManager Instance;
-        public static readonly List<string> DefeatedBosses = new List<string>();
+
+        public static List<string> DefeatedBosses = new List<string>();
+
         private Dictionary<string, string> origToNewBoss;
         private static bool BossOverride;
 
@@ -146,6 +148,8 @@ namespace MessengerRando.GameOverrideManagers
                 RandoLevelManager.TeleportInArea(newPosition.BossRegion, newPosition.PlayerPosition,
                     newPosition.PlayerDimension);
             }
+            RandomizerStateManager.Instance.DefeatedBosses[RandomizerStateManager.Instance.CurrentFileSlot] =
+                DefeatedBosses;
         }
 
         public static bool ShouldFightBoss(string newRoomKey)

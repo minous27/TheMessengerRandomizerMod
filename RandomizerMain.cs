@@ -631,7 +631,9 @@ namespace MessengerRando
                 else if (randoStateManager.HasSeedForFileSlot(fileSlot))
                 {
                     //There's a valid seed and mapping available and Archipelago isn't involved
-                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                    randoStateManager.CurrentLocationToItemMapping =
+                        ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                    RandoBossManager.DefeatedBosses = randoStateManager.DefeatedBosses[fileSlot];
                 }
             }
             catch (Exception e)

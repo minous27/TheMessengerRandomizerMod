@@ -11,6 +11,7 @@ namespace MessengerRando
     {
         public static RandomizerStateManager Instance { private set; get; }
         public Dictionary<LocationRO, RandoItemRO> CurrentLocationToItemMapping { set; get; }
+        public Dictionary<int, List<string>> DefeatedBosses { set; get; }
 
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
@@ -96,6 +97,7 @@ namespace MessengerRando
             if (seeds.ContainsKey(fileSlot))
             {
                 seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
+                DefeatedBosses[fileSlot] = new List<string>();
             }
             Console.WriteLine("File slot reset complete.");
         }
