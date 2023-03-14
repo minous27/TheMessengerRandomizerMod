@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using Archipelago.MultiClient.Net;
@@ -77,6 +78,7 @@ namespace MessengerRando.Archipelago
 
             Session = ArchipelagoSessionFactory.CreateSession(ServerData.Uri, ServerData.Port);
             Session.MessageLog.OnMessageReceived += OnMessageReceived;
+            Session.Locations.CheckedLocationsUpdated += RemoteLocationChecked;
             Session.Socket.ErrorReceived += SessionErrorReceived;
             Session.Socket.SocketClosed += SessionSocketClosed;
 
@@ -153,13 +155,10 @@ namespace MessengerRando.Archipelago
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
-                    foreach (var location in Session.Locations.AllLocationsChecked.Where(location => 
-                                 !ServerData.CheckedLocations.Contains(location)))
-                        ServerData.CheckedLocations.Add(location);
-
                     foreach (var location in ServerData.CheckedLocations.Where(location =>
                                  !Session.Locations.AllLocationsChecked.Contains(location)))
                         Session.Locations.CompleteLocationChecks(location);
+                    ServerData.CheckedLocations = Session.Locations.AllLocationsChecked.ToList();
                     return;
                 }
                 ServerData.UpdateSave();
@@ -187,6 +186,15 @@ namespace MessengerRando.Archipelago
         {
             Console.WriteLine(message.ToString());
             MessageQueue.Add(message.ToString());
+        }
+
+        private static void RemoteLocationChecked(ReadOnlyCollection<long> checkedLocations)
+        {
+            foreach (var checkedLocation in checkedLocations)
+            {
+                if (!ServerData.CheckedLocations.Contains(checkedLocation))
+                    ServerData.CheckedLocations.Add(checkedLocation);
+            }
         }
 
         private static void SessionErrorReceived(Exception e, string message)
