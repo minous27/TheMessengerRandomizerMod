@@ -8,7 +8,6 @@ using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.GameOverrideManagers;
-using MessengerRando.Utils;
 using Mod.Courier.UI;
 using Newtonsoft.Json;
 using static Mod.Courier.UI.TextEntryButtonInfo;
@@ -136,9 +135,9 @@ namespace MessengerRando.Archipelago
                 {
                     var bossMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(bosses.ToString());
                     Console.WriteLine("Bosses:");
-                    foreach (var VARIABLE in bossMap)
+                    foreach (var bossPair in bossMap)
                     {
-                        Console.WriteLine($"{VARIABLE.Key}: {VARIABLE.Value}");
+                        Console.WriteLine($"{bossPair.Key}: {bossPair.Value}");
                     }
                     try
                     {
@@ -245,7 +244,7 @@ namespace MessengerRando.Archipelago
                 receivedItem.name = Session.Items.GetItemName(currentItemId);
                 receivedItem.choices = new List<DialogSequenceChoice>();
                 AwardItemPopupParams receivedItemParams = new AwardItemPopupParams(receivedItem, true);
-                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedItemParams, true);
+                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedItemParams);
             }
         }
 
@@ -296,22 +295,18 @@ namespace MessengerRando.Archipelago
             return false;
         }
 
-        private static int GetHintCost()
+        public static int GetHintCost()
         {
-            var hintCost = Session.RoomState.HintCost;
-            if (hintCost <= 0) return hintCost;
-            int locationCount = RandomizerConstants.GetRandoLocationList().Count();
-            if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
+            var hintPercent = Session.RoomState.HintCostPercentage;
+            Console.WriteLine($"hintPercent {hintPercent}");
+            if (hintPercent > 0)
             {
-                hintCost = locationCount / hintCost;
+                var totalLocations = Session.Locations.AllLocations.Count;
+                hintPercent = (int)Math.Round(totalLocations * (hintPercent * 0.01));
             }
-            else
-            {
-                locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
-                hintCost = locationCount / hintCost;
-            }
-            return hintCost;
+            return hintPercent;
         }
+
 
         public static bool CanHint()
         {
