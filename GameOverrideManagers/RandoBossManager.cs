@@ -148,6 +148,8 @@ namespace MessengerRando.GameOverrideManagers
                 RandoLevelManager.TeleportInArea(newPosition.BossRegion, newPosition.PlayerPosition,
                     newPosition.PlayerDimension);
             }
+            if (RandomizerStateManager.Instance.DefeatedBosses == null)
+                RandomizerStateManager.Instance.DefeatedBosses = new Dictionary<int, List<string>>();
             RandomizerStateManager.Instance.DefeatedBosses[RandomizerStateManager.Instance.CurrentFileSlot] =
                 DefeatedBosses;
         }
