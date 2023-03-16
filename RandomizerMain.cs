@@ -558,7 +558,7 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Note cutscene check! Handling note '{self.noteToAward}' | Linked item: '{randoStateManager.CurrentLocationToItemMapping[noteCheck]}'");
                 //bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck].Item) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
-                bool shouldPlay = !randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[noteCheck]) && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
+                bool shouldPlay = !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
 
                 Console.WriteLine($"Should '{self.noteToAward}' cutscene play? '{shouldPlay}'");
                 
@@ -699,6 +699,11 @@ namespace MessengerRando
             if(randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(EItems.NECROPHOBIC_WORKER, out necroLocation))
             {
                 //check to see if we already have the item at Necro check
+                if (ArchipelagoClient.HasConnected &&
+                    !ArchipelagoClient.ServerData.CheckedLocations.Contains(
+                        ItemsAndLocationsHandler.LocationsLookup[necroLocation]))
+                    self.necrophobicWorkerCutscene.Play();
+                
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) <= 0 && !Manager<DemoManager>.Instance.demoMode)
                 if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) && !Manager<DemoManager>.Instance.demoMode)
                 {

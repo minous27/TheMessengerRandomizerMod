@@ -298,7 +298,6 @@ namespace MessengerRando.Archipelago
         public static int GetHintCost()
         {
             var hintPercent = Session.RoomState.HintCostPercentage;
-            Console.WriteLine($"hintPercent {hintPercent}");
             if (hintPercent > 0)
             {
                 var totalLocations = Session.Locations.AllLocations.Count;
