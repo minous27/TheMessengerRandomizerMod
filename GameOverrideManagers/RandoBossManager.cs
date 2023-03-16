@@ -42,6 +42,7 @@ namespace MessengerRando.GameOverrideManagers
             "DemonGeneral",
             "DemonArtificier",
             "ButterflyMatriarch",
+            "ClockworkConcierge",
             "Phantom"
         };
 
