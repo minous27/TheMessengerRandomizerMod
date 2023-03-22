@@ -30,6 +30,7 @@ namespace MessengerRando
         private const int MAX_BEATABLE_SEED_ATTEMPTS = 1;
 
         private float updateTimer;
+        private float updateTime = 3.0f;
 
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
@@ -56,6 +57,7 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoToggleMessagesButton;
         SubMenuButtonInfo archipelagoStatusButton;
         SubMenuButtonInfo archipelagoDeathLinkButton;
+        SubMenuButtonInfo archipelagoMessageTimerButton;
 
         private TextMeshProUGUI apTextDisplay8;
         private TextMeshProUGUI apTextDisplay16;
@@ -127,6 +129,9 @@ namespace MessengerRando
             
             //Add Archipelago message button
             archipelagoToggleMessagesButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayAPMessages ? "Hide server messages" : "Display server messages", OnToggleAPMessages);
+            
+            //Add Archipelago message display timer button
+            archipelagoMessageTimerButton = Courier.UI.RegisterTextEntryModOptionButton(() => "AP Message Display Time", entry => OnSelectMessageTimer(entry), 1, () => "Enter amount of time to display Archipelago messages, in seconds", () => updateTime.ToString(), CharsetFlags.Number);
 
             //Add Archipelago death link button
             archipelagoDeathLinkButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoData.DeathLink ? "Disable Death Link" : "Enable Death Link", OnToggleDeathLink);
@@ -202,6 +207,7 @@ namespace MessengerRando
             archipelagoToggleMessagesButton.IsEnabled = () => ArchipelagoClient.Authenticated;
             archipelagoStatusButton.IsEnabled = () => ArchipelagoClient.Authenticated;
             archipelagoDeathLinkButton.IsEnabled = () => ArchipelagoClient.Authenticated;
+            archipelagoMessageTimerButton.IsEnabled = () => ArchipelagoClient.DisplayStatus;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -1054,6 +1060,15 @@ namespace MessengerRando
             ArchipelagoData.DeathLink = !ArchipelagoData.DeathLink;
         }
 
+        bool OnSelectMessageTimer(string answer)
+        {
+            if (answer == null) return true;
+            if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
+            int.TryParse(answer, out var newTime);
+            updateTimer = newTime;
+            return true;
+        }
+
         /// <summary>
         /// Delegate function for getting rando item. This can be used by IL hooks that need to make this call later.
         /// </summary>
@@ -1114,7 +1129,6 @@ namespace MessengerRando
             if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused)
                 ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 3.0f;
             updateTimer += Time.deltaTime;
             if (!(updateTimer >= updateTime)) return;
             apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();
