@@ -172,7 +172,6 @@ namespace MessengerRando
             On.InGameHud.OnGUI += InGameHud_OnGUI;
             On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
-            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
             //temp add
             #if DEBUG
             On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
@@ -182,6 +181,7 @@ namespace MessengerRando
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.LevelManager.LoadLevel += LevelManager_LoadLevel;
+            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
             #endif
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.EndLevelLoading += LevelManager_EndLevelLoading;
@@ -504,13 +504,6 @@ namespace MessengerRando
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig,
             LevelManager self, Scene scene)
         {
-            // put the region we just loaded into in AP data storage for tracking
-            if (ArchipelagoClient.Authenticated)
-            {
-                ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
-                    self.GetCurrentLevelEnum().ToString();
-            }
-
             return orig(self, scene);
         }
 
@@ -522,6 +515,12 @@ namespace MessengerRando
                               $"{Manager<PlayerManager>.Instance.Player.transform.position.y}");
             #endif
             orig(self);
+            // put the region we just loaded into in AP data storage for tracking
+            if (ArchipelagoClient.Authenticated)
+            {
+                ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                    self.GetCurrentLevelEnum().ToString();
+            }
             if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_11_B_MusicBox) &&
                 randoStateManager.SkipMusicBox && randoStateManager.IsSafeTeleportState())
             {
