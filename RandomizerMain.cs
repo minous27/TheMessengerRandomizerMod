@@ -172,6 +172,7 @@ namespace MessengerRando
             On.InGameHud.OnGUI += InGameHud_OnGUI;
             On.SaveManager.DoActualSaving += SaveManager_DoActualSave;
             On.Quarble.OnPlayerDied += Quarble_OnPlayerDied;
+            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
             //temp add
             #if DEBUG
             On.MegaTimeShard.OnBreakDone += MegaTimeShard_OnBreakDone;
@@ -181,7 +182,6 @@ namespace MessengerRando
             On.MusicBox.SetNotesState += MusicBox_SetNotesState;
             On.PowerSeal.OnEnterRoom += PowerSeal_OnEnterRoom;
             On.LevelManager.LoadLevel += LevelManager_LoadLevel;
-            On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
             #endif
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.EndLevelLoading += LevelManager_EndLevelLoading;
@@ -504,37 +504,11 @@ namespace MessengerRando
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig,
             LevelManager self, Scene scene)
         {
-            Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
+            // put the region we just loaded into in AP data storage for tracking
             if (ArchipelagoClient.Authenticated)
             {
-                ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
-                switch (self.GetCurrentLevelEnum())
-                {
-                    case ELevel.Level_Ending:
-                        // leaving the switch in case we need it, but moved this check to the save method since there's
-                        // a save when the credits start rolling
-                        // Console.WriteLine("Goooooooaaaaaallll!!!!");
-                        // newClientState = ArchipelagoClientState.ClientGoal;
-                        /*
-                        if (!(ArchipelagoClient.ServerData.FinishTime > 0))
-                            ArchipelagoClient.ServerData.FinishTime = ArchipelagoClient.ServerData.PlayTime;
-                        */
-                        break;
-                    default:
-                        if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
-                        {
-                            //setting the client status as playing since the last level was `None`
-                            //ELevel.None can be the main menu, shop, or teleport hub so this isn't always useful. 
-                            newClientState = ArchipelagoClientState.ClientPlaying;
-                            /*
-                            if (!(ArchipelagoClient.ServerData.StartTime > 0))
-                                ArchipelagoClient.ServerData.StartTime = DateTime.UtcNow.Millisecond;
-                            */
-                        }                            
-                        break;
-                }
-                if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
-                    ArchipelagoClient.UpdateClientStatus(newClientState);
+                ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                    self.GetCurrentLevelEnum().ToString();
             }
 
             return orig(self, scene);
@@ -982,25 +956,21 @@ namespace MessengerRando
                 var splits = answer.Split(' ');
                 uri = String.Join(".", splits.ToArray());
             }
-            Console.WriteLine($"Adding Archipelago host information: {uri}");
             ArchipelagoClient.ServerData.Uri = uri;
             return true;
         }
 
         bool OnSelectArchipelagoPort(string answer)
         {
-            Console.WriteLine($"Adding Archipelago port information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
-            var port = 38281;
-            int.TryParse(answer, out port);
+            int.TryParse(answer, out var port);
             ArchipelagoClient.ServerData.Port = port;
             return true;
         }
 
         bool OnSelectArchipelagoName(string answer)
         {
-            Console.WriteLine($"Adding Archipelago slot name information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
             ArchipelagoClient.ServerData.SlotName = answer;
@@ -1009,7 +979,6 @@ namespace MessengerRando
 
         bool OnSelectArchipelagoPass(string answer)
         {
-            Console.WriteLine($"Adding Archipelago password information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
             ArchipelagoClient.ServerData.Password = answer;
