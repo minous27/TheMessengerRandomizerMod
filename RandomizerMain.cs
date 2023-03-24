@@ -510,16 +510,22 @@ namespace MessengerRando
         void LevelManager_EndLevelLoading(On.LevelManager.orig_EndLevelLoading orig, LevelManager self)
         {
             #if DEBUG
-            Console.WriteLine($"Finished loading into {Manager<LevelManager>.Instance.GetCurrentLevelEnum()}. " +
+            Console.WriteLine($"Finished loading into {self.GetCurrentLevelEnum()}. " +
                               $"player position: {Manager<PlayerManager>.Instance.Player.transform.position.x}, " +
-                              $"{Manager<PlayerManager>.Instance.Player.transform.position.y}");
+                              $"{Manager<PlayerManager>.Instance.Player.transform.position.y}, " +
+                              $"last level: {self.lastLevelLoaded}, " +
+                              $"scene: {self.CurrentSceneName}");
             #endif
             orig(self);
             // put the region we just loaded into in AP data storage for tracking
             if (ArchipelagoClient.Authenticated)
             {
-                ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
-                    self.GetCurrentLevelEnum().ToString();
+                if (self.lastLevelLoaded.Equals(ELevel.Level_13_TowerOfTimeHQ + "_Build"))
+                    ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                        ELevel.Level_13_TowerOfTimeHQ.ToString();
+                else
+                    ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                        self.GetCurrentLevelEnum().ToString();
             }
             if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_11_B_MusicBox) &&
                 randoStateManager.SkipMusicBox && randoStateManager.IsSafeTeleportState())
