@@ -30,6 +30,7 @@ namespace MessengerRando
         private const int MAX_BEATABLE_SEED_ATTEMPTS = 1;
 
         private float updateTimer;
+        private float updateTime = 3.0f;
 
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
@@ -56,6 +57,7 @@ namespace MessengerRando
         SubMenuButtonInfo archipelagoToggleMessagesButton;
         SubMenuButtonInfo archipelagoStatusButton;
         SubMenuButtonInfo archipelagoDeathLinkButton;
+        SubMenuButtonInfo archipelagoMessageTimerButton;
 
         private TextMeshProUGUI apTextDisplay8;
         private TextMeshProUGUI apTextDisplay16;
@@ -127,6 +129,9 @@ namespace MessengerRando
             
             //Add Archipelago message button
             archipelagoToggleMessagesButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoClient.DisplayAPMessages ? "Hide server messages" : "Display server messages", OnToggleAPMessages);
+            
+            //Add Archipelago message display timer button
+            archipelagoMessageTimerButton = Courier.UI.RegisterTextEntryModOptionButton(() => "AP Message Display Time", entry => OnSelectMessageTimer(entry), 1, () => "Enter amount of time to display Archipelago messages, in seconds", () => updateTime.ToString(), CharsetFlags.Number);
 
             //Add Archipelago death link button
             archipelagoDeathLinkButton = Courier.UI.RegisterSubMenuModOptionButton(() => ArchipelagoData.DeathLink ? "Disable Death Link" : "Enable Death Link", OnToggleDeathLink);
@@ -202,6 +207,7 @@ namespace MessengerRando
             archipelagoToggleMessagesButton.IsEnabled = () => ArchipelagoClient.Authenticated;
             archipelagoStatusButton.IsEnabled = () => ArchipelagoClient.Authenticated;
             archipelagoDeathLinkButton.IsEnabled = () => ArchipelagoClient.Authenticated;
+            archipelagoMessageTimerButton.IsEnabled = () => ArchipelagoClient.DisplayStatus;
 
             //Options I only want working while actually in the game
             windmillShurikenToggleButton.IsEnabled = () => (Manager<LevelManager>.Instance.GetCurrentLevelEnum() != ELevel.NONE && Manager<InventoryManager>.Instance.GetItemQuantity(EItems.WINDMILL_SHURIKEN) > 0);
@@ -498,50 +504,29 @@ namespace MessengerRando
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig,
             LevelManager self, Scene scene)
         {
-            Console.WriteLine($"Scene '{scene.name}' loaded. Level {self.GetCurrentLevelEnum()}");
-            if (ArchipelagoClient.Authenticated)
-            {
-                ArchipelagoClientState newClientState = ArchipelagoClientState.ClientUnknown;
-                switch (self.GetCurrentLevelEnum())
-                {
-                    case ELevel.Level_Ending:
-                        // leaving the switch in case we need it, but moved this check to the save method since there's
-                        // a save when the credits start rolling
-                        // Console.WriteLine("Goooooooaaaaaallll!!!!");
-                        // newClientState = ArchipelagoClientState.ClientGoal;
-                        /*
-                        if (!(ArchipelagoClient.ServerData.FinishTime > 0))
-                            ArchipelagoClient.ServerData.FinishTime = ArchipelagoClient.ServerData.PlayTime;
-                        */
-                        break;
-                    default:
-                        if (self.GetLevelEnumFromLevelName(self.lastLevelLoaded).Equals(ELevel.NONE))
-                        {
-                            //setting the client status as playing since the last level was `None`
-                            //ELevel.None can be the main menu, shop, or teleport hub so this isn't always useful. 
-                            newClientState = ArchipelagoClientState.ClientPlaying;
-                            /*
-                            if (!(ArchipelagoClient.ServerData.StartTime > 0))
-                                ArchipelagoClient.ServerData.StartTime = DateTime.UtcNow.Millisecond;
-                            */
-                        }                            
-                        break;
-                }
-                if (!ArchipelagoClientState.ClientUnknown.Equals(newClientState))
-                    ArchipelagoClient.UpdateClientStatus(newClientState);
-            }
-
             return orig(self, scene);
         }
 
         void LevelManager_EndLevelLoading(On.LevelManager.orig_EndLevelLoading orig, LevelManager self)
         {
             #if DEBUG
-            Console.WriteLine($"Finished loading into {Manager<LevelManager>.Instance.GetCurrentLevelEnum()}. " +
+            Console.WriteLine($"Finished loading into {self.GetCurrentLevelEnum()}. " +
                               $"player position: {Manager<PlayerManager>.Instance.Player.transform.position.x}, " +
-                              $"{Manager<PlayerManager>.Instance.Player.transform.position.y}");
+                              $"{Manager<PlayerManager>.Instance.Player.transform.position.y}, " +
+                              $"last level: {self.lastLevelLoaded}, " +
+                              $"scene: {self.CurrentSceneName}");
             #endif
             orig(self);
+            // put the region we just loaded into in AP data storage for tracking
+            if (ArchipelagoClient.Authenticated)
+            {
+                if (self.lastLevelLoaded.Equals(ELevel.Level_13_TowerOfTimeHQ + "_Build"))
+                    ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                        ELevel.Level_13_TowerOfTimeHQ.ToString();
+                else
+                    ArchipelagoClient.Session.DataStorage[Scope.Slot, "CurrentRegion"] =
+                        self.GetCurrentLevelEnum().ToString();
+            }
             if (Manager<LevelManager>.Instance.GetCurrentLevelEnum().Equals(ELevel.Level_11_B_MusicBox) &&
                 randoStateManager.SkipMusicBox && randoStateManager.IsSafeTeleportState())
             {
@@ -558,7 +543,7 @@ namespace MessengerRando
             {
                 Console.WriteLine($"Note cutscene check! Handling note '{self.noteToAward}' | Linked item: '{randoStateManager.CurrentLocationToItemMapping[noteCheck]}'");
                 //bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck].Item) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
-                bool shouldPlay = !randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[noteCheck]) && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
+                bool shouldPlay = !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
 
                 Console.WriteLine($"Should '{self.noteToAward}' cutscene play? '{shouldPlay}'");
                 
@@ -622,6 +607,8 @@ namespace MessengerRando
                 }
                 else if (ArchipelagoClient.Authenticated && Manager<SaveManager>.Instance.GetSaveSlot(slotIndex).SecondsPlayed <= 100)
                 {
+                    randoStateManager.ResetRandomizerState();
+                    randoStateManager.ResetSeedForFileSlot(fileSlot);
                     //Hopefully this ensures this is a clean rando slot so the player doesn't just connect with an invalid slot
                     randoStateManager.AddSeed(ArchipelagoClient.ServerData.StartNewSeed(fileSlot));
                     randoStateManager.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
@@ -629,7 +616,9 @@ namespace MessengerRando
                 else if (randoStateManager.HasSeedForFileSlot(fileSlot))
                 {
                     //There's a valid seed and mapping available and Archipelago isn't involved
-                    randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                    randoStateManager.CurrentLocationToItemMapping =
+                        ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
+                    RandoBossManager.DefeatedBosses = randoStateManager.DefeatedBosses[fileSlot];
                 }
             }
             catch (Exception e)
@@ -695,6 +684,11 @@ namespace MessengerRando
             if(randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(EItems.NECROPHOBIC_WORKER, out necroLocation))
             {
                 //check to see if we already have the item at Necro check
+                if (ArchipelagoClient.HasConnected &&
+                    !ArchipelagoClient.ServerData.CheckedLocations.Contains(
+                        ItemsAndLocationsHandler.LocationsLookup[necroLocation]))
+                    self.necrophobicWorkerCutscene.Play();
+                
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) <= 0 && !Manager<DemoManager>.Instance.demoMode)
                 if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) && !Manager<DemoManager>.Instance.demoMode)
                 {
@@ -967,25 +961,21 @@ namespace MessengerRando
                 var splits = answer.Split(' ');
                 uri = String.Join(".", splits.ToArray());
             }
-            Console.WriteLine($"Adding Archipelago host information: {uri}");
             ArchipelagoClient.ServerData.Uri = uri;
             return true;
         }
 
         bool OnSelectArchipelagoPort(string answer)
         {
-            Console.WriteLine($"Adding Archipelago port information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
-            var port = 38281;
-            int.TryParse(answer, out port);
+            int.TryParse(answer, out var port);
             ArchipelagoClient.ServerData.Port = port;
             return true;
         }
 
         bool OnSelectArchipelagoName(string answer)
         {
-            Console.WriteLine($"Adding Archipelago slot name information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
             ArchipelagoClient.ServerData.SlotName = answer;
@@ -994,7 +984,6 @@ namespace MessengerRando
 
         bool OnSelectArchipelagoPass(string answer)
         {
-            Console.WriteLine($"Adding Archipelago password information: {answer}");
             if (answer == null) return true;
             if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
             ArchipelagoClient.ServerData.Password = answer;
@@ -1043,6 +1032,15 @@ namespace MessengerRando
         static void OnToggleDeathLink()
         {
             ArchipelagoData.DeathLink = !ArchipelagoData.DeathLink;
+        }
+
+        bool OnSelectMessageTimer(string answer)
+        {
+            if (answer == null) return true;
+            if (ArchipelagoClient.ServerData == null) ArchipelagoClient.ServerData = new ArchipelagoData();
+            int.TryParse(answer, out var newTime);
+            updateTimer = newTime;
+            return true;
         }
 
         /// <summary>
@@ -1105,7 +1103,6 @@ namespace MessengerRando
             if (randoStateManager.IsSafeTeleportState() && !Manager<PauseManager>.Instance.IsPaused)
                 ArchipelagoClient.DeathLinkHandler.KillPlayer();
             //This updates every {updateTime} seconds
-            float updateTime = 3.0f;
             updateTimer += Time.deltaTime;
             if (!(updateTimer >= updateTime)) return;
             apMessagesDisplay16.text = apMessagesDisplay8.text = ArchipelagoClient.UpdateMessagesText();

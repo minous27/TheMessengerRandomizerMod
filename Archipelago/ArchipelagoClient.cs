@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using Archipelago.MultiClient.Net;
@@ -7,7 +8,6 @@ using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Packets;
 using MessengerRando.GameOverrideManagers;
-using MessengerRando.Utils;
 using Mod.Courier.UI;
 using Newtonsoft.Json;
 using static Mod.Courier.UI.TextEntryButtonInfo;
@@ -77,6 +77,7 @@ namespace MessengerRando.Archipelago
 
             Session = ArchipelagoSessionFactory.CreateSession(ServerData.Uri, ServerData.Port);
             Session.MessageLog.OnMessageReceived += OnMessageReceived;
+            Session.Locations.CheckedLocationsUpdated += RemoteLocationChecked;
             Session.Socket.ErrorReceived += SessionErrorReceived;
             Session.Socket.SocketClosed += SessionSocketClosed;
 
@@ -134,9 +135,9 @@ namespace MessengerRando.Archipelago
                 {
                     var bossMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(bosses.ToString());
                     Console.WriteLine("Bosses:");
-                    foreach (var VARIABLE in bossMap)
+                    foreach (var bossPair in bossMap)
                     {
-                        Console.WriteLine($"{VARIABLE.Key}: {VARIABLE.Value}");
+                        Console.WriteLine($"{bossPair.Key}: {bossPair.Value}");
                     }
                     try
                     {
@@ -153,13 +154,10 @@ namespace MessengerRando.Archipelago
                 DeathLinkHandler = new DeathLinkInterface();
                 if (HasConnected)
                 {
-                    foreach (var location in Session.Locations.AllLocationsChecked.Where(location => 
-                                 !ServerData.CheckedLocations.Contains(location)))
-                        ServerData.CheckedLocations.Add(location);
-
                     foreach (var location in ServerData.CheckedLocations.Where(location =>
                                  !Session.Locations.AllLocationsChecked.Contains(location)))
                         Session.Locations.CompleteLocationChecks(location);
+                    ServerData.CheckedLocations = Session.Locations.AllLocationsChecked.ToList();
                     return;
                 }
                 ServerData.UpdateSave();
@@ -187,6 +185,15 @@ namespace MessengerRando.Archipelago
         {
             Console.WriteLine(message.ToString());
             MessageQueue.Add(message.ToString());
+        }
+
+        private static void RemoteLocationChecked(ReadOnlyCollection<long> checkedLocations)
+        {
+            foreach (var checkedLocation in checkedLocations)
+            {
+                if (!ServerData.CheckedLocations.Contains(checkedLocation))
+                    ServerData.CheckedLocations.Add(checkedLocation);
+            }
         }
 
         private static void SessionErrorReceived(Exception e, string message)
@@ -237,16 +244,14 @@ namespace MessengerRando.Archipelago
                 receivedItem.name = Session.Items.GetItemName(currentItemId);
                 receivedItem.choices = new List<DialogSequenceChoice>();
                 AwardItemPopupParams receivedItemParams = new AwardItemPopupParams(receivedItem, true);
-                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedItemParams, true);
+                Manager<UIManager>.Instance.ShowView<AwardItemPopup>(EScreenLayers.PROMPT, receivedItemParams);
             }
         }
 
         public static void UpdateClientStatus(ArchipelagoClientState newState)
         {
             Console.WriteLine($"Updating client status to {newState}");
-            var statusUpdatePacket = new StatusUpdatePacket() { Status = newState };
-            if (ArchipelagoClientState.ClientGoal.Equals(newState))
-                Session.DataStorage[Scope.Slot, "HasFinished"] = true;
+            var statusUpdatePacket = new StatusUpdatePacket { Status = newState };
             Session.Socket.SendPacket(statusUpdatePacket);
         }
 
@@ -288,22 +293,17 @@ namespace MessengerRando.Archipelago
             return false;
         }
 
-        private static int GetHintCost()
+        public static int GetHintCost()
         {
-            var hintCost = Session.RoomState.HintCost;
-            if (hintCost <= 0) return hintCost;
-            int locationCount = RandomizerConstants.GetRandoLocationList().Count();
-            if (SettingValue.Basic.Equals(ServerData.GameSettings[SettingType.Difficulty]))
+            var hintPercent = Session.RoomState.HintCostPercentage;
+            if (hintPercent > 0)
             {
-                hintCost = locationCount / hintCost;
+                var totalLocations = Session.Locations.AllLocations.Count;
+                hintPercent = (int)Math.Round(totalLocations * (hintPercent * 0.01));
             }
-            else
-            {
-                locationCount += RandomizerConstants.GetAdvancedRandoLocationList().Count();
-                hintCost = locationCount / hintCost;
-            }
-            return hintCost;
+            return hintPercent;
         }
+
 
         public static bool CanHint()
         {

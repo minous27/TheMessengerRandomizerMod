@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using MessengerRando.GameOverrideManagers;
 using MessengerRando.RO;
 using MessengerRando.Utils;
 using Newtonsoft.Json;
@@ -215,6 +216,7 @@ namespace MessengerRando.Archipelago
                 //Attempt to connect to the server and save the new data
                 ArchipelagoClient.ConnectAsync();
                 if (!ArchipelagoClient.Authenticated) ItemsAndLocationsHandler.Initialize();
+                RandoBossManager.DefeatedBosses.AddRange(tempServerData.DefeatedBosses);
                 return ArchipelagoClient.HasConnected = true; //Doing this here because of race conditions and the actual connection being threaded
             }
             catch (Exception ex) 
