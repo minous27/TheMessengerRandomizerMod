@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using MessengerRando.Archipelago;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using MessengerRando.GameOverrideManagers;
+
 
 namespace MessengerRando
 {
@@ -15,14 +14,6 @@ namespace MessengerRando
 
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
-
-        public RandoPowerSealManager PowerSealManager;
-        public RandoBossManager BossManager;
-
-        public string Goal;
-        public bool SkipMusicBox = false;
-        public bool SkipPhantom = false;
-        public bool MegaShards = false;
 
         private Dictionary<int, SeedRO> seeds;
 
@@ -155,19 +146,15 @@ namespace MessengerRando
             //Unsafe teleport states are shops/hq/boss fights
             bool isTeleportSafe = true;
 
-            //Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
-            //Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
+            Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
+            Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
 
             //ToT HQ or Shop
             if (Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy || Manager<Shop>.Instance.gameObject.activeInHierarchy)
             {
                 isTeleportSafe = false;
             }
-            //Player is in a cutscene or recovering from taking damage
-            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible())
-            {
-                isTeleportSafe = false;
-            }
+
             return isTeleportSafe;
         }
 
@@ -181,13 +168,6 @@ namespace MessengerRando
         {
             bool isLocationRandomized = false;
             locationFromItem = null;
-            
-            if (ArchipelagoClient.HasConnected)
-            {
-                locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
-                if (locationFromItem != null ) isLocationRandomized = true;
-                return isLocationRandomized;
-            }
 
             //We'll check through notes first
             foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
@@ -221,7 +201,7 @@ namespace MessengerRando
                 }
 
 
-                foreach (RandoItemRO item in CurrentLocationToItemMapping.Values)
+                foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
                 {
                     if (item.Item.Equals(vanillaLocationItem))
                     { 
@@ -241,7 +221,6 @@ namespace MessengerRando
 
                     }
                 }
-
             }
 
             //Return whether we found it or not.
@@ -258,7 +237,7 @@ namespace MessengerRando
                 Console.WriteLine("----------------BEGIN Current Mappings----------------");
                 foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
                 {
-                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}' for {CurrentLocationToItemMapping[check].RecipientName}");
+                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
                     //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
                 }
                 Console.WriteLine("----------------END Current Mappings----------------");
