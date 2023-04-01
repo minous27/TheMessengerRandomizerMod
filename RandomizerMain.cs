@@ -435,11 +435,7 @@ namespace MessengerRando
             if(randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(EItems.NECROPHOBIC_WORKER, out necroLocation))
             {
                 //check to see if we already have the item at Necro check
-                if (ArchipelagoClient.HasConnected &&
-                    !ArchipelagoClient.ServerData.CheckedLocations.Contains(
-                        ItemsAndLocationsHandler.LocationsLookup[necroLocation]))
-                    self.necrophobicWorkerCutscene.Play();
-                
+
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) <= 0 && !Manager<DemoManager>.Instance.demoMode)
                 if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) && !Manager<DemoManager>.Instance.demoMode)
                 {
