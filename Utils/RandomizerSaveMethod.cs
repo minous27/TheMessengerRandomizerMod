@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using MessengerRando.RO;
 using MessengerRando.Utils;
+using Mod.Courier;
 
 namespace MessengerRando
 {
@@ -54,35 +55,35 @@ namespace MessengerRando
                 }
             }
 
-            Console.WriteLine($"Saving seed data: '{modValue}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Saving seed data: '{modValue}'");
 
             return modValue.ToString();
         }
 
         public void Load(string load)
         {
-            Console.WriteLine($"Received value during mod option load: '{load}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Received value during mod option load: '{load}'");
             //Split on delimeter to get all seeds
             string[] seeds = load.Split(RANDO_OPTION_VALUE_DELIM);
-            Console.WriteLine("load data split into seeds");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "load data split into seeds");
             for(int i = 1; i < seeds.Length; i++)
             {
                 string seedDetails = seeds[i];
-                Console.WriteLine($"Adding '{seedDetails}' to state manager.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Adding '{seedDetails}' to state manager.");
 
                 //find necessary indicies in the string
                 int randoTypeIndex = seedDetails.IndexOf(RANDO_OPTION_TYPE_DELIM);
                 int randoSettingIndex = seedDetails.IndexOf(RANDO_OPTION_SETTING_DELIM);
 
                 string seedSub = seedDetails.Substring(0, randoTypeIndex);
-                Console.WriteLine($"Extracted seed '{seedSub}' from seed split {i}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Extracted seed '{seedSub}' from seed split {i}");
                 
                 //This will parse the seed into an int. If the value cannot be parsed for some reason, seed will be 0
                 Int32.TryParse(seedSub, out int seed);
 
                 //Need to check if there are settings for this seed. If so, consider them when getting the seedtype. If not, the rest of the string is the seedtype.
                 string seedTypeSub = randoSettingIndex != -1 ? seedDetails.Substring(randoTypeIndex + 1, randoSettingIndex - (randoTypeIndex + 1)) : seedDetails.Substring(randoTypeIndex + 1);
-                Console.WriteLine($"Extracted seedtype '{seedTypeSub}' from seed split {i}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Extracted seedtype '{seedTypeSub}' from seed split {i}");
                 
                 //This will pull out the seed type. If there is none, default it.
                 SeedType seedType = SeedType.None;
@@ -99,7 +100,7 @@ namespace MessengerRando
                 if (randoSettingIndex != -1)
                 {
                     string seedSettingSub = seedDetails.Substring(seedDetails.IndexOf(RANDO_OPTION_SETTING_DELIM) + 1);
-                    Console.WriteLine($"Extracted seed settings '{seedSettingSub}' from seed split {i}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Extracted seed settings '{seedSettingSub}' from seed split {i}");
 
                     string[] splitSeedSettings = seedSettingSub.Split(RANDO_OPTION_SETTING_DELIM);
                     
@@ -121,16 +122,16 @@ namespace MessengerRando
                                     if(save.Items.ContainsKey(randoItemFromModSave.Item))
                                     {
                                         collectedRandoItemList.Add(randoItemFromModSave);
-                                        Console.WriteLine($"Added item '{collectedItem}' to Collected Item pool for file slot '{i}'.");
+                                        CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Added item '{collectedItem}' to Collected Item pool for file slot '{i}'.");
                                     }
                                     else
                                     {
-                                        Console.WriteLine($"Item '{randoItemFromModSave.Item}' was not in the game save so we are ignoring it.");
+                                        CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Item '{randoItemFromModSave.Item}' was not in the game save so we are ignoring it.");
                                     }
                                 }
                                 catch (Exception)
                                 {
-                                    Console.WriteLine($"ERROR WHILE LOADING FROM MOD SAVE FILE: Found an item that could not be processed. Item in question '{collectedItem}'. Skipping item.");
+                                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"ERROR WHILE LOADING FROM MOD SAVE FILE: Found an item that could not be processed. Item in question '{collectedItem}'. Skipping item.");
                                     continue;
                                 }
                             }
@@ -150,7 +151,7 @@ namespace MessengerRando
                                 string splitSeedSettingType = splitSeedSetting[0];
                                 string splitSeedSettingValue = splitSeedSetting[1];
 
-                                Console.WriteLine($"Split setting '{splitSeedSettingType}' with value '{splitSeedSettingValue}' added to seed split {i}");
+                                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Split setting '{splitSeedSettingType}' with value '{splitSeedSettingValue}' added to seed split {i}");
 
                                 if ((splitSeedSettingType != null && Enum.IsDefined(typeof(SettingType), splitSeedSettingType)) && (splitSeedSettingValue != null && Enum.IsDefined(typeof(SettingValue), splitSeedSettingValue)))
                                 {
@@ -159,17 +160,17 @@ namespace MessengerRando
                             }
                             else
                             {
-                                Console.WriteLine($"ERROR WHILE LOADING FROM MOD SAVE FILE: Setting not properly formatted in file. Setting in question '{setting}'. Throwing it away and moving on.");
+                                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"ERROR WHILE LOADING FROM MOD SAVE FILE: Setting not properly formatted in file. Setting in question '{setting}'. Throwing it away and moving on.");
                             }
                         }
                     }
                 }
 
                 stateManager.AddSeed(i, seedType, seed, seedSettings, collectedRandoItemList, mappingString);
-                Console.WriteLine($"'{seeds[i]}' added to state manager successfully.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"'{seeds[i]}' added to state manager successfully.");
             }
 
-            Console.WriteLine("Loading into state manager complete.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Loading into state manager complete.");
         }
     }
     

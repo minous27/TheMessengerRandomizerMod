@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Mod.Courier;
 
 namespace MessengerRando.Utils
 {
@@ -82,14 +83,14 @@ namespace MessengerRando.Utils
             //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
             foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
             {
-                Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Dialog mapping -- {location.PrettyLocationName}");
                 EItems locationChecked = (EItems)Enum.Parse(typeof(EItems),location.PrettyLocationName);
                 RandoItemRO itemActuallyFound = current[location];
                 
                 if(itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
                 {
                     dialogmap.Add(itemToDialogIDMap[locationChecked], itemToDialogIDMap[itemActuallyFound.Item]);
-                    Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
                 }
             }
 

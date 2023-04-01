@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using MessengerRando.Utils;
 using MessengerRando.RO;
+using Mod.Courier;
 
 
 namespace MessengerRando
@@ -84,14 +84,14 @@ namespace MessengerRando
         public void ResetSeedForFileSlot(int fileSlot)
         {
             //Simply keeping resetting logic here in case I want to change it i'll only do so here
-            Console.WriteLine($"Resetting file slot '{fileSlot}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
                 seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
                 if (DefeatedBosses == null) DefeatedBosses = new Dictionary<int, List<string>>();
                 DefeatedBosses[fileSlot] = new List<string>();
             }
-            Console.WriteLine("File slot reset complete.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "File slot reset complete.");
         }
 
         /// <summary>
@@ -146,8 +146,8 @@ namespace MessengerRando
             //Unsafe teleport states are shops/hq/boss fights
             bool isTeleportSafe = true;
 
-            Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
-            Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
 
             //ToT HQ or Shop
             if (Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy || Manager<Shop>.Instance.gameObject.activeInHierarchy)
@@ -234,30 +234,30 @@ namespace MessengerRando
         {
             if(this.CurrentLocationToItemMapping != null)
             {
-                Console.WriteLine("----------------BEGIN Current Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------BEGIN Current Mappings----------------");
                 foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
                 {
-                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
                 }
-                Console.WriteLine("----------------END Current Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------END Current Mappings----------------");
             }
             else
             {
-                Console.WriteLine("Location mappings were not set for this seed.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Location mappings were not set for this seed.");
             }
 
             if (CurrentLocationDialogtoRandomDialogMapping != null)
             {
-                Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------BEGIN Current Dialog Mappings----------------");
                 foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
                 {
-                    Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
                 }
-                Console.WriteLine("----------------END Current Dialog Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------END Current Dialog Mappings----------------");
             }
             else
             {
-                Console.WriteLine("Dialog mappings were not set for this seed.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Dialog mappings were not set for this seed.");
             }
         }
 

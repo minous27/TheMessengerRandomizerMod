@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using Mod.Courier;
-using Mod.Courier.Module;
+
 
 
 namespace TheMessengerRandomizerTest

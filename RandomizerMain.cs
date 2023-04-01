@@ -39,7 +39,7 @@ namespace MessengerRando
 
         public override void Load()
         {
-            Console.WriteLine("Randomizer loading and ready to try things!");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Randomizer loading and ready to try things!");
           
             //Initialize the randomizer state manager
             RandomizerStateManager.Initialize();
@@ -89,7 +89,7 @@ namespace MessengerRando
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
 
-            Console.WriteLine("Randomizer finished loading!");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Randomizer finished loading!");
         }
 
         public override void Initialize()
@@ -108,19 +108,19 @@ namespace MessengerRando
 
             //Options always available
             versionButton.IsEnabled = () => true;
-            
+
             //Save loading
-            Debug.Log("Start loading seeds from save");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Start loading seeds from save");
             randomizerSaveMethod.Load(Save.seedData);
-            Debug.Log($"Save data after change: '{Save.seedData}'");
-            Debug.Log("Finished loading seeds from save");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Save data after change: '{Save.seedData}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Finished loading seeds from save");
         }
 
         //temp function for seal research
         void PowerSeal_OnEnterRoom(On.PowerSeal.orig_OnEnterRoom orig, PowerSeal self, bool teleportedInRoom)
         {
             //just print out some info for me
-            Console.WriteLine($"Entered power seal room: {Manager<Level>.Instance.GetRoomAtPosition(self.transform.position).roomKey}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Entered power seal room: {Manager<Level>.Instance.GetRoomAtPosition(self.transform.position).roomKey}");
             orig(self, teleportedInRoom);
         }
 
@@ -129,7 +129,7 @@ namespace MessengerRando
             //Using this function to add some of my own dialog stuff to the game.
             if(randoStateManager.IsRandomizedFile && (self.dialogID == "RANDO_ITEM"))
             {
-                Console.WriteLine("Trying some rando dialog stuff.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Trying some rando dialog stuff.");
                 List<DialogInfo> dialogInfoList = new List<DialogInfo>();
                 DialogInfo dialog = new DialogInfo();
                 switch (self.dialogID)
@@ -158,13 +158,13 @@ namespace MessengerRando
 
             if(itemId != EItems.TIME_SHARD) //killing the timeshard noise in the logs
             {
-                Console.WriteLine($"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Called InventoryManager_AddItem method. Looking to give x{quantity} amount of item '{itemId}'.");
             }
 
             //Wierd Ruxxtin logic stuff
             if(EItems.NONE.Equals(itemId))
             {
-                Console.WriteLine("Looks like Ruxxtin has a timeshard.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Looks like Ruxxtin has a timeshard.");
             }
 
             //Lets make sure that the item they are collecting is supposed to be randomized
@@ -172,7 +172,7 @@ namespace MessengerRando
             {
                 //Based on the item that is attempting to be added, determine what SHOULD be added instead
                 RandoItemRO randoItemId = randoStateManager.CurrentLocationToItemMapping[randoItemCheck];
-                Console.WriteLine($"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Randomizer magic engage! Game wants item '{itemId}', giving it rando item '{randoItemId}' with a quantity of '{quantity}'");
                 
                 //If that item is the windmill shuriken, immediately activate it and the mod option
                 if(EItems.WINDMILL_SHURIKEN.Equals(randoItemId.Item))
@@ -221,7 +221,7 @@ namespace MessengerRando
 
                 RandoItemRO challengeRoomRandoItem = RandomizerStateManager.Instance.CurrentLocationToItemMapping[powerSealLocation];
 
-                Console.WriteLine($"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Challenge room '{powerSealLocation.PrettyLocationName}' completed. Providing rando item '{challengeRoomRandoItem}'.");
                 //Handle timeshards
                 if (EItems.TIME_SHARD.Equals(challengeRoomRandoItem.Item))
                 {
@@ -264,7 +264,7 @@ namespace MessengerRando
                 if (self.transform.parent != null && "InteractionZone".Equals(self.Owner.name) && RandomizerConstants.GetSpecialTriggerNames().Contains(self.transform.parent.name) && EItems.KEY_OF_LOVE != self.item)
                 {
                     //Special triggers that need to use normal logic, call orig method. This also includes the trigger check for the key of love on the sunken door because yeah.
-                    Console.WriteLine($"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"While checking if player HasItem in an interaction zone, found parent object '{self.transform.parent.name}' in ignore logic. Calling orig HasItem logic.");
                     return orig(self);
                 }
 
@@ -290,14 +290,14 @@ namespace MessengerRando
                         break;
                 }
 
-                Console.WriteLine($"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[check]}' || Current Check '{self.conditionOperator}' || Expected Quantity '{self.quantityToHave}' || Actual Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Rando inventory check complete for check '{self.Owner.name}'. Item '{self.item}' || Actual Item Check '{randoStateManager.CurrentLocationToItemMapping[check]}' || Current Check '{self.conditionOperator}' || Expected Quantity '{self.quantityToHave}' || Actual Quantity '{itemQuantity}' || Condition Result '{hasItem}'.");
                 
                 return hasItem;
             }
             else //Call orig method
             {
-                Console.WriteLine("HasItem check was not randomized. Doing vanilla checks.");
-                Console.WriteLine($"Is randomized file : '{randoStateManager.IsRandomizedFile}' | Is location '{self.item}' randomized: '{randoStateManager.IsLocationRandomized(self.item, out check)}' | Not in the special triggers list: '{!RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name)}'|");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "HasItem check was not randomized. Doing vanilla checks.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Is randomized file : '{randoStateManager.IsRandomizedFile}' | Is location '{self.item}' randomized: '{randoStateManager.IsLocationRandomized(self.item, out check)}' | Not in the special triggers list: '{!RandomizerConstants.GetSpecialTriggerNames().Contains(self.Owner.name)}'|");
                 return orig(self);
             }
             
@@ -308,7 +308,7 @@ namespace MessengerRando
             //Just doing some logging here
             if (EItems.NONE.Equals(item))
             {
-                Console.WriteLine($"INVENTORYMANAGER_GETITEMQUANTITY CALLED! Let's learn some stuff. Item: '{item}' | Quantity of said item: '{orig(self, item)}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"INVENTORYMANAGER_GETITEMQUANTITY CALLED! Let's learn some stuff. Item: '{item}' | Quantity of said item: '{orig(self, item)}'");
             }
             //Manager<LevelManager>.Instance.onLevelLoaded
             return orig(self, item);
@@ -316,7 +316,7 @@ namespace MessengerRando
 
         System.Collections.IEnumerator LevelManager_onLevelLoaded(On.LevelManager.orig_OnLevelLoaded orig, LevelManager self, Scene scene)
         {
-            Console.WriteLine($"Scene '{scene.name}' loaded.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Scene '{scene.name}' loaded.");
 
             return orig(self, scene);
         }
@@ -328,11 +328,11 @@ namespace MessengerRando
             LocationRO noteCheck;
             if (randoStateManager.IsRandomizedFile && randoStateManager.IsLocationRandomized(self.noteToAward, out noteCheck)) //Double checking to prevent errors
             {
-                Console.WriteLine($"Note cutscene check! Handling note '{self.noteToAward}' | Linked item: '{randoStateManager.CurrentLocationToItemMapping[noteCheck]}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Note cutscene check! Handling note '{self.noteToAward}' | Linked item: '{randoStateManager.CurrentLocationToItemMapping[noteCheck]}'");
                 //bool shouldPlay = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[noteCheck].Item) <= 0 && !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
                 bool shouldPlay = !randoStateManager.IsNoteCutsceneTriggered(self.noteToAward);
 
-                Console.WriteLine($"Should '{self.noteToAward}' cutscene play? '{shouldPlay}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Should '{self.noteToAward}' cutscene play? '{shouldPlay}'");
                 
                 randoStateManager.SetNoteCutsceneTriggered(self.noteToAward);
                 return shouldPlay;
@@ -350,7 +350,7 @@ namespace MessengerRando
             {
 
                 //Check to make sure this is a cutscene i am configured to check, then check to make sure I actually have the item that is mapped to it
-                Console.WriteLine($"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Rando cutscene magic ahoy! Handling rando cutscene '{self.cutsceneId}' | Linked Item: {RandomizerConstants.GetCutsceneMappings()[self.cutsceneId]} | Rando Item: {randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}");
 
                 
 
@@ -359,13 +359,13 @@ namespace MessengerRando
                 if(randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]))
                 {
                     //Return true, this cutscene has "been played"
-                    Console.WriteLine($"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have already seen cutscene.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have already seen cutscene.");
                     return self.mustHavePlayed == true;
                 }
                 else
                 {
                     //Havent seen the cutscene yet. Play it so i can get the item!
-                    Console.WriteLine($"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have not seen cutscene yet.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Do not have rando item '{randoStateManager.CurrentLocationToItemMapping[cutsceneCheck]}' for cutscene '{self.cutsceneId}'. Progress Manager on if cutscene has played: '{Manager<ProgressionManager>.Instance.HasCutscenePlayed(self.cutsceneId)}'. Returning that we have not seen cutscene yet.");
                     return self.mustHavePlayed == false;
                 }
             }
@@ -385,7 +385,7 @@ namespace MessengerRando
             //Generate the mappings based on the seed for the game if a seed was generated.
             if(randoStateManager.HasSeedForFileSlot(fileSlot))
             {
-                Console.WriteLine($"Seed exists for file slot {fileSlot}. Generating mappings.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Seed exists for file slot {fileSlot}. Generating mappings.");
                
                 //Load mappings
                 randoStateManager.CurrentLocationToItemMapping = ItemRandomizerUtil.ParseLocationToItemMappings(randoStateManager.GetSeedForFileSlot(fileSlot));
@@ -402,7 +402,7 @@ namespace MessengerRando
             else
             {
                 //This save file does not have a seed associated with it or is not a randomized file. Reset the mappings so everything is back to normal.
-                Console.WriteLine($"This file slot ({fileSlot}) has no seed generated or is not a randomized file. Resetting the mappings and putting game items back to normal.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"This file slot ({fileSlot}) has no seed generated or is not a randomized file. Resetting the mappings and putting game items back to normal.");
                 randoStateManager.ResetRandomizerState();
             }
 
@@ -412,7 +412,7 @@ namespace MessengerRando
         void SaveGameSelectionScreen_OnNewGame(On.SaveGameSelectionScreen.orig_OnNewGame orig, SaveGameSelectionScreen self, SaveSlotUI slot)
         {
             //Right now I am not randomizing game slots that are brand new.
-            Console.WriteLine($"This file slot is brand new. Resetting the mappings and putting game items back to normal.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"This file slot is brand new. Resetting the mappings and putting game items back to normal.");
             randoStateManager.ResetRandomizerState();
             randoStateManager.ResetSeedForFileSlot(slot.slotIndex + 1);
 
@@ -431,14 +431,14 @@ namespace MessengerRando
                 if (!randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) && !Manager<DemoManager>.Instance.demoMode)
                 {
                     //Run the cutscene if we dont
-                    Console.WriteLine($"Have not received item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Playing cutscene.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Have not received item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Playing cutscene.");
                     self.necrophobicWorkerCutscene.Play();
                 }
                 //if (Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[new LocationRO(EItems.NECROPHOBIC_WORKER.ToString())].Item) >= 1 || Manager<DemoManager>.Instance.demoMode)
                 if (randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[necroLocation]) || Manager<DemoManager>.Instance.demoMode)
                 {
                     //set necro inactive if we do
-                    Console.WriteLine($"Already have item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Will not play cutscene.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Already have item '{randoStateManager.CurrentLocationToItemMapping[necroLocation]}' from Necro check. Will not play cutscene.");
                     self.necrophobicWorkerCutscene.phobekin.gameObject.SetActive(false);
                 }
                 //Call our overriden fixing function
@@ -487,7 +487,7 @@ namespace MessengerRando
             }
 
             //I think there is where I can catch things like checks for the wingsuit attack upgrade.
-            Console.WriteLine($"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Checking upgrade '{self.upgradeID}'. Is story unlocked: {isUnlocked}");
 
             return isUnlocked;
         }
@@ -495,12 +495,12 @@ namespace MessengerRando
         ///On submit of rando file location
         bool OnEnterFileSlot(string fileSlot)
         {
-            Console.WriteLine($"In Method: OnEnterFileSlot. Provided value: '{fileSlot}'");
-            Console.WriteLine($"Received file slot number: {fileSlot}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In Method: OnEnterFileSlot. Provided value: '{fileSlot}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Received file slot number: {fileSlot}");
             int slot = Convert.ToInt32(fileSlot);
             if (slot < 1 || slot > 3)
             {
-                Console.WriteLine($"Invalid slot number provided: {slot}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Invalid slot number provided: {slot}");
                 return false;
             }
 
@@ -508,9 +508,9 @@ namespace MessengerRando
 
             //Load encoded seed information
             string encodedSeedInfo = ItemRandomizerUtil.LoadMappingsFromFile(slot);
-            Console.WriteLine($"File reading complete. Received the following encoded seed info: '{encodedSeedInfo}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"File reading complete. Received the following encoded seed info: '{encodedSeedInfo}'");
             string decodedSeedInfo = ItemRandomizerUtil.DecryptSeedInfo(encodedSeedInfo);
-            Console.WriteLine($"Decryption complete. Received the following seed info: '{decodedSeedInfo}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Decryption complete. Received the following seed info: '{decodedSeedInfo}'");
 
             SeedRO seedRO = ItemRandomizerUtil.ParseSeed(slot, decodedSeedInfo);
 
@@ -524,7 +524,7 @@ namespace MessengerRando
 
         bool OnRandoFileResetConfirmation(string answer)
         {
-            Console.WriteLine($"In Method: OnResetRandoFileSlot. Provided value: '{answer}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In Method: OnResetRandoFileSlot. Provided value: '{answer}'");
             
             if(!"y".Equals(answer.ToLowerInvariant()))
             {
@@ -536,8 +536,8 @@ namespace MessengerRando
             {
                 sw.WriteLine(RandomizerConstants.SAVE_FILE_STRING);
             }
-            
-            Console.WriteLine("Save file written. Now loading file.");
+
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Save file written. Now loading file.");
             Manager<SaveManager>.Instance.LoadSaveGame();
             //Delete the existing save file selection ui since it really wants to hold on to the previous saves data.
             GameObject.Destroy(Manager<UIManager>.Instance.GetView<SaveGameSelectionScreen>().gameObject);
@@ -565,8 +565,8 @@ namespace MessengerRando
 
             //Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
-            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);                
-            Console.WriteLine("Teleporting to HQ!");
+            Manager<UIManager>.Instance.GetView<OptionScreen>().Close(false);
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Teleporting to HQ!");
             Courier.UI.ModOptionScreen.Close(false);
 
             //Fade the music out because musiception is annoying
@@ -578,7 +578,7 @@ namespace MessengerRando
 
         void OnSelectTeleportToNinjaVillage()
         {
-            Console.WriteLine("Attempting to teleport to Ninja Village.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Attempting to teleport to Ninja Village.");
             
             // Properly close out of the mod options and get the game state back together
             Manager<PauseManager>.Instance.Resume();
@@ -593,8 +593,8 @@ namespace MessengerRando
             Manager<ProgressionManager>.Instance.checkpointSaveInfo.loadedLevelPlayerPosition = new Vector2(-153.3f, -56.5f);
             LevelLoadingInfo levelLoadingInfo = new LevelLoadingInfo("Level_01_NinjaVillage_Build", false, true, LoadSceneMode.Single, ELevelEntranceID.NONE, dimension);
             Manager<LevelManager>.Instance.LoadLevel(levelLoadingInfo);
-            
-            Console.WriteLine("Teleport to Ninja Village complete.");
+
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Teleport to Ninja Village complete.");
         }
 
         /// <summary>
@@ -608,7 +608,7 @@ namespace MessengerRando
             
             if(randoStateManager.IsLocationRandomized(item, out ruxxAmuletLocation))
             {
-                Console.WriteLine($"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation]}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"IL Wackiness -- Checking for Item '{item}' | Rando item to return '{randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation]}'");
 
                 EItems randoItem = randoStateManager.CurrentLocationToItemMapping[ruxxAmuletLocation].Item;
                 
@@ -643,7 +643,7 @@ namespace MessengerRando
 
         private void OnSceneLoadedRando(Scene scene, LoadSceneMode mode)
         {
-            Console.WriteLine($"Scene loaded: '{scene.name}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Scene loaded: '{scene.name}'");
         }
     }
 }
