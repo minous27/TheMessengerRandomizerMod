@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Diagnostics;
 using MessengerRando.Overrides;
 using MessengerRando.Utils;
 using MessengerRando.RO;
@@ -21,9 +20,6 @@ namespace MessengerRando
     /// </summary>
     public class RandomizerMain : CourierModule
     {
-        private const string RANDO_OPTION_KEY = "minous27RandoSeeds";
-        private const int MAX_BEATABLE_SEED_ATTEMPTS = 1;
-
         private RandomizerStateManager randoStateManager;
         private RandomizerSaveMethod randomizerSaveMethod;
 
@@ -272,11 +268,6 @@ namespace MessengerRando
                     return orig(self);
                 }
 
-                //OLD WAY
-                //Don't actually check for the item i have, check to see if I have the item that was at it's location.
-                //int itemQuantity = Manager<InventoryManager>.Instance.GetItemQuantity(randoStateManager.CurrentLocationToItemMapping[check].Item);
-
-                //NEW WAY
                 //Don't actually check for the item I have, check to see if I have done this check before. We'll do this by seeing if the item at its location has been collected yet or not
                 int itemQuantity = randoStateManager.GetSeedForFileSlot(randoStateManager.CurrentFileSlot).CollectedItems.Contains(randoStateManager.CurrentLocationToItemMapping[check]) ? randoStateManager.CurrentLocationToItemMapping[check].Quantity : 0;
                 

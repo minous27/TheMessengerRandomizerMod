@@ -78,21 +78,7 @@ namespace MessengerRando.Utils
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
             Dictionary<EItems, string> itemToDialogIDMap = GetDialogIDtoItems();
             Dictionary<LocationRO, RandoItemRO> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-            /* OLD
-            foreach (KeyValuePair<LocationRO, RandoItemRO> KVP in current)
-            {
-                Console.WriteLine($"Dialog mapping -- {KVP.Key.PrettyLocationName}");
-                EItems LocationChecked = (EItems)Enum.Parse(typeof(EItems), KVP.Key.PrettyLocationName);
-                RandoItemRO ItemActuallyFound = KVP.Value;
-
-                if (ItemtoDialogIDMap.ContainsKey(LocationChecked) && ItemtoDialogIDMap.ContainsKey(ItemActuallyFound.Item))
-                {
-                    dialogmap.Add(ItemtoDialogIDMap[LocationChecked], ItemtoDialogIDMap[ItemActuallyFound.Item]);
-                    Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound.Item]} to the location {ItemtoDialogIDMap[LocationChecked]}");
-                }
-            }
-            */
-            
+                       
             //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
             foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
             {
