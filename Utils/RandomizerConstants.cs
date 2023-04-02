@@ -3,6 +3,9 @@ using MessengerRando.RO;
 
 namespace MessengerRando.Utils
 {
+    /// <summary>
+    /// Constants file for convenience
+    /// </summary>
     class RandomizerConstants
     {
         public static string LOGGER_TAG = "MessengerRando";

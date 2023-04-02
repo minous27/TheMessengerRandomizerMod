@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace MessengerRando.RO
 {
+    /// <summary>
+    /// Class that represents an item that has been randomly placed within the game.
+    /// </summary>
     public struct RandoItemRO
     {
         //some kind of unique identifier

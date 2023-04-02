@@ -11,7 +11,10 @@ using MessengerRando.Exceptions;
 
 namespace MessengerRando.Utils
 {
-    //This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
+
+    /// <summary>
+    /// This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
+    /// </summary>
     public class ItemRandomizerUtil
     {
         //Used to represent all the required items to complete this seed, along with what they currently block. This is to prevent self locks. 

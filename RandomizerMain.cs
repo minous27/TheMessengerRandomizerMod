@@ -16,7 +16,7 @@ using MessengerRando.Exceptions;
 namespace MessengerRando 
 {
     /// <summary>
-    /// Where it all begins! This class defines and injects all the necessary for the mod.
+    /// Where it all begins! This class defines and injects all the necessary things for the mod.
     /// </summary>
     public class RandomizerMain : CourierModule
     {

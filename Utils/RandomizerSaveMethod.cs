@@ -7,10 +7,12 @@ using Mod.Courier;
 
 namespace MessengerRando
 {
-
-    //Format for the mod save value: |{seed#}+{isLogicalSeed}&{Settings}&CollectedItems={collectedItems}&Mappings={mappingString}
+    /// <summary>
+    /// Class used to plug into the Courier mod saving functionality. Used for saving/loading whatever is necessary for the mod to work between plays.
+    /// </summary>
     public class RandomizerSaveMethod 
     {
+        //Format for the mod save value: |{seed#}+{isLogicalSeed}&{Settings}&CollectedItems={collectedItems}&Mappings={mappingString}
         private const char RANDO_OPTION_VALUE_DELIM = '|';
         private const char RANDO_OPTION_TYPE_DELIM = '+';
         private const char RANDO_OPTION_SETTING_DELIM = '&';

@@ -1,6 +1,9 @@
 ﻿
 namespace MessengerRando.RO
 {
+    /// <summary>
+    /// Class that represents a Location that an item could be acquired from.
+    /// </summary>
     public class LocationRO
     {
         public string LocationName { get; private set; }

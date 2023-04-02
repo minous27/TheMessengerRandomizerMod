@@ -6,6 +6,9 @@ using Mod.Courier;
 
 namespace MessengerRando
 {
+    /// <summary>
+    /// Class used to manage the state of the randomizer during play.
+    /// </summary>
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
