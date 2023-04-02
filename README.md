@@ -1,10 +1,6 @@
 # TheMessengerRandomizerMod
----
-## The beginning of rando for The Messenger! - Minous27
+The beginning of rando for The Messenger! - Minous27
 
-**This is the Work-in-Progress project for The Messenger Randomizer. Initial version of the mod currently in development.**
-
----
 ### Installation Instructions
 ---
 
@@ -14,7 +10,7 @@ Early builds of the randomizer mod will be fairly involved in their installation
 
 The Messenger Randomizer relies on the Courier Mod Loader to be properly loaded and handled by the game. If you have not already installed Courier, please follow the instructions to install it first then come back here to continue with the randomizer installation. Don't worry, I'll wait. :D
 
-**_PLEASE NOTE THAT THE RANDOMIZER MAY ONLY WORK WITH CERTAIN VERSIONS OF COURIER DURING THE COURSE OF BOTH APPLICATIONS' DEVELOPMENTS. VERSION 0.4 WAS BUILT WITH 'v0.7.0-alpha' BUT MAKE SURE YOU CONFIRM THE COURIER VERSION FOR THE RANDOMIZER VERSION YOU ARE INSTALLING(SHOULD BE IN THE RELEASE NOTES)_**
+**_PLEASE NOTE THAT THE RANDOMIZER MAY ONLY WORK WITH CERTAIN VERSIONS OF COURIER DURING THE COURSE OF BOTH APPLICATIONS' DEVELOPMENTS. VERSION 1.0 WAS BUILT WITH 'v0.7.0-alpha' BUT MAKE SURE YOU CONFIRM THE COURIER VERSION FOR THE RANDOMIZER VERSION YOU ARE INSTALLING(SHOULD BE IN THE RELEASE NOTES)_**
 
 [Courier Mod Loader](https://github.com/Brokemia/Courier#installation-instructions) 
 
@@ -34,6 +30,12 @@ Randomizer Wiki
 ---
 
 Please refer to [The Messenger Randomizer Wiki](https://github.com/minous27/TheMessengerRandomizerMod/wiki) for information on using the mod.
+
+---
+### Multiworld
+---
+
+Thanks to the great work by [alwaysintreble](https://github.com/alwaysintreble), multiworld through [Archipelago](https://archipelago.gg/) is available. Please refer to their [project](https://github.com/alwaysintreble/TheMessengerRandomizerModAP) for more info.
 
 ---
 ### Contact Us
