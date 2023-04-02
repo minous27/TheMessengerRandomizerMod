@@ -1,8 +1,8 @@
-﻿using MessengerRando.Archipelago;
-using MessengerRando.RO;
+﻿using MessengerRando.RO;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Mod.Courier;
 
 namespace MessengerRando.Utils
 {
@@ -51,9 +51,6 @@ namespace MessengerRando.Utils
             //Trying out timeshard
             itemDialogID.Add(EItems.TIME_SHARD, "AWARD_TIMESHARD");
 
-            //add a default for foreign items
-            itemDialogID.Add(EItems.NONE, "ARCHIPELAGO_ITEM");
-
             return itemDialogID;
         }
 
@@ -66,7 +63,10 @@ namespace MessengerRando.Utils
         public static string getDialogMapping(string dialogID)
         {
             Dictionary<string, string> mappings = RandomizerStateManager.Instance.CurrentLocationDialogtoRandomDialogMapping;
-            return mappings.ContainsKey(dialogID) ? mappings[dialogID] : dialogID;
+            if (mappings.ContainsKey(dialogID))
+                return mappings[dialogID];
+            else
+                return dialogID;
         }
 
         /// <summary>
@@ -79,60 +79,19 @@ namespace MessengerRando.Utils
             Dictionary<string, string> dialogmap = new Dictionary<string, string>();
             Dictionary<EItems, string> itemToDialogIDMap = GetDialogIDtoItems();
             Dictionary<LocationRO, RandoItemRO> current = RandomizerStateManager.Instance.CurrentLocationToItemMapping;
-            /* OLD
-            foreach (KeyValuePair<LocationRO, RandoItemRO> KVP in current)
-            {
-                Console.WriteLine($"Dialog mapping -- {KVP.Key.PrettyLocationName}");
-                EItems LocationChecked = (EItems)Enum.Parse(typeof(EItems), KVP.Key.PrettyLocationName);
-                RandoItemRO ItemActuallyFound = KVP.Value;
-
-                if (ItemtoDialogIDMap.ContainsKey(LocationChecked) && ItemtoDialogIDMap.ContainsKey(ItemActuallyFound.Item))
-                {
-                    dialogmap.Add(ItemtoDialogIDMap[LocationChecked], ItemtoDialogIDMap[ItemActuallyFound.Item]);
-                    Console.WriteLine($"We mapped item dialog {ItemtoDialogIDMap[ItemActuallyFound.Item]} to the location {ItemtoDialogIDMap[LocationChecked]}");
-                }
-            }
-            */
-            
+                       
             //I am gonna keep the mappings limited to basic locations since the advanced locations are handled by another process.
             foreach(LocationRO location in RandomizerConstants.GetRandoLocationList())
             {
-                //Console.WriteLine($"Dialog mapping -- {location.PrettyLocationName}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Dialog mapping -- {location.PrettyLocationName}");
                 EItems locationChecked = (EItems)Enum.Parse(typeof(EItems),location.PrettyLocationName);
-                if (!current.TryGetValue(location, out RandoItemRO itemActuallyFound))
+                RandoItemRO itemActuallyFound = current[location];
+                
+                if(itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
                 {
-                    //Console.WriteLine($"Couldn't get dialogue mapping for {location.PrettyLocationName}. Trying again...");
-                    if (ArchipelagoClient.HasConnected)
-                    {
-                        current = RandomizerStateManager.Instance.CurrentLocationToItemMapping = ArchipelagoClient.ServerData.LocationToItemMapping;
-                        current.TryGetValue(location, out itemActuallyFound);
-                    }
-                    continue;
+                    dialogmap.Add(itemToDialogIDMap[locationChecked], itemToDialogIDMap[itemActuallyFound.Item]);
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
                 }
-                try
-                {
-                    if (itemToDialogIDMap.ContainsKey(locationChecked) && itemToDialogIDMap.ContainsKey(itemActuallyFound.Item))
-                    {
-                        string outputText;
-                        if (ArchipelagoClient.HasConnected && EItems.NONE.Equals(itemActuallyFound.Item))
-                        {
-                            //If any future archipelago items have ~ in their names this will break as I'm using that
-                            //to split the string. Probably needs a better method.
-                            outputText = $"ARCHIPELAGO_ITEM~{itemActuallyFound.Name}~{itemActuallyFound.RecipientName}";
-                        }
-                        else
-                        {
-                            outputText = itemToDialogIDMap[itemActuallyFound.Item];
-                        }
-                        dialogmap.Add(itemToDialogIDMap[locationChecked], outputText);
-                        //Console.WriteLine($"We mapped item dialog {itemToDialogIDMap[itemActuallyFound.Item]} to the location {itemToDialogIDMap[locationChecked]}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Couldn't find {itemActuallyFound.Item} in itemToDialogIDMap");
-                    }
-                }
-                catch (Exception e) { Console.WriteLine(e.ToString()); }
             }
 
             return dialogmap;
@@ -186,7 +145,7 @@ namespace MessengerRando.Utils
                     if (dialogMap.ContainsKey(tobereplacedKey))
                     {
                         //Replaces the entire dialog
-                        if ("AWARD_TIMESHARD".Equals(replacewithKey))
+                        if("AWARD_TIMESHARD".Equals(replacewithKey))
                         {
                             //Timeshards don't have their own dialog. Gonna try to fake it.
                             DialogInfo timeShardDialog = new DialogInfo();
@@ -194,21 +153,10 @@ namespace MessengerRando.Utils
                             LocCopy[tobereplacedKey] = new List<DialogInfo>();
                             LocCopy[tobereplacedKey].Add(timeShardDialog);
                         }
-                        //Show what item we got for who in an Archipelago seed
-                        else if (replacewithKey.StartsWith("ARCHIPELAGO_ITEM"))
-                        {
-                            var text = replacewithKey.Split('~');
-                            DialogInfo archipelagoDialog = new DialogInfo();
-                            archipelagoDialog.text = ArchipelagoClient.ServerData.SlotName.Equals(text[2])
-                                ? $"Found {text[1]}."
-                                : $"Found {text[1]} for {text[2]}.";
-                            LocCopy[tobereplacedKey] = new List<DialogInfo> { archipelagoDialog };
-                        }
                         else
                         {
                             LocCopy[tobereplacedKey] = Loc[replacewithKey];
                         }
-
 
                         //Sets them to be all center and no portrait (This really only applies to phobekins but was 
                         LocCopy[tobereplacedKey][0].autoClose = false;

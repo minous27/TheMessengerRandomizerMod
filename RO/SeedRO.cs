@@ -5,6 +5,9 @@ using MessengerRando.Utils;
 
 namespace MessengerRando.RO
 {
+    /// <summary>
+    /// Class that represents the seed the player is playing.
+    /// </summary>
     [Serializable]
     public struct SeedRO
     {

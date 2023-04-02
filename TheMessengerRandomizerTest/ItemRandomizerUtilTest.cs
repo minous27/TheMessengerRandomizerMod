@@ -3,12 +3,7 @@ using System.Collections.Generic;
 using System;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using MessengerRando.Exceptions;
-using Mod.Courier;
-using Mod.Courier.Module;
-using System.Threading;
-using System.Text.Json;
-using UnityEngine;
+
 
 
 namespace TheMessengerRandomizerTest
@@ -16,18 +11,6 @@ namespace TheMessengerRandomizerTest
     [TestClass]
     public class ItemRandomizerUtilTest
     {
-        [TestMethod]
-        public void TestGetMod()
-        {
-            CourierModuleMetadata mod = new CourierModuleMetadata();
-            mod.Name = "TheMessengerRandomizer";
-            mod.VersionString = "3.5";
-            Courier.Mods.Add(mod);
-
-            string version = ItemRandomizerUtil.GetModVersion();
-
-            Assert.AreEqual(mod.VersionString, version);
-        }
 
         [TestMethod]
         public void TestIsSeedBeatablePredeterminedGoodSeed()

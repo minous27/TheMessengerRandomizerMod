@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using MessengerRando.Archipelago;
+﻿using System.Collections.Generic;
 using MessengerRando.Utils;
 using MessengerRando.RO;
-using MessengerRando.GameOverrideManagers;
+using Mod.Courier;
+
 
 namespace MessengerRando
 {
+    /// <summary>
+    /// Class used to manage the state of the randomizer during play.
+    /// </summary>
     class RandomizerStateManager
     {
         public static RandomizerStateManager Instance { private set; get; }
@@ -15,14 +17,6 @@ namespace MessengerRando
 
         public bool IsRandomizedFile { set; get; }
         public int CurrentFileSlot { set; get; }
-
-        public RandoPowerSealManager PowerSealManager;
-        public RandoBossManager BossManager;
-
-        public string Goal;
-        public bool SkipMusicBox = false;
-        public bool SkipPhantom = false;
-        public bool MegaShards = false;
 
         private Dictionary<int, SeedRO> seeds;
 
@@ -93,14 +87,14 @@ namespace MessengerRando
         public void ResetSeedForFileSlot(int fileSlot)
         {
             //Simply keeping resetting logic here in case I want to change it i'll only do so here
-            Console.WriteLine($"Resetting file slot '{fileSlot}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Resetting file slot '{fileSlot}'");
             if (seeds.ContainsKey(fileSlot))
             {
                 seeds[fileSlot] = new SeedRO(fileSlot, SeedType.None, 0, null, null, null);
                 if (DefeatedBosses == null) DefeatedBosses = new Dictionary<int, List<string>>();
                 DefeatedBosses[fileSlot] = new List<string>();
             }
-            Console.WriteLine("File slot reset complete.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "File slot reset complete.");
         }
 
         /// <summary>
@@ -155,19 +149,15 @@ namespace MessengerRando
             //Unsafe teleport states are shops/hq/boss fights
             bool isTeleportSafe = true;
 
-            //Console.WriteLine($"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
-            //Console.WriteLine($"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In ToT HQ: {Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy}");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"In Shop: {Manager<Shop>.Instance.gameObject.activeInHierarchy}");
 
             //ToT HQ or Shop
             if (Manager<TotHQ>.Instance.root.gameObject.activeInHierarchy || Manager<Shop>.Instance.gameObject.activeInHierarchy)
             {
                 isTeleportSafe = false;
             }
-            //Player is in a cutscene or recovering from taking damage
-            if (Manager<GameManager>.Instance.IsCutscenePlaying() || Manager<PlayerManager>.Instance.Player.IsInvincible())
-            {
-                isTeleportSafe = false;
-            }
+
             return isTeleportSafe;
         }
 
@@ -181,13 +171,6 @@ namespace MessengerRando
         {
             bool isLocationRandomized = false;
             locationFromItem = null;
-            
-            if (ArchipelagoClient.HasConnected)
-            {
-                locationFromItem = ItemsAndLocationsHandler.ArchipelagoLocations.Find(location => location.PrettyLocationName.Equals(vanillaLocationItem.ToString()));
-                if (locationFromItem != null ) isLocationRandomized = true;
-                return isLocationRandomized;
-            }
 
             //We'll check through notes first
             foreach (RandoItemRO note in RandomizerConstants.GetNotesList())
@@ -221,7 +204,7 @@ namespace MessengerRando
                 }
 
 
-                foreach (RandoItemRO item in CurrentLocationToItemMapping.Values)
+                foreach (RandoItemRO item in RandomizerConstants.GetRandoItemList())
                 {
                     if (item.Item.Equals(vanillaLocationItem))
                     { 
@@ -241,7 +224,6 @@ namespace MessengerRando
 
                     }
                 }
-
             }
 
             //Return whether we found it or not.
@@ -255,31 +237,30 @@ namespace MessengerRando
         {
             if(this.CurrentLocationToItemMapping != null)
             {
-                Console.WriteLine("----------------BEGIN Current Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------BEGIN Current Mappings----------------");
                 foreach (LocationRO check in this.CurrentLocationToItemMapping.Keys)
                 {
-                    Console.WriteLine($"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}' for {CurrentLocationToItemMapping[check].RecipientName}");
-                    //Console.WriteLine($"Item '{this.CurrentLocationToItemMapping[check]}' is located at Check '{check.PrettyLocationName}'");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Check '{check.PrettyLocationName}'({check.LocationName}) contains Item '{this.CurrentLocationToItemMapping[check]}'");
                 }
-                Console.WriteLine("----------------END Current Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------END Current Mappings----------------");
             }
             else
             {
-                Console.WriteLine("Location mappings were not set for this seed.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Location mappings were not set for this seed.");
             }
 
             if (CurrentLocationDialogtoRandomDialogMapping != null)
             {
-                Console.WriteLine("----------------BEGIN Current Dialog Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------BEGIN Current Dialog Mappings----------------");
                 foreach (KeyValuePair<string, string> KVP in CurrentLocationDialogtoRandomDialogMapping)
                 {
-                    Console.WriteLine($"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Dialog '{KVP.Value}' is located at Check '{KVP.Key}'");
                 }
-                Console.WriteLine("----------------END Current Dialog Mappings----------------");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "----------------END Current Dialog Mappings----------------");
             }
             else
             {
-                Console.WriteLine("Dialog mappings were not set for this seed.");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Dialog mappings were not set for this seed.");
             }
         }
 

@@ -11,7 +11,10 @@ using MessengerRando.Exceptions;
 
 namespace MessengerRando.Utils
 {
-    //This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
+
+    /// <summary>
+    /// This class will be responsible for handling the randomization of items to locations and generating the mapping dictionary.
+    /// </summary>
     public class ItemRandomizerUtil
     {
         //Used to represent all the required items to complete this seed, along with what they currently block. This is to prevent self locks. 
@@ -43,7 +46,7 @@ namespace MessengerRando.Utils
         public static string LoadMappingsFromFile(int fileSlot)
         {
             //Get a handle on the necessary mappings file
-            Console.WriteLine($"Attempting to load mappings from file for file slot '{fileSlot}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Attempting to load mappings from file for file slot '{fileSlot}'");
             return File.ReadAllText($@"Mods\TheMessengerRandomizerMappings\MessengerRandomizerMapping_{fileSlot}.txt");
         }
 
@@ -124,25 +127,25 @@ namespace MessengerRando.Utils
                 if (!collectedItemThisRound)
                 {
                     //This seed not beatable
-                    Console.WriteLine("\nSeed was deemed unbeatable.");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "\nSeed was deemed unbeatable.");
                     //Print out all the items collected so far
-                    Console.WriteLine($"Note Count: {player.NoteCount}");
-                    Console.WriteLine($"Collected Wingsuit: {player.HasWingsuit}");
-                    Console.WriteLine($"Collected Ropedart: {player.HasRopeDart}");
-                    Console.WriteLine($"Collected Ninja Tabis: {player.HasNinjaTabis}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Note Count: {player.NoteCount}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Collected Wingsuit: {player.HasWingsuit}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Collected Ropedart: {player.HasRopeDart}");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Collected Ninja Tabis: {player.HasNinjaTabis}");
 
                     foreach (RandoItemRO additionalItem in player.AdditionalItems)
                     {
-                        Console.WriteLine($"Additional Item Collected: {additionalItem}");
+                        CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Additional Item Collected: {additionalItem}");
                     }
-                    
+
 
                     //Print out remaining locations
-                    Console.WriteLine("\nRemaining location mappings:");
+                    CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Remaining location mappings:");
 
                     foreach(LocationRO location in mappings.Keys)
                     {
-                        Console.WriteLine($"Location: '{location.PrettyLocationName}' | Item at location: '{mappings[location].Name}'");
+                        CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Location: '{location.PrettyLocationName}' | Item at location: '{mappings[location].Name}'");
                     }
 
                     return false;
@@ -150,7 +153,7 @@ namespace MessengerRando.Utils
             }
 
             //We made it through the game with all 6 notes!
-            Console.WriteLine("Mapping successfully verified. This seed is beatable.");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Mapping successfully verified. This seed is beatable.");
             return true;
         }
 
@@ -167,7 +170,7 @@ namespace MessengerRando.Utils
 
             string seedInfo = Encoding.ASCII.GetString(bytes);
 
-            Console.WriteLine($"Decoded seed info string: '{seedInfo}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Decoded seed info string: '{seedInfo}'");
 
             return seedInfo;
         }
@@ -184,16 +187,16 @@ namespace MessengerRando.Utils
             string[] fullSeedInfoArr = seedInfo.Split('|');
 
             string mappingText = fullSeedInfoArr[0].Substring(fullSeedInfoArr[0].IndexOf('=') + 1);
-            Console.WriteLine($"Mapping text: '{mappingText}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Mapping text: '{mappingText}'");
 
             string settingsText = fullSeedInfoArr[1];
-            Console.WriteLine($"Settings text: '{settingsText}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Settings text: '{settingsText}'");
 
             string seedTypeText = fullSeedInfoArr[2];
-            Console.WriteLine($"Seed Type text: '{seedTypeText}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Seed Type text: '{seedTypeText}'");
 
             string seedNumStr = fullSeedInfoArr[3];
-            Console.WriteLine($"Seed Number text: '{seedTypeText}'");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Seed Number text: '{seedTypeText}'");
 
             
             //Settings
@@ -202,7 +205,7 @@ namespace MessengerRando.Utils
 
             foreach (string setting in settingsArr)
             {
-                Console.WriteLine($"Settings - Working with: '{setting}'");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Settings - Working with: '{setting}'");
                 string[] settingKV = setting.Split('=');
                 settings.Add((SettingType) Enum.Parse(typeof(SettingType), settingKV[0]), (SettingValue) Enum.Parse(typeof(SettingValue), settingKV[1]));
             }
@@ -298,7 +301,7 @@ namespace MessengerRando.Utils
 
             }
 
-            Console.WriteLine("Mapping parsed successfully!");
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Mapping parsed successfully!");
             return mappings;
         }
 

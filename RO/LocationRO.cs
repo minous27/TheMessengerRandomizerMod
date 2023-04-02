@@ -1,6 +1,9 @@
 ﻿
 namespace MessengerRando.RO
 {
+    /// <summary>
+    /// Class that represents a Location that an item could be acquired from.
+    /// </summary>
     public class LocationRO
     {
         public string LocationName { get; private set; }
@@ -23,10 +26,6 @@ namespace MessengerRando.RO
         }
 
         public LocationRO(string name) : this(name, name, new EItems[] { }, false, false, false){}
-
-        //overrides for archipelago since logic is already handled
-        public LocationRO(string name, EItems item) : this(name, item.ToString(), new EItems[] { }, false, false, false) { }
-        public LocationRO(string name, string prettyName) : this(name, prettyName, new EItems[] { }, false, false, false) { }
 
         public override bool Equals(object obj)
         {
