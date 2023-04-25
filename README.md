@@ -1,10 +1,13 @@
 # TheMessengerRandomizerMod
 The beginning of rando for The Messenger! - Minous27
 
-### Installation Instructions
+### Multiworld Setup
+**_Multiworld installation instructions may be different than the standard instructions laid out here. If you are installing the mod for the purposes of playing multiworld please follow the instructions in [The Messenger AP Setup Guide](https://archipelago.gg/tutorial/The%20Messenger/setup/en)_**
+
 ---
 
-Early builds of the randomizer mod will be fairly involved in their installation procedures. These will be improved with development of the mod.
+### Installation Instructions
+---
 
 #### Install Courier 
 
