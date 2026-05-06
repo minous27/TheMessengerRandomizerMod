@@ -9,9 +9,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 //Replacements to implement \ work out
-//  - Magic Firefly - Has sprite after fight, uses an animator
-//  Seems to be the same luciole that is used during the boss fight, with different waypoints.
-//  Will be funny to try replace its entire sprite before adding "defeat" conditions
+//  - Magic Firefly - Needs a condition to keep original sprite until after fight.
+//      Currently always replaces, bug or feature?
 
 
 
@@ -19,6 +18,7 @@ namespace MessengerRando.Utils
 {
     /// <summary>
     /// Class for replacing item sprites using their inventory icon
+    /// Actually just hides the real sprites and adds a new child component with a sprite renderer
     /// Future: Do proper replacements
     /// </summary>
     public static class SpriteReplacer
@@ -94,14 +94,14 @@ namespace MessengerRando.Utils
         //At this time unsure if REINIT is required.
         internal static void LevelInitializer_InitDone(On.LevelInitializer.orig_InitDone orig, LevelInitializer self)
         {
-            Console.WriteLine($"We should be Init level {LevelManager.Instance.GetCurrentLevelEnum()}");
+            CourierLogger.Log("SPRITE REPLACER", $"Init level {LevelManager.Instance.GetCurrentLevelEnum()}");
             orig(self);
             LevelInitializer_Rando(self);
         }
 
         internal static void LevelInitializer_ReinitDone(On.LevelInitializer.orig_ReinitDone orig, LevelInitializer self)
         {
-            Console.WriteLine($"We should be REINIT level {LevelManager.Instance.GetCurrentLevelEnum()}");
+            CourierLogger.Log("SPRITE REPLACER", $"REINIT level {LevelManager.Instance.GetCurrentLevelEnum()}");
             orig(self);
             LevelInitializer_Rando(self);
         }
@@ -130,15 +130,12 @@ namespace MessengerRando.Utils
         public static void ReplaceInWorldItem(EItems whichItem)
         {
             LocationRO randoItemCheck;
-            //if (!RandomizerStateManager.Instance.CurrentLocationToItemMapping.ContainsKey(LRO))
-            //    throw new RandomizerException($"Could not find a mapping for {whichItem}");
             if (!RandomizerStateManager.Instance.IsLocationRandomized(whichItem, out randoItemCheck))
                 throw new RandomizerException($"Could not find a mapping for {whichItem}");
 
 
             EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-            //if (InventoryManager.Instance == null)
-            //    throw new RandomizerException("Could not find the Inventory Manager");
+
 
 
             if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
@@ -225,10 +222,6 @@ namespace MessengerRando.Utils
 
             EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
 
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
             if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
                 throw new RandomizerException($"Skipping replacing sprite for {EItems.POWER_THISTLE}, already aquired item ({Key})");
 
@@ -241,7 +234,7 @@ namespace MessengerRando.Utils
 
             foreach (SpriteRenderer SR in origFlowerBed.GetComponentsInChildren<SpriteRenderer>())
             {
-                Console.WriteLine($"FLOWERBED SPRITE: {SR.sprite.name}");
+                CourierLogger.Log("SPRITE REPLACER", $"FLOWERBED SPRITE: {SR.sprite.name}");
                 if (SR.sprite.name.Contains("SearingCrags_16_PowerThistle_"))
                 {
                     origPowerThistle = SR;
@@ -280,7 +273,7 @@ namespace MessengerRando.Utils
 
 
 
-            Console.WriteLine($"[TEST] Replaced original FlowerBed");
+            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original FlowerBed");
         }
 
 
@@ -317,7 +310,7 @@ namespace MessengerRando.Utils
 
             foreach (SpriteRenderer SR in origRuxxtinTomb.GetComponentsInChildren<SpriteRenderer>())
             {
-                Console.WriteLine($"TOMB SPRITE: {SR.sprite.name}");
+                CourierLogger.Log("SPRITE REPLACER", $"TOMB SPRITE: {SR.sprite.name}");
                 if (SR.sortingOrder == 4)//.sprite.name.Contains("SearingCrags_16_PowerThistle_"))
                 {
                     origRuxxtinAmmy = SR;
@@ -356,7 +349,7 @@ namespace MessengerRando.Utils
 
 
 
-            Console.WriteLine($"[TEST] Replaced original Ruxxtin Ammy");
+            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Ruxxtin Ammy");
         }
 
 
@@ -426,7 +419,7 @@ namespace MessengerRando.Utils
 
             Console.Write($"NEW ART SHOULD BE AT GLOBAL POSITION {newArt.transform.position} WITH LOCAL POSITION {newArt.transform.localPosition}");
 
-            Console.WriteLine($"[TEST] Replaced original Demon Crown");
+            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Demon Crown");
         }
 
 
@@ -462,12 +455,6 @@ namespace MessengerRando.Utils
             {
                 throw new RandomizerException("Could not find original Luciole object");
             }
-            
-                
-            
-
-            
-
 
             origCrownSprite = origDemonCrown.transform.GetChild(6).GetChild(0).GetChild(1).GetComponent<SpriteRenderer>();
 
@@ -506,7 +493,7 @@ namespace MessengerRando.Utils
 
             Console.Write($"NEW ART SHOULD BE AT GLOBAL POSITION {newArt.transform.position} WITH LOCAL POSITION {newArt.transform.localPosition}");
 
-            Console.WriteLine($"[TEST] Replaced original Demon Crown");
+            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Demon Crown");
         }
 
 
@@ -523,7 +510,7 @@ namespace MessengerRando.Utils
         /// <param name="whichPhobekin">Which phobekin to replace if a phebekin is found</param>
         public static void ReplacePhobekin(EItems whichPhobekin = EItems.NONE)
         {
-            Console.WriteLine("ENTERING REPLACE PHOBEKIN");
+            CourierLogger.Log("SPRITE REPLACER", "ENTERING REPLACE PHOBEKIN");
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(whichPhobekin, out randoItemCheck))
@@ -539,7 +526,7 @@ namespace MessengerRando.Utils
                 return;
 
 
-            Console.WriteLine("SHOULD HAVE SOME OUTPUT");
+            CourierLogger.Log("SPRITE REPLACER", "SHOULD HAVE SOME OUTPUT");
 
             SpriteRenderer phobekinSpriteRenderer = null;
 
@@ -608,7 +595,7 @@ namespace MessengerRando.Utils
 
 
 
-            Console.WriteLine($"We successfully? replaced {whichPhobekin} with {Key}");
+            CourierLogger.Log("SPRITE REPLACER", $"We successfully? replaced {whichPhobekin} with {Key}");
 
         }
 
@@ -696,7 +683,7 @@ namespace MessengerRando.Utils
             if (ANC == null)
                 throw new RandomizerException("We failed to find the note object");
 
-            Console.WriteLine($"WE FOUND THE NOTE {whichNote}");
+            CourierLogger.Log("SPRITE REPLACER", $"WE FOUND THE NOTE {whichNote}");
 
             //At this point we have the correct Award Note Cutscene or we threw an exception.
 
@@ -708,7 +695,7 @@ namespace MessengerRando.Utils
 
             ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
 
-            Console.WriteLine($"HOLY SHIT NO ERROR {Key} - {noteRoot.name} - {itemDef.itemId}");
+            CourierLogger.Log("SPRITE REPLACER", $"HOLY SHIT NO ERROR {Key} - {noteRoot.name} - {itemDef.itemId}");
 
             Texture2D inventoryTex = itemDef.itemIcon;
             Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
@@ -737,11 +724,11 @@ namespace MessengerRando.Utils
 
 
 
-                Console.WriteLine($"We successfully? replaced {whichNote} with {Key}");
+                CourierLogger.Log("SPRITE REPLACER", $"We successfully? replaced {whichNote} with {Key}");
             }
             else
             {
-                Console.WriteLine("WE COULDNT FIND SR");
+                CourierLogger.Log("SPRITE REPLACER", "WE COULDNT FIND SR");
             }
         }
 
