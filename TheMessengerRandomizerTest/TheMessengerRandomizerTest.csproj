@@ -19,16 +19,16 @@
 
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\dlls\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="MMHOOK_Assembly-CSharp">
-      <HintPath>..\..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\MMHOOK_Assembly-CSharp.dll</HintPath>
+      <HintPath>..\dlls\MMHOOK_Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\dlls\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\..\..\Steam\steamapps\common\The Messenger\TheMessenger_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\dlls\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 

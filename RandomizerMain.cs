@@ -89,6 +89,11 @@ namespace MessengerRando
             On.DialogSequence.GetDialogList += DialogSequence_GetDialogList;
             On.LevelManager.OnLevelLoaded += LevelManager_onLevelLoaded;
 
+
+            On.LevelInitializer.InitDone += SpriteReplacer.LevelInitializer_InitDone;
+            On.Cutscene.OnCutsceneDone += SpriteReplacer.Cutscene_OnCutsceneDone;
+            On.NecrophobicWorkerCutscene.OnCutsceneDone += SpriteReplacer.NecrophobicWorkerCutscene_OnCutsceneDone;
+
             CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Randomizer finished loading!");
         }
 
