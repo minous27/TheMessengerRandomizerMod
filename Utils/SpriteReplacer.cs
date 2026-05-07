@@ -11,6 +11,8 @@ using UnityEngine.SceneManagement;
 //Replacements to implement \ work out
 //  - Magic Firefly - Needs a condition to keep original sprite until after fight.
 //      Currently always replaces, bug or feature?
+//  - Currently use the ingame HasItem script to hide sprites, but that breaks for advanced seeds that introduce time shards.
+//      Implement custom HasItem script to check states
 
 
 
@@ -23,27 +25,37 @@ namespace MessengerRando.Utils
     /// </summary>
     public static class SpriteReplacer
     {
+
+        private const string shardIcon = "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABJQTFRF5FwQ/KBE+Nh4UDAA////AAAAsL+JBQAAAGBJREFUeNqM0lEOwCAIA1Ba8f5Xnmi2LKFN7CdPQwRjmMQYU6RgylwCDdBCUgJTw6pLqHqCDfZ5Aace+OQPGREdwAOv/IAGUNB7lOzeHZYA4h37Dsys7HRvN2g/g8kjwAAOSQlBHBYXhAAAAABJRU5ErkJggg==";
+
+
+
         /// <summary>
         /// Determines which level is loaded and what sprites need replacing for each level
         /// </summary>
         /// <param name="LI">Level Initializer</param>
         static void LevelInitializer_Rando(LevelInitializer LI)
         {
-       
+
             if (LevelManager.Instance != null)
             {
                 //Which level are we loading the replacements
                 switch (LevelManager.Instance.GetCurrentLevelEnum())
                 {
+
+                    case ELevel.Level_01_NinjaVillage:
+                        //ReplacePowerSeal("-436-404-44-28");
+                        break;
                     case ELevel.Level_02_AutumnHills:
                         ReplaceNotes(EItems.KEY_OF_HOPE);
+                        //  ReplacePowerSeal("748780-76-60");
                         break;
                     case ELevel.Level_03_ForlornTemple:
                         ReplaceDemonCrown();
                         break;
                     case ELevel.Level_04_Catacombs:
                         ReplacePhobekin(EItems.NECROPHOBIC_WORKER);
-                        ReplaceRuxxtinRomb();
+                        ReplaceRuxxtinTomb();
                         break;
                     case ELevel.Level_04_C_RiviereTurquoise:
                         ReplaceFirefly();
@@ -61,11 +73,13 @@ namespace MessengerRando.Utils
                         break;
                     case ELevel.Level_07_QuillshroomMarsh:
                         ReplaceInWorldItem(EItems.SEASHELL);
+                        //    ReplacePowerSeal("204236-28-12");
                         break;
                     case ELevel.Level_08_SearingCrags:
                         ReplaceNotes(EItems.KEY_OF_STRENGTH); //Works
                         ReplacePhobekin(EItems.PYROPHOBIC_WORKER);
                         ReplaceFlowerBed();
+                        //ReplacePowerSeal("364396292308");
                         break;
                     case ELevel.Level_09_A_GlacialPeak:
                         break;
@@ -84,7 +98,8 @@ namespace MessengerRando.Utils
                         ReplaceNotes(EItems.KEY_OF_COURAGE);
                         break;
                 }
-
+                //Replace all powerseals
+                ReplacePowerSeals();
 
             }
         }
@@ -123,6 +138,69 @@ namespace MessengerRando.Utils
         }
 
 
+
+
+
+        /// <summary>
+        /// Replaces a power seal for advanced seeds
+        /// </summary>
+        public static void ReplacePowerSeals()
+        {
+            if (!RandomizerStateManager.Instance.IsRandomizedFile)
+                return;
+
+            //Find the level first and loop its room keys.
+            //Find the level setup object and look for the roomKey
+            GameObject levelSetup = GameObject.Find("/LevelSetup");
+            Level level = levelSetup.GetComponent<Level>();
+            LevelRoomDictionary LRD = level.LevelRooms;
+            foreach (KeyValuePair<string, LevelRoom> RoomData in LRD)
+            {
+                foreach (LocationRO randoItemCheck in RandomizerConstants.GetAdvancedRandoLocationList())
+                {
+                    if (randoItemCheck.LocationName.Equals(RoomData.Key))
+                    {
+                        if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+                        {
+                            CourierLogger.Log("Randomizer Exception", $"Skipping replacing sprite for Power Seal - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                            return;
+                        }
+
+
+                        foreach (GameObject go in RoomData.Value.roomObjects)
+                        {
+                            if (go.name.Equals("PowerSeal"))
+                            {
+
+                                Color tr = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+                                SpriteRenderer SR = go.transform.GetChild(1).GetChild(0).GetComponent<SpriteRenderer>();
+
+                                go.transform.GetChild(1).GetChild(1).GetComponent<SpriteRenderer>().color = tr;
+                                SR.color = tr;
+
+
+                                EItems itemIcon = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+                                replaceSprite(SR, itemIcon, new Vector3(0.0f, 0.0f, 0.0f));
+                                //Hiding of the icons is done differently for seals...
+
+
+
+                                //  AddHasItem(newArt, EItems.POWER_THISTLE);
+                            }
+                        }
+
+
+                    }
+                }
+            }
+
+
+
+            //  AddHasItem(newArt, EItems.POWER_THISTLE);
+
+        }
+
+
         /// <summary>
         /// Replaces an In World Items sprite
         /// </summary>
@@ -131,21 +209,22 @@ namespace MessengerRando.Utils
         {
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(whichItem, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {whichItem}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {whichItem}");
                 return;
+            }
+
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log("Randomizer Exception", $"Skipping replacing sprite for {whichItem} - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
 
             GameObject rootItem = null;
-            foreach(AwardItemCutscene AIC in Component.FindObjectsOfType<AwardItemCutscene>())
+            foreach (AwardItemCutscene AIC in Component.FindObjectsOfType<AwardItemCutscene>())
             {
-                if(AIC.item.Equals(whichItem))
+                if (AIC.item.Equals(whichItem))
                 {
                     rootItem = AIC.transform.root.gameObject;
                     break;
@@ -162,19 +241,34 @@ namespace MessengerRando.Utils
 
 
             if (rootItem == null)
-                throw new RandomizerException($"We failed to get the root gameobject for {whichItem}");
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to get the root gameobject for {whichItem}");
+                return;
+            }
+            EItems itemIcon = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            if (InventoryManager.Instance.GetItemDefinition(itemIcon) == null)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not get Item Definition for Item {itemIcon}");
+                return;
+            }
 
-
-            if (InventoryManager.Instance.GetItemDefinition(Key) == null)
-                throw new RandomizerException($"Could not get Item Definition for Item {Key}");
-
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
+            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(itemIcon);
 
             Texture2D inventoryTex = itemDef.itemIcon;
+
+            //Attempt to load our custom shard texture
+            if (itemIcon.Equals(EItems.TIME_SHARD))
+            {
+                inventoryTex = CreateTextureFromBase64(shardIcon);
+            }
+
+
             Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
             if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to create the sprite for {itemIcon}");
+                return;
+            }
 
 
             Transform artItem = rootItem.transform.Find("Art");
@@ -186,7 +280,7 @@ namespace MessengerRando.Utils
 
             if (artItem != null)
             {
-                foreach(SpriteRenderer SR in artItem.GetComponentsInChildren<SpriteRenderer>())
+                foreach (SpriteRenderer SR in artItem.GetComponentsInChildren<SpriteRenderer>())
                 {
                     if (whichItem.Equals(EItems.MAGIC_BOOTS) || whichItem.Equals(EItems.SEASHELL))
                     {
@@ -201,7 +295,7 @@ namespace MessengerRando.Utils
                             SR.material.shader = Shader.Find("Sprites/16_Bits");
                         }
                     }
-                        
+
                     SR.sprite = inventorySprite;
                 }
             }
@@ -217,63 +311,35 @@ namespace MessengerRando.Utils
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(EItems.POWER_THISTLE, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {EItems.POWER_THISTLE}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
-                throw new RandomizerException($"Skipping replacing sprite for {EItems.POWER_THISTLE}, already aquired item ({Key})");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {EItems.POWER_THISTLE}");
+                return;
+            }
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for Power Thistle - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
             SpriteRenderer origPowerThistle = null;
             //Find original FlowerBed
             GameObject origFlowerBed = GameObject.Find("/FlowerBed");
             if (origFlowerBed == null)
-                throw new RandomizerException("Could not find original FlowerBed object");
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Could not find original FlowerBed object");
+                return;
+            }
 
             foreach (SpriteRenderer SR in origFlowerBed.GetComponentsInChildren<SpriteRenderer>())
             {
-                CourierLogger.Log("SPRITE REPLACER", $"FLOWERBED SPRITE: {SR.sprite.name}");
                 if (SR.sprite.name.Contains("SearingCrags_16_PowerThistle_"))
                 {
                     origPowerThistle = SR;
                     break;
                 }
             }
-
-            if (origPowerThistle == null)
-                throw new RandomizerException("Could not find original PowerThistle object");
-
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
-
-            Texture2D inventoryTex = itemDef.itemIcon;
-            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
-            if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-
-
-            origPowerThistle.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
-            GameObject newArt = new GameObject();
-            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
-            newSprite.sprite = inventorySprite;
-            newSprite.sortingLayerID = origPowerThistle.sortingLayerID;
-            newSprite.sortingOrder = origPowerThistle.sortingOrder;
-            newSprite.sortingLayerName = origPowerThistle.sortingLayerName;
-            newSprite.material.shader = Shader.Find("Sprites/16_Bits");
-
-            //Setting up the sprite changes
-            newArt.transform.SetParent(origPowerThistle.gameObject.transform);
-            newArt.transform.localPosition = origPowerThistle.transform.localPosition + new Vector3(-0.75f, 1.0f, 0.0f);
-
-
-            AddHasItem(newArt, EItems.POWER_THISTLE);
-
-
-
-            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original FlowerBed");
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            replaceSprite(origPowerThistle, Key, new Vector3(-0.75f, 1.0f, 0.0f));
         }
 
 
@@ -283,73 +349,41 @@ namespace MessengerRando.Utils
         /// <summary>
         /// Replaces the Ruxxtin Ammy sprite section of Ruxtins Tomb
         /// </summary>
-        public static void ReplaceRuxxtinRomb()
+        public static void ReplaceRuxxtinTomb()
         {
 
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(EItems.RUXXTIN_AMULET, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {EItems.RUXXTIN_AMULET}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
-                throw new RandomizerException($"Skipping replacing sprite for {EItems.DEMON_KING_CROWN}, already aquired item ({Key})");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {EItems.RUXXTIN_AMULET}");
+                return;
+            }
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for Ruxxtin Amulet - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
             SpriteRenderer origRuxxtinAmmy = null;
             //Find original FlowerBed
             GameObject origRuxxtinTomb = GameObject.Find("/RuxxtinTomb");
             if (origRuxxtinTomb == null)
-                throw new RandomizerException("Could not find original FlowerBed object");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Could not find original Ruxxtin Tomb object");
+                return;
+            }
             foreach (SpriteRenderer SR in origRuxxtinTomb.GetComponentsInChildren<SpriteRenderer>())
             {
-                CourierLogger.Log("SPRITE REPLACER", $"TOMB SPRITE: {SR.sprite.name}");
-                if (SR.sortingOrder == 4)//.sprite.name.Contains("SearingCrags_16_PowerThistle_"))
+
+                if (SR.sortingOrder == 4)
                 {
                     origRuxxtinAmmy = SR;
                     break;
                 }
             }
-
-            if (origRuxxtinAmmy == null)
-                throw new RandomizerException("Could not find original Ruxxtin Ammulet object");
-
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
-
-            Texture2D inventoryTex = itemDef.itemIcon;
-            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
-            if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-
-
-            origRuxxtinAmmy.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
-            GameObject newArt = new GameObject();
-            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
-            newSprite.sprite = inventorySprite;
-            newSprite.sortingLayerID = origRuxxtinAmmy.sortingLayerID;
-            newSprite.sortingOrder = origRuxxtinAmmy.sortingOrder;
-            newSprite.sortingLayerName = origRuxxtinAmmy.sortingLayerName;
-            newSprite.material.shader = Shader.Find("Sprites/16_Bits");
-
-            //Setting up the sprite changes
-            newArt.transform.SetParent(origRuxxtinAmmy.gameObject.transform);
-            newArt.transform.localPosition = origRuxxtinAmmy.transform.localPosition + new Vector3(-0.0f, 3.0f, 0.0f);
-
-
-            AddHasItem(newArt, EItems.RUXXTIN_AMULET);
-
-
-
-            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Ruxxtin Ammy");
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            replaceSprite(origRuxxtinAmmy, Key, new Vector3(0.0f, 3.0f, 0.0f));
         }
 
 
@@ -363,63 +397,27 @@ namespace MessengerRando.Utils
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(EItems.DEMON_KING_CROWN, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {EItems.DEMON_KING_CROWN}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
-                throw new RandomizerException($"Skipping replacing sprite for {EItems.DEMON_KING_CROWN}, already aquired item ({Key})");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {EItems.DEMON_KING_CROWN}");
+                return;
+            }
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for Demon King Crown - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
             SpriteRenderer origCrownSprite = null;
             //Find original FlowerBed
             GameObject origDemonCrown = GameObject.Find("/BossFight/OutroCutscene/Crown");
             if (origDemonCrown == null)
-                throw new RandomizerException("Could not find original FlowerBed object");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Could not find original Demon King Crown object");
+                return;
+            }
             origCrownSprite = origDemonCrown.GetComponent<SpriteRenderer>();
-
-            if (origCrownSprite == null)
-                throw new RandomizerException("Could not find original PowerThistle object");
-
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
-
-            Texture2D inventoryTex = itemDef.itemIcon;
-            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
-            if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-
-            //origCrownSprite.sprite = inventorySprite;
-            origCrownSprite.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
-            GameObject newArt = new GameObject();
-            //newArt.gameObject.transform.position = origDemonCrown.transform.position;
-            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
-            newSprite.sprite = inventorySprite;
-            newSprite.sortingLayerID = origCrownSprite.sortingLayerID;
-            newSprite.sortingOrder = origCrownSprite.sortingOrder;
-            newSprite.sortingLayerName = origCrownSprite.sortingLayerName;
-            
-
-            GraphicDimensionSwap GDSS = newSprite.gameObject.AddComponent<GraphicDimensionSwap>();
-            GDSS.spriteRenderer = newSprite;
-
-            //Setting up the sprite changes
-            newArt.transform.SetParent(origCrownSprite.gameObject.transform);
-            newArt.transform.localPosition = new Vector3(-0.0f, 0.0f, 0.0f);
-
-
-            AddHasItem(newArt, EItems.DEMON_KING_CROWN);
-
-            Console.Write($"NEW ART SHOULD BE AT GLOBAL POSITION {newArt.transform.position} WITH LOCAL POSITION {newArt.transform.localPosition}");
-
-            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Demon Crown");
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            replaceSprite(origCrownSprite, Key, new Vector3(0.0f, 0.0f, 0.0f));
         }
 
 
@@ -427,7 +425,7 @@ namespace MessengerRando.Utils
 
 
         /// <summary>
-        /// Replaces the Demon Crown sprite section of Ruxtins Tomb
+        /// Replaces the Firefly
         /// </summary>
         public static void ReplaceFirefly()
         {
@@ -435,65 +433,29 @@ namespace MessengerRando.Utils
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(EItems.FAIRY_BOTTLE, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {EItems.FAIRY_BOTTLE}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
-                throw new RandomizerException($"Skipping replacing sprite for {EItems.FAIRY_BOTTLE}, already aquired item ({Key})");
-
-
-            SpriteRenderer origCrownSprite = null;
-            //Find original FlowerBed
-            GameObject origDemonCrown = GameObject.Find("/BossFight");
-            if (origDemonCrown == null)
             {
-                throw new RandomizerException("Could not find original Luciole object");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {EItems.FAIRY_BOTTLE}");
+                return;
             }
 
-            origCrownSprite = origDemonCrown.transform.GetChild(6).GetChild(0).GetChild(1).GetComponent<SpriteRenderer>();
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for Fairy Bottle - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
-            if (origCrownSprite == null)
-                throw new RandomizerException("Could not find original Luciole Sprite object");
+            SpriteRenderer origFireflySprite = null;
+            //Find original FlowerBed
+            GameObject origFireFly = GameObject.Find("/BossFight");
+            if (origFireFly == null)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, "Could not find original Luciole object");
+                return;
+            }
 
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
-
-            Texture2D inventoryTex = itemDef.itemIcon;
-            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
-            if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-
-            //origCrownSprite.sprite = inventorySprite;
-            origCrownSprite.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
-            GameObject newArt = new GameObject();
-            //newArt.gameObject.transform.position = origDemonCrown.transform.position;
-            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
-            newSprite.sprite = inventorySprite;
-            newSprite.sortingLayerID = origCrownSprite.sortingLayerID;
-            newSprite.sortingOrder = origCrownSprite.sortingOrder;
-            newSprite.sortingLayerName = origCrownSprite.sortingLayerName;
-
-
-            GraphicDimensionSwap GDSS = newSprite.gameObject.AddComponent<GraphicDimensionSwap>();
-            GDSS.spriteRenderer = newSprite;
-
-            //Setting up the sprite changes
-            newArt.transform.SetParent(origCrownSprite.gameObject.transform);
-            newArt.transform.localPosition = new Vector3(-0.0f, 0.0f, 0.0f);
-
-
-            AddHasItem(newArt, EItems.FAIRY_BOTTLE);
-
-            Console.Write($"NEW ART SHOULD BE AT GLOBAL POSITION {newArt.transform.position} WITH LOCAL POSITION {newArt.transform.localPosition}");
-
-            CourierLogger.Log("SPRITE REPLACER", $"[TEST] Replaced original Demon Crown");
+            origFireflySprite = origFireFly.transform.GetChild(6).GetChild(0).GetChild(1).GetComponent<SpriteRenderer>();
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            replaceSprite(origFireflySprite, Key, new Vector3(0.0f, 0.0f, 0.0f));
         }
 
 
@@ -510,23 +472,21 @@ namespace MessengerRando.Utils
         /// <param name="whichPhobekin">Which phobekin to replace if a phebekin is found</param>
         public static void ReplacePhobekin(EItems whichPhobekin = EItems.NONE)
         {
-            CourierLogger.Log("SPRITE REPLACER", "ENTERING REPLACE PHOBEKIN");
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(whichPhobekin, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {whichPhobekin}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {whichPhobekin}");
                 return;
+            }
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for {whichPhobekin} - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
 
 
-            CourierLogger.Log("SPRITE REPLACER", "SHOULD HAVE SOME OUTPUT");
+
 
             SpriteRenderer phobekinSpriteRenderer = null;
 
@@ -556,46 +516,8 @@ namespace MessengerRando.Utils
 
 
             }
-
-            if (phobekinSpriteRenderer == null)
-                throw new RandomizerException($"We could not find a matching Sprite Renderer for {whichPhobekin}");
-
-
-
-            if (InventoryManager.Instance.GetItemDefinition(Key) == null)
-                throw new RandomizerException($"Could not get Item Definition for Item {Key}");
-
-            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
-
-            Texture2D inventoryTex = itemDef.itemIcon;
-            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
-            if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-
-
-            phobekinSpriteRenderer.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
-            GameObject newArt = new GameObject();
-            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
-            newSprite.sprite = inventorySprite;
-            newSprite.sortingLayerID = phobekinSpriteRenderer.sortingLayerID;
-            newSprite.sortingOrder = phobekinSpriteRenderer.sortingOrder;
-            newSprite.sortingLayerName = phobekinSpriteRenderer.sortingLayerName;
-
-                GraphicDimensionSwap GDSS = newSprite.gameObject.AddComponent<GraphicDimensionSwap>();
-                GDSS.spriteRenderer = newSprite;
-
-                //Setting up the sprite changes
-                newArt.transform.SetParent(phobekinSpriteRenderer.gameObject.transform);
-                newArt.transform.localPosition = new Vector3(0.0f, 0.5f, 0.0f);
-
-
-                AddHasItem(newArt, whichPhobekin);
-
-
-
-            CourierLogger.Log("SPRITE REPLACER", $"We successfully? replaced {whichPhobekin} with {Key}");
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
+            replaceSprite(phobekinSpriteRenderer, Key, new Vector3(0.0f, 0.5f, 0.0f));
 
         }
 
@@ -611,16 +533,17 @@ namespace MessengerRando.Utils
             ////What Item should be placed here?
             LocationRO randoItemCheck;
             if (!RandomizerStateManager.Instance.IsLocationRandomized(whichNote, out randoItemCheck))
-                throw new RandomizerException($"Could not find a mapping for {whichNote}");
-
-
-            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
-            if (InventoryManager.Instance == null)
-                throw new RandomizerException("Could not find the Inventory Manager");
-
-
-            if (InventoryManager.Instance.GetItemQuantity(Key) > 0)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not find a mapping for {whichNote}");
                 return;
+            }
+            if (RandomizerStateManager.Instance.GetSeedForFileSlot(RandomizerStateManager.Instance.CurrentFileSlot).CollectedItems.Contains(RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]))
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Skipping replacing sprite for {whichNote} - Reason: Have rando item '{RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck]}' already");
+                return;
+            }
+
+
 
             AwardNoteCutscene ANC = null;
 
@@ -673,7 +596,7 @@ namespace MessengerRando.Utils
                     ANC = Component.FindObjectOfType<AwardNoteCutscene>();
                     break;
                 default:
-                    throw new RandomizerException($"We could not find the note: {whichNote}");
+                    break;
             }
 
 
@@ -681,55 +604,58 @@ namespace MessengerRando.Utils
 
             //Check nothing failed before doing the replacement.
             if (ANC == null)
-                throw new RandomizerException("We failed to find the note object");
-
-            CourierLogger.Log("SPRITE REPLACER", $"WE FOUND THE NOTE {whichNote}");
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to find the root note object for {whichNote}");
+                return;
+            }
 
             //At this point we have the correct Award Note Cutscene or we threw an exception.
 
 
             GameObject noteRoot = ANC.gameObject;
-
+            EItems Key = RandomizerStateManager.Instance.CurrentLocationToItemMapping[randoItemCheck].Item;
             if (InventoryManager.Instance.GetItemDefinition(Key) == null)
-                throw new RandomizerException($"Could not get Item Definition for Item {Key}");
-
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not get Item Definition for Item {Key}");
+                return;
+            }
             ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(Key);
 
-            CourierLogger.Log("SPRITE REPLACER", $"HOLY SHIT NO ERROR {Key} - {noteRoot.name} - {itemDef.itemId}");
-
             Texture2D inventoryTex = itemDef.itemIcon;
+
+            //Attempt to load our custom shard texture
+            if (Key.Equals(EItems.TIME_SHARD))
+            {
+                inventoryTex = CreateTextureFromBase64(shardIcon);
+            }
+
             Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
             if (inventorySprite == null)
-                throw new RandomizerException($"We failed to create the sprite for {Key}");
-
-            CourierLogger.Log("SPRITE REPLACER", "WE HAVE NOT ERRORED 1");
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to create the sprite for {Key}");
+                return;
+            }
             SpriteRenderer SR = noteRoot.GetComponentInChildren<SpriteRenderer>();
-            if (SR != null)
+            if (SR == null)
             {
-                SR.sprite = inventorySprite;
-
-                //Notes are always collectable even if normally invisible in 8bit, this makes them visible in all dimensions
-                GraphicDimensionSwap GDS = SR.gameObject.AddComponent<GraphicDimensionSwap>();
-                GDS.spriteRenderer = SR;
-
-                //WE WANT BOTH DIM PARTICLES!
-                ParticleSystemRenderer[] PSA = noteRoot.GetComponentsInChildren<ParticleSystemRenderer>();
-                CourierLogger.Log("SPRITE REPLACER", "WE HAVE NOT ERRORED 3");
-                foreach (ParticleSystemRenderer PS in PSA)
-                {
-                    GraphicDimensionSwap GDSS = PS.gameObject.AddComponent<GraphicDimensionSwap>();
-                    GDSS.spriteRenderer = PS;
-                }
- 
-
-
-
-                CourierLogger.Log("SPRITE REPLACER", $"We successfully? replaced {whichNote} with {Key}");
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to get the sprite renderer for the note {whichNote}");
+                return;
             }
-            else
+
+            SR.sprite = inventorySprite;
+
+            //Notes are always collectable even if normally invisible in 8bit, this makes them visible in all dimensions
+            GraphicDimensionSwap GDS = SR.gameObject.AddComponent<GraphicDimensionSwap>();
+            GDS.spriteRenderer = SR;
+
+            //WE WANT BOTH DIM PARTICLES!
+            ParticleSystemRenderer[] PSA = noteRoot.GetComponentsInChildren<ParticleSystemRenderer>();
+            foreach (ParticleSystemRenderer PS in PSA)
             {
-                CourierLogger.Log("SPRITE REPLACER", "WE COULDNT FIND SR");
+                GraphicDimensionSwap GDSS = PS.gameObject.AddComponent<GraphicDimensionSwap>();
+                GDSS.spriteRenderer = PS;
             }
+
         }
 
         /// <summary>
@@ -739,31 +665,99 @@ namespace MessengerRando.Utils
         /// <param name="theItem">The Item</param>
         /// <param name="theOperator">The Operator</param>
         /// <param name="theQuantity">The Quantity</param>
-        private static void AddHasItem(GameObject GO, EItems theItem, EConditionOperator theOperator = EConditionOperator.LESS_OR_EQUAL, int theQuantity = 0)
+        //private static void AddHasItem(GameObject GO, EItems theItem, LocationRO location, EConditionOperator theOperator = EConditionOperator.LESS_OR_EQUAL, int theQuantity = 0)
+        //{
+        //    //Adds a HasItem for the current rando Item
+        //    HasRandoItem NHA = GO.AddComponent<HasRandoItem>();
+        //    NHA.currentLocation = location;
+
+        //    //Sets up an Object Activator to hide the art once collected
+        //    ObjectActivator OA = GO.AddComponent<ObjectActivator>();
+        //    ConditionGroup CG = new ConditionGroup();
+        //    ConditionList CL = new ConditionList();
+        //    CL.conditionGroups = new List<ConditionGroup>();
+        //    //Sets the owner of the HasItem to the ObjectActivator
+        //    NHA.Owner = OA;
+        //    //Adds the condition to the condition group, and the Condition List to the Object Activators condition list.
+        //    CG.conditions.Add(NHA);
+        //    CL.conditionGroups.Add(CG);
+        //    OA.activeConditionList = CL;
+        //    //Inits the ConditionGroup
+        //    CG.Init();
+
+        //    //Refreshes the initial ObjectActivator State
+        //    if (Level.Instance != null)
+        //        Level.Instance.UpdateObjectActivators();
+        //}
+
+        private static void replaceSprite(SpriteRenderer itemSR, EItems newItem, Vector3 localOffset)
         {
-            //Adds a HasItem for the current rando Item
-            HasItem NHA = GO.AddComponent<HasItem>();
-            NHA.item = theItem;
-            NHA.conditionOperator = EConditionOperator.LESS_OR_EQUAL;
-            NHA.quantityToHave = 0;
 
-            //Sets up an Object Activator to hide the art once collected
-            ObjectActivator OA = GO.AddComponent<ObjectActivator>();
-            ConditionGroup CG = new ConditionGroup();
-            ConditionList CL = new ConditionList();
-            CL.conditionGroups = new List<ConditionGroup>();
-            //Sets the owner of the HasItem to the ObjectActivator
-            NHA.Owner = OA;
-            //Adds the condition to the condition group, and the Condition List to the Object Activators condition list.
-            CG.conditions.Add(NHA);
-            CL.conditionGroups.Add(CG);
-            OA.activeConditionList = CL;
-            //Inits the ConditionGroup
-            CG.Init();
+            if (itemSR == null)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We could not find a matching Sprite Renderer");
+                return;
+            }
 
-            //Refreshes the initial ObjectActivator State
-            if (Level.Instance != null)
-                Level.Instance.UpdateObjectActivators();
+            //Technically should never happen
+            if (InventoryManager.Instance.GetItemDefinition(newItem) == null)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Could not get Item Definition for Item {newItem}");
+                return;
+            }
+
+            ItemDefinition itemDef = InventoryManager.Instance.GetItemDefinition(newItem);
+
+            Texture2D inventoryTex = itemDef.itemIcon;
+
+            //Attempt to load our custom shard texture
+            if (newItem.Equals(EItems.TIME_SHARD))
+            {
+                inventoryTex = CreateTextureFromBase64(shardIcon);
+            }
+
+            Sprite inventorySprite = Sprite.Create(inventoryTex, new Rect(0.0f, 0.0f, inventoryTex.width, inventoryTex.height), new Vector2(0.5f, 0.5f), 20.0f);
+            if (inventorySprite == null)
+            {
+                CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"We failed to create the sprite for {newItem}");
+            }
+
+
+
+            itemSR.color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+            //Then we add our own Sprite Renderer and apply the correct shader depending on which dimension the original object should be in.
+            GameObject newArt = new GameObject();
+            SpriteRenderer newSprite = newArt.AddComponent<SpriteRenderer>();
+            newSprite.sprite = inventorySprite;
+            newSprite.sortingLayerID = itemSR.sortingLayerID;
+            newSprite.sortingOrder = itemSR.sortingOrder;
+            newSprite.sortingLayerName = itemSR.sortingLayerName;
+
+            GraphicDimensionSwap GDSS = newSprite.gameObject.AddComponent<GraphicDimensionSwap>();
+            GDSS.spriteRenderer = newSprite;
+
+            //Setting up the sprite changes
+            newArt.transform.SetParent(itemSR.gameObject.transform);
+            newArt.transform.localPosition = localOffset;
+
+
+            //AddHasItem(newArt, whichPhobekin, location: randoItemCheck);
+        }
+
+
+
+        public static Texture2D CreateTextureFromBase64(string base64Data)
+        {
+            byte[] imageBytes = Convert.FromBase64String(base64Data);
+
+            Texture2D tex = new Texture2D(2, 2);
+
+            if (tex.LoadImage(imageBytes))
+            {
+                return tex;
+            }
+            CourierLogger.Log(RandomizerConstants.LOGGER_TAG, $"Failed to load custom shard icon!");
+            return null;
         }
     }
 }
