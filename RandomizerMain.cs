@@ -129,6 +129,7 @@ namespace MessengerRando
             orig(self, teleportedInRoom);
         }
 
+
         List<DialogInfo> DialogSequence_GetDialogList(On.DialogSequence.orig_GetDialogList orig, DialogSequence self)
         {
             //Using this function to add some of my own dialog stuff to the game.
@@ -199,7 +200,7 @@ namespace MessengerRando
                 //Save
                 Save.seedData = randomizerSaveMethod.GenerateSaveData();
             }
-            
+
             //Call original add with items
             orig(self, itemId, quantity);
             

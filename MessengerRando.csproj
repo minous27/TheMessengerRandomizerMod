@@ -92,7 +92,7 @@
     <Compile Include="RO\SeedRO.cs" />
     <Compile Include="RO\LocationRO.cs" />
     <Compile Include="Scripts\HasRandoItem.cs" />
-    <Compile Include="Utils\GraphicDimensionSwap.cs" />
+    <Compile Include="Scripts\GraphicDimensionSwap.cs" />
     <Compile Include="Utils\RandoSave.cs" />
     <Compile Include="Utils\SettingValue.cs" />
     <Compile Include="Utils\SettingType.cs" />
